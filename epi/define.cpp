@@ -196,7 +196,7 @@ namespace EPI {
 	}
 	template<typename T, typename... U>
 	bool CellSet4d::hasState(T s, U... rest) const {
-		return (_mm256_testz_pd(this->state.smask[s], this->state.smask[s]) == 0 || hasState(rest);
+		return (_mm256_testz_pd(this->state.smask[s], this->state.smask[s]) == 0 || hasState(rest...));
 	}
 
 	bool CellSet4d::hasState()const {
