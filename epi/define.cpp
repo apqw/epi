@@ -394,9 +394,9 @@ namespace EPI {
 	__m256d Ca2P::FP(const CellSet4d& cset, const __m256d& A) {
 		return _mm256_div_pd(_mm256_mul_pd(Kpa(cset), A), _mm256_add_pd(H0_4d, A));
 	}
-	__m256d Ca2P::Fh(const __m256d &c, const __m256d & h) {
+	__m256d Ca2P::Fh(const CellSet4d& cset) {
 		__m256d K2Sq = _mm256_mul_pd(K2_4d, K2_4d);
-		return _mm256_sub_pd(_mm256_div_pd(K2Sq, _mm256_add_pd(c, K2Sq)), h);
+		return _mm256_sub_pd(_mm256_div_pd(K2Sq, _mm256_add_pd(cset.c, K2Sq)), cset.h);
 	}
 
 	__m256d Ca2P::Fw(const __m256d &wij, const __m256d &ci, const __m256d &cj) {
@@ -410,8 +410,25 @@ namespace EPI {
 			wij
 			);
 	}
-	__m256d Ca2P::tau_h(const __m256d & Ski) {
-		return _mm256_add_pd(tau_g_4d, _mm256_mul_pd(_mm256_sub_pd(tau_s_4d, tau_g_4d), tanh_alt(_mm256_div_pd(_mm256_sub_pd(Ss_4d, Ski), delta_tau_4d))));
+	__m256d Ca2P::tau_h(const CellSet4d& cset) {
+
+		__m256d mask = cset.state.getORMask(FIX, MUSUME);
+		__m256d age = _mm256_or_pd(_mm256_and_pd(mask, cset.ageb), _mm256_andnot_pd(mask, cset.agek));
+		__m256d alive_val = _mm256_add_pd(tau_g_4d, _mm256_mul_pd(_mm256_sub_pd(tau_s_4d, tau_g_4d), tanh_alt(_mm256_div_pd(_mm256_sub_pd(Ss_4d, age), delta_tau_4d))));
+		//__m256d fixmusume_val = ks_4d;
+		__m256d not_alive_but_fix_or_musume = _mm256_andnot_pd(cset.state.smask[ALIVE], mask);
+		__m256d not_alive_nor_fix_nor_musume = _mm256_andnot_pd(cset.state.smask[ALIVE], _mm256_andnot_pd(mask, PState4d::all1));
+
+		return _mm256_or_pd(
+
+			_mm256_and_pd(cset.state.smask[ALIVE], alive_val),
+
+			_mm256_or_pd(
+				_mm256_and_pd(not_alive_but_fix_or_musume, tau_s_4d),
+				_mm256_and_pd(not_alive_nor_fix_nor_musume, zero_4d)
+				)
+			);
+		//return _mm256_add_pd(tau_g_4d, _mm256_mul_pd(_mm256_sub_pd(tau_s_4d, tau_g_4d), tanh_alt(_mm256_div_pd(_mm256_sub_pd(Ss_4d, Ski), delta_tau_4d))));
 	}
 	__m256d Ca2P::In(const CellSet4d& cset) {
 		__m256d mask = cset.state.getORMask(FIX, MUSUME);
@@ -435,7 +452,7 @@ namespace EPI {
 
 			_mm256_or_pd(
 				_mm256_and_pd(not_alive_but_fix_or_musume, ks_4d),
-				_mm256_and_pd(not_alive_nor_fix_nor_musume, zero_4d)
+				_mm256_and_pd(not_alive_nor_fix_nor_musume, zero_4d) //intentionally cause zero div -> error
 				)
 			);
 
@@ -452,7 +469,7 @@ namespace EPI {
 
 		int prev_x_idx, next_x_idx, prev_y_idx, next_y_idx, prev_z_idx, next_z_idx;
 
-		int _i, _i1, _i2, _i3, _i4;
+		double _i, _i1, _i2, _i3, _i4;
 		__m256d _sum = { 0 };
 		__m256d x_next_sub, x_prev_sub, y_next_sub, y_prev_sub, z_next_sub, z_prev_sub, sub_sum;
 		__m256d x_tmp;
@@ -625,6 +642,7 @@ namespace EPI {
 		VSet4d lat;
 		std::fill(diff_c_out.begin(), diff_c_out.end(), C::zero_4d);
 		for (int i = calc_index_min / 4; i < calc_index_max / 4; i++) {
+			react_val = { 0 };
 			main_cond_mask = all_current_cells[i].state.getORMask(ALIVE, FIX, MUSUME);
 			if (_mm256_testz_pd(main_cond_mask, main_cond_mask) == 0) {
 				all_current_cells[i].get_lattice(lat);
@@ -656,6 +674,63 @@ namespace EPI {
 			//0 when the cond not satisfied
 			//see -> u_ave[j]=u[j]=0.0;
 			refreshed_cells[i].c = _mm256_and_pd(main_cond_mask, _mm256_add_pd(all_current_cells[i].c, _mm256_mul_pd(C::dt_ca_4d, diff_c_out[i])));
+		}
+	}
+
+	void Ca2P::refresh_h_i(int calc_index_min, int calc_index_max,
+		const std::vector<CellSet4d>& all_current_cells,
+		std::vector<CellSet4d>& refreshed_cells) {
+		VEC_X_RANGE_VALIDATION(calc_index_min);
+		VEC_X_RANGE_VALIDATION(calc_index_max);
+
+		__m256d main_cond_mask = { 0 };
+		__m256d me_val = { 0 };
+		for (int i = calc_index_min / 4; i < calc_index_max / 4; i++) {
+			me_val = { 0 };
+			main_cond_mask = all_current_cells[i].state.getORMask(ALIVE, FIX, MUSUME);
+			if (_mm256_testz_pd(main_cond_mask, main_cond_mask) == 0) {
+
+				me_val = _mm256_add_pd(me_val,
+					_mm256_and_pd(main_cond_mask,
+						_mm256_div_pd(Fh(all_current_cells[i]),tau_h(all_current_cells[i]))
+						)
+					);
+			}
+			refreshed_cells[i].h = _mm256_add_pd(
+				all_current_cells[i].h, _mm256_and_pd(main_cond_mask, _mm256_and_pd(dt_ca_4d, me_val))
+				);
+
+		}
+	}
+
+	void Ca2P::refresh_w_i_j(int calc_index_min, int calc_index_max,
+		const std::vector<CellSet4d>& all_current_cells,
+		std::vector<CellSet4d>& refreshed_cells) {
+		VEC_X_RANGE_VALIDATION(calc_index_max);
+
+		__m256d main_cond_mask = { 0 };
+		//__m256d me_val = { 0 };
+
+		for (int i = calc_index_min / 4; i < calc_index_max / 4; i++) {
+			//me_val = { 0 };
+			main_cond_mask = all_current_cells[i].state.getORMask(ALIVE, FIX, MUSUME);
+			if (_mm256_testz_pd(main_cond_mask, main_cond_mask) == 0) {
+				for (int j = 0; j < C::max_cell_num; j++) {
+					if (all_current_cells[j].hasState(ALIVE)) {
+						refreshed_cells[i].w[j]= _mm256_add_pd(all_current_cells[i].w[j],
+							_mm256_and_pd(
+								main_cond_mask,
+									_mm256_and_pd(all_current_cells[j].state.smask[ALIVE],
+										Fw(all_current_cells[i].w[j], all_current_cells[i].c, all_current_cells[j].c)
+									)
+								)
+							);
+					}
+				}
+				
+			}
+			
+
 		}
 	}
 }
