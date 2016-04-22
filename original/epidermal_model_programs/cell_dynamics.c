@@ -299,9 +299,10 @@ void cell_dynamics(int *state, double *ageb, double *agek,
       L[j] += DT * eps_L;
       L[l] = L[j];
     } 
-    else if ((dist_jl = dist3(xx[j], yy[j], zz[j], xx[l], yy[l], zz[l])) > 0.9 * (old_r[j] + old_r[l])) {
+    else if ((dist_jl = dist3(xx[j], yy[j], zz[j], xx[l], yy[l], zz[l])) > 0.9 * (old_r[j] + old_r[l])) { //finish dividing
       L[j] = 0;
       L[l] = L[j];
+	  //fin
       other_cell[j] = -1;
       other_cell[l] = -1;
       pair[k] = -1;

@@ -67,7 +67,7 @@
 #define para_delta 0.1
 #define lez2 (2. * Rad)
 #define p0 0.
-#define u0 0.122
+#define u0 0.122 //done
 #define S0 0.122 * 0.2
 #define v0 0.97
 #define w0 0.99//0.9999
@@ -117,7 +117,7 @@ extern int SYSTEM;
 #define ANY (int)((double)LY / AREA_GRID_ORIGINAL+0.5)
 #define ANZ (int)((double)LZ / AREA_GRID_ORIGINAL)
 
-#define para_agki_max 6.0 // 3.0
+#define para_agki_max 6.0 // 3.0 //do
 #define fac 1//1
 #define para_agki_max_fix (fac*para_agki_max) // 3*para_agki_max 
 

@@ -317,14 +317,6 @@ namespace EPI {
 		out.x = m256dintmod(raw_x_l, C::NX_4d);
 		out.y = m256dintmod(raw_y_l, C::NY_4d);
 		out.z = m256dintmod(raw_z_l, C::NZ_4d);
-		/*
-		__m256d q_x = _mm256_floor_pd(_mm256_div_pd(raw_x_l, C::NX_4d));
-		__m256d q_y = _mm256_floor_pd(_mm256_div_pd(raw_y_l, C::NY_4d));
-		__m256d q_z = _mm256_floor_pd(_mm256_div_pd(raw_z_l, C::NZ_4d));
-		out.x = _mm256_round_pd(_mm256_sub_pd(raw_x_l, _mm256_mul_pd(q_x, C::NX_4d)), _MM_FROUND_NINT);
-		out.y = _mm256_round_pd(_mm256_sub_pd(raw_y_l, _mm256_mul_pd(q_y, C::NY_4d)), _MM_FROUND_NINT);
-		out.z = _mm256_round_pd(_mm256_sub_pd(raw_z_l, _mm256_mul_pd(q_z, C::NZ_4d)), _MM_FROUND_NINT);
-		*/
 	}
 	template<typename T, typename... U>
 	bool CellSet4d::hasState(T s, U... rest) const {

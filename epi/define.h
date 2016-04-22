@@ -225,6 +225,7 @@ namespace EPI {
 		static std::vector<CellSet4d> cells;
 		static std::vector<CellSet4d> next_cells;
 		static _3DScalar4d Ca2P_value;
+		static int malignant_stemcell_num;
 	};
 
 	/*
@@ -358,6 +359,25 @@ namespace EPI {
 			std::vector<CellSet4d>& refreshed_cells);
 	};
 
+	class CellDiv :C {
+		DEFC_VEC(eps_kb, 0.1);
+		DEFC_VEC(u0, 0.122);
+		DEFC_VEC(alpha_b, 5.0);
+
+		DEFC_VEC(agki_max, 6.0);
+		DEFC_VEC(fac, 1.0);
+		DEFC_VEC(agki_max_fix, fac*agki_max);
+		DEFC_VEC(stoch_div_time_ratio, 0.25);
+		
+		DEFC_VEC(S_star, agki_max*(1.0 - stoch_div_time_ratio));
+		DEFC_VEC(T_musume, agki_max / (eps_kb*u0));
+		DEFC_VEC(T_stem_fix, agki_max_fix / (eps_kb*u0));
+		DEFC_VEC(T_0_musume, T_musume*(1.0 - stoch_div_time_ratio));
+		DEFC_VEC(T_0_stem_fix, T_stem_fix*(1.0 - stoch_div_time_ratio));
+
+		static constexpr bool STOCHASTIC = true;
+		void divide_cell
+	};
 
 }
 __m256d _tanh_poly(const __m256d&);
