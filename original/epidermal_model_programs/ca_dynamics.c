@@ -80,10 +80,11 @@ void ca_dynamics(double *u_ave, double B[NX + 1][NY + 1][NZ + 1],
 					+ B[ix][iy + 1][iz + 1] + B[ix + 1][iy + 1][iz + 1]) / 8.0;
 
 				diffu[j] = fu(old_u[j], old_v[j], old_p[j], tmp_a, tmp_B, j, ii);
-
+				//fu:u v p Bのみ
 				v[j] += DT * fv(old_u[j], old_v[j], old_p[j], tmp_a, ((state[j] == FIX || state[j] == MUSUME) ? ageb[j] : agek[j]), state[j]);
 				p[j] += DT * fp(old_u[j], old_v[j], old_p[j], tmp_a, ((state[j] == FIX || state[j] == MUSUME) ? ageb[j] : agek[j]), state[j]);
 				//fp 後ろ三つしか使ってない
+				//fv p a使ってない
 				//me_val
 				for (k = 0; k < indx[j]; k++) {
 					l = lj[j][k];

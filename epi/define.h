@@ -92,6 +92,7 @@ public:
 
 
 namespace EPI{
+	
 	enum STATE {
 		ALIVE = 0,
 		DEAD = 1,
@@ -186,7 +187,9 @@ public:
 	static int z_next_arr[NZ];
 };
 
-int current_cell_num = 0;
+
+
+//int current_cell_num;
 class CellSet4d {
 public:
 
@@ -197,6 +200,8 @@ public:
     __m256d c; //?
     __m256d ageb;//?
     __m256d agek;//?
+	__m256d diff_c; //dc_dt
+	__m256d h;
     PState4d state;
     std::vector<bool> react_flag_4d; //flagged block num must be eq or less than max_reaction_cell_num*4
     std::vector<__m256d> react_mask;
@@ -215,23 +220,14 @@ public:
 	template<typename T,typename... U>
 	bool hasState(T s,U... rest) const;
 	bool hasState() const;
-    /*
-    void get_lattice(VSet4d& out) {
-        __m256d raw_x_l = _mm256_floor_pd(_mm256_div_pd(pos.x, C::dx_4d));
-        __m256d raw_y_l = _mm256_floor_pd(_mm256_div_pd(pos.y, C::dy_4d));
-        __m256d raw_z_l = _mm256_floor_pd(_mm256_div_pd(pos.z, C::dz_4d));
-        __m256d q_x = _mm256_floor_pd(_mm256_div_pd(raw_x_l, C::NX_4d));
-        __m256d q_y = _mm256_floor_pd(_mm256_div_pd(raw_y_l, C::NY_4d));
-        __m256d q_z = _mm256_floor_pd(_mm256_div_pd(raw_z_l, C::NZ_4d));
-        out.x = _mm256_round_pd(_mm256_sub_pd(raw_x_l, _mm256_mul_pd(q_x, C::NX_4d)), _MM_FROUND_NINT);
-        out.y = _mm256_round_pd(_mm256_sub_pd(raw_y_l, _mm256_mul_pd(q_y, C::NY_4d)), _MM_FROUND_NINT);
-        out.z = _mm256_round_pd(_mm256_sub_pd(raw_z_l, _mm256_mul_pd(q_z, C::NZ_4d)), _MM_FROUND_NINT);
-        //a%x == ROUND[a-[a/x]x]
-    }
-    */
 };
-std::vector<CellSet4d> cells(C::max_cell_num);
-std::vector<CellSet4d> next_cells(C::max_cell_num);
+class Field_Data {
+public:
+	static int current_cell_num;
+	static std::vector<CellSet4d> cells;
+	static std::vector<CellSet4d> next_cells;
+	static _3DScalar4d Ca2P_value;
+};
 
 /*
 	param.hÇ…íËã`Ç≥ÇÍÇƒÇ¢ÇÈÇ‡ÇÃÇêÆóù
@@ -289,6 +285,7 @@ public:
     DEFC_VEC(beta,beta_zero*CA_OUT);
     DEFC_VEC(Hb,0.01);
     DEFC_VEC(H0,0.5);
+	DEFC_VEC(Cout, 1.0);
 
 	/*
 		K2,wd0,epsw0:?
@@ -332,7 +329,7 @@ public:
 	//functions
 
 	__m256d G(const VSet4d&,const VSet4d&,const __m256d&);
-    __m256d Fc(const __m256d&, const __m256d&, const __m256d&, const __m256d&);
+    __m256d Fc(const CellSet4d&,const __m256d&);
     __m256d FP(const CellSet4d&,const __m256d&);
     __m256d Fh(const __m256d&,const __m256d&);
     __m256d Fw(const __m256d&,const __m256d&,const __m256d&);
@@ -344,7 +341,6 @@ public:
 	void refresh_Ca(const CUBE& calc_area,
 		const _3DScalar4d& currentCa,
 		const std::vector<CellSet4d>& all_cells,
-		const std::vector<__m256d>& d_ci_dt,
 		_3DScalar4d& nextCa);
 
 	void refresh_P_i(int calc_index_min,int calc_index_max,
@@ -355,6 +351,7 @@ public:
 	void refresh_c_i(int calc_index_min, int calc_index_max,
 		const _3DScalar4d& currentB,
 		const std::vector<CellSet4d>& all_current_cells,
+		std::vector<__m256d>& diff_c_out,
 		std::vector<CellSet4d>& refreshed_cells);
 
 	void refresh_h_i(int calc_index_min, int calc_index_max,
@@ -372,4 +369,5 @@ __m256d _tanh_poly(const __m256d&);
 __m256d tanh_avx(const __m256d&);
 __m256d tanh_alt(const __m256d&);
 __m256d m256dintmod(const __m256d&,const __m256d&);
+__m256d calc_avg8(const VSet4d& lattice_4d, const _3DScalar4d& _3DVal_4d); //no boundary condition
 void init();
