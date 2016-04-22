@@ -1,0 +1,63 @@
+programs: auto21-1.c 21-der.c cell_dynamics.c ca_dynamics.c func21-2.c
+
+使い方:
+初期データから計算する場合
+./epidermis (input_cell_data)
+
+input_cell_data: initial_setup.cから生成されたファイル
+
+./epidermis (input_cell_data) (input_chemical_data) 
+
+input_cell_data: 
+OUTPUTDIRの中の任意のファイル(0,1,...)
+
+input_chemical_data:
+カレントディレクトリ中のデータ last_data_{uvp,w,a,B}(NUM) （NUMの値はinput_cell_dataに対応）をcat_recycle_data.shで結合してできるファイルrecycled_data(NUM) 
+
+例:
+./epidermis output/1000 recycled_data1000
+
+注意点(変更点):
+1. OUTPUTDIRは計算が終わっても移動しない。
+2. 計算の最後のrecycle_last_dataなどは生成されない
+
+
+***
+
+OpenGL_basal_check.out
+./OpenGL_basal_check.out (OUTPUTDIR) (LX) (LY) (MALIGNANT) (t0) (tmax) (key)
+
+output_dir_name: output directory
+LX, LY: 空間サイズ(param.hに合わせる)
+MALIGNANT:異常分裂する幹細胞の数（通常は０）
+t0: ファイル番号の最初
+tmax:　ファイル番号の最後
+key: 0:基底膜と幹細胞
+     1:0 +　娘幹細胞
+     2:全体
+     3:0 +　局在化層
+
+例:0-1000までkey=3で可視化
+./OpenGL_basal_check.out output 50 50 0 0 1000 3
+
+***
+cat_recycle_data.sh
+
+last_data{uvp,a,w,B}(NUM)からrecycled_data(NUM)を生成する
+
+例:last_data_uvp100他からrecycled_data100を生成
+./cat_recycle_data.sh 100
+
+***
+makemovie.sh
+mpeg_para_allのxxxの部分を引数として与える
+使い方
+./makemovie.sh (INPUT_DIR) (OUTPUT) (INITIAL_NUMBER) (LAST_NUMBER) 
+例:
+./makemovie.sh 3Dimage_basal movie.mpg 00500 01000
+
+
+***
+initial_setup.c
+
+1st arg: FIX

@@ -1,0 +1,31 @@
+PATTERN         I
+BASE_FILE_FORMAT        PPM
+
+#INPUT_CONVERT   convert -size 320x240 * ppm:-
+#INPUT_CONVERT   convert -rotate 90 -size 640x480 * ppm:-
+INPUT_CONVERT   convert -size 640x480 * ppm:-
+
+GOP_SIZE        30
+SLICES_PER_FRAME        1
+
+INPUT_DIR xxx
+OUTPUT xxx
+INPUT
+c*.jpg [xxx-xxx]
+END_INPUT
+
+PIXEL           HALF
+RANGE           10
+# this must be one of {EXHAUSTIVE, SUBSAMPLE, LOGARITHMIC}
+PSEARCH_ALG     LOGARITHMIC
+# this must be one of {SIMPLE, CROSS2, EXHAUSTIVE}
+BSEARCH_ALG     CROSS2
+
+IQSCALE         8
+PQSCALE         10
+BQSCALE         25
+
+# this must be ORIGINAL or DECODED
+REFERENCE_FRAME ORIGINAL
+
+FRAME_RATE 30
