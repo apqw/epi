@@ -1,8 +1,9 @@
 #include <math.h>
 #include "define.h"
-//ファイルから後で読み込まれる
+//?t?@?C??????????????????
 int EPI::C::NMEMB = -1;
 int EPI::C::NDER = -1;
+int EPI::C::CELL_START_IDX = NMEMB+NDER; //tmp def
 __m256d EPI::PState4d::all1 = _mm256_castsi256_pd(_mm256_set1_epi32(0xffffffff));
 __m256d EPI::PState4d::all0 = _mm256_castsi256_pd(_mm256_set1_epi32(0x00000000));
 VEC_INIT(EPI::C,zero);
@@ -77,15 +78,17 @@ VEC_INIT(EPI::Ca2P,kg);
 VEC_INIT(EPI::Ca2P,ks);
 VEC_INIT(EPI::Ca2P,_rSq);
 void init() {
-	for (int i = 0; i < EPI::C::NX; i++) {
-		EPI::C::x_prev_arr[i]= ((i - 4 + EPI::C::NX) % EPI::C::NX) / 4;
-		EPI::C::x_next_arr[i] = ((i + 4 + EPI::C::NX) % EPI::C::NX) / 4;
-	}
-	for (int i = 0; i < EPI::C::NY; i++) {
-		EPI::C::y_prev_arr[i] = (i - 1 + EPI::C::NY) % EPI::C::NY;
-		EPI::C::y_next_arr[i] = (i + 1 + EPI::C::NY) % EPI::C::NY;
-	}
-	////////////??
+    /*
+    for (int i = 0; i < EPI::C::NX; i++) {
+        EPI::C::x_prev_arr[i]= ((i - 4 + EPI::C::NX) % EPI::C::NX) / 4;
+        EPI::C::x_next_arr[i] = ((i + 4 + EPI::C::NX) % EPI::C::NX) / 4;
+    }
+    for (int i = 0; i < EPI::C::NY; i++) {
+        EPI::C::y_prev_arr[i] = (i - 1 + EPI::C::NY) % EPI::C::NY;
+        EPI::C::y_next_arr[i] = (i + 1 + EPI::C::NY) % EPI::C::NY;
+    }
+    ////////////??
+    /// */
 }
 
 //for future use
@@ -134,43 +137,60 @@ __m256d tanh_alt(const __m256d&x){
     //inefficient?
     return _mm256_mul_pd(EPI::C::half_4d,_mm256_add_pd(EPI::C::one_4d,tanh_avx(x)));
 }
+__m256d m256dintmod(const __m256d &num,const __m256d den){
+    return _mm256_round_pd(
+                _mm256_sub_pd(num,
+                              _mm256_mul_pd(
+                                  _mm256_floor_pd(
+                                      _mm256_div_pd(num, den)
+                                      ), den
+                                  )
+                              ),
+                _MM_FROUND_NINT);
+    //Round(num-Floor(num/den)*den)
+}
 
 void VSet4d::operator+=(const VSet4d &a) {
-	x = _mm256_add_pd(x, a.x);
-	y = _mm256_add_pd(y, a.y);
-	z = _mm256_add_pd(z, a.z);
+    x = _mm256_add_pd(x, a.x);
+    y = _mm256_add_pd(y, a.y);
+    z = _mm256_add_pd(z, a.z);
 }
 
 
 
 namespace EPI{
 
-	template<STATE, STATE...>
-	__m256d PState4d::getORMask(STATE first, STATE... rest) {
-		return _mm256_or_pd(smask[first], getORMask(rest...));
-	}
-	__m256d PState4d::getORMask() {
-		return PState4d::all0;
-	}
+    template<typename T,typename... U>
+    __m256d PState4d::getORMask(T first, U... rest) {
+        return _mm256_or_pd(smask[first], getORMask(rest...));
+    }
+    __m256d PState4d::getORMask() {
+        return PState4d::all0;
+    }
 
-	template<STATE, STATE...>
-	__m256d PState4d::getANDMask(STATE first, STATE... rest) {
-		return _mm256_and_pd(smask[first], getANDMask(rest...));
-	}
-	__m256d PState4d::getANDMask() {
-		return PState4d::all1;
-	}
-	void CellSet4d::get_lattice(VSet4d& out) const {
-		__m256d raw_x_l = _mm256_floor_pd(_mm256_div_pd(pos.x, C::dx_4d));
-		__m256d raw_y_l = _mm256_floor_pd(_mm256_div_pd(pos.y, C::dy_4d));
-		__m256d raw_z_l = _mm256_floor_pd(_mm256_div_pd(pos.z, C::dz_4d));
-		__m256d q_x = _mm256_floor_pd(_mm256_div_pd(raw_x_l, C::NX_4d));
-		__m256d q_y = _mm256_floor_pd(_mm256_div_pd(raw_y_l, C::NY_4d));
-		__m256d q_z = _mm256_floor_pd(_mm256_div_pd(raw_z_l, C::NZ_4d));
-		out.x = _mm256_round_pd(_mm256_sub_pd(raw_x_l, _mm256_mul_pd(q_x, C::NX_4d)), _MM_FROUND_NINT);
-		out.y = _mm256_round_pd(_mm256_sub_pd(raw_y_l, _mm256_mul_pd(q_y, C::NY_4d)), _MM_FROUND_NINT);
-		out.z = _mm256_round_pd(_mm256_sub_pd(raw_z_l, _mm256_mul_pd(q_z, C::NZ_4d)), _MM_FROUND_NINT);
-	}
+    template<typename T,typename... U>
+    __m256d PState4d::getANDMask(T first, U... rest) {
+        return _mm256_and_pd(smask[first], getANDMask(rest...));
+    }
+    __m256d PState4d::getANDMask() {
+        return PState4d::all1;
+    }
+    void CellSet4d::get_lattice(VSet4d& out) const {
+        __m256d raw_x_l = _mm256_floor_pd(_mm256_div_pd(pos.x, C::dx_4d));
+        __m256d raw_y_l = _mm256_floor_pd(_mm256_div_pd(pos.y, C::dy_4d));
+        __m256d raw_z_l = _mm256_floor_pd(_mm256_div_pd(pos.z, C::dz_4d));
+        out.x=m256dintmod(raw_x_l,C::NX_4d);
+        out.y=m256dintmod(raw_y_l,C::NY_4d);
+        out.z =M256dintmod(raw_z_l,C::NZ_4d);
+        /*
+        __m256d q_x = _mm256_floor_pd(_mm256_div_pd(raw_x_l, C::NX_4d));
+        __m256d q_y = _mm256_floor_pd(_mm256_div_pd(raw_y_l, C::NY_4d));
+        __m256d q_z = _mm256_floor_pd(_mm256_div_pd(raw_z_l, C::NZ_4d));
+        out.x = _mm256_round_pd(_mm256_sub_pd(raw_x_l, _mm256_mul_pd(q_x, C::NX_4d)), _MM_FROUND_NINT);
+        out.y = _mm256_round_pd(_mm256_sub_pd(raw_y_l, _mm256_mul_pd(q_y, C::NY_4d)), _MM_FROUND_NINT);
+        out.z = _mm256_round_pd(_mm256_sub_pd(raw_z_l, _mm256_mul_pd(q_z, C::NZ_4d)), _MM_FROUND_NINT);
+        */
+    }
 __m256d Ca2P::G(const VSet4d& x_vec, const VSet4d& xi_vec, const __m256d& dcdt) {
     __m256d x_dist = _mm256_sub_pd(x_vec.x, xi_vec.x);
     __m256d y_dist = _mm256_sub_pd(x_vec.y, xi_vec.y);
@@ -200,7 +220,7 @@ __m256d Ca2P::G(const VSet4d& x_vec, const VSet4d& xi_vec, const __m256d& dcdt) 
 }
 
 __m256d Ca2P::Fc(const __m256d& P, const __m256d& c, const __m256d& h, const __m256d& B) {
-    //分母揃えて一気に割った方が良い
+    //??????????C??????????????
     __m256d BSq = _mm256_mul_pd(B,B);
 
     __m256d den_Km_p = _mm256_add_pd(Kmu_4d,P);
@@ -258,97 +278,145 @@ __m256d Ca2P::Kpa(const __m256d &Ski){
 }
 
 void Ca2P::refresh_Ca(const CUBE& calc_area,
-	const _3DScalar4d& currentCa,
-	const std::vector<CellSet4d>& all_cells,
-	const std::vector<__m256d>& d_ci_dt,
-	_3DScalar4d& nextCa) {
-	//x is compressed by 4
-	int prev_x_idx, next_x_idx, prev_y_idx, next_y_idx, prev_z_idx, next_z_idx;
-	
-	int _i,_i1,_i2,_i3,_i4;
-	__m256d _sum;
-	__m256d x_next_sub,x_prev_sub,y_next_sub,y_prev_sub,z_next_sub,z_prev_sub,sub_sum;
-	__m256d x_tmp;
-	__m256d dxSq;
-	alignas(32) double x_tmp[8];
-	VSet4d CaPos;
-	//currently boundary conditon is not considered
-	for (int i = calc_area.x.min; i <= calc_area.x.max/4; i++) {
-		_i = i * 4;
-		_i1 = _i*dx; _i2 = _i1 + dx; _i3 = _i2 + dx; _i4 = _i3 + dx;
-		CaPos.x = _mm256_set_pd(_i1, _i2,_i3,_i4);
-		//periodic boundary condition for x and y
-		prev_x_idx = ((i - 4 + NX) % NX) / 4;
-		next_x_idx = ((i + 4 + NX) % NX) / 4;
-		for (int j = calc_area.y.min; j <= calc_area.y.max; j++) {
-			CaPos.y = _mm256_set1_pd(i*dy);
-			prev_y_idx = (j - 1 + NY) % NY;
-			next_y_idx = (j + 1 + NY) % NY;
-			for (int k = calc_area.z.min; k <= calc_area.z.max; k++) {
-				CaPos.z = _mm256_set1_pd(i*dz);
-				//neumann
-				prev_z_idx = k == 0 ? 1 : k - 1;
-				next_z_idx = k == NZ ? NZ - 1 : k + 1;
-				for (int l = CELL_START_IDX; l < current_cell_num;l++){
-					_sum = _mm256_add_pd(_sum, G(CaPos, all_cells[l].pos, d_ci_dt[l]));
-				}
-				//there is a more efficient way
-				x_tmp = _mm256_set_pd(currentCa[i][j][k].m256d_f64[1], currentCa[i][j][k].m256d_f64[2], currentCa[i][j][k].m256d_f64[3], currentCa[next_x_idx][j][k].m256d_f64[0]);
-				x_next_sub = _mm256_sub_pd(x_tmp, currentCa[i][j][k]);
-				x_tmp = _mm256_set_pd(currentCa[prev_x_idx][j][k].m256d_f64[3], currentCa[i][j][k].m256d_f64[0], currentCa[i][j][k].m256d_f64[1], currentCa[i][j][k].m256d_f64[2]);
-				x_prev_sub = _mm256_sub_pd(x_tmp, currentCa[i][j][k]);
-				
-				y_next_sub = _mm256_sub_pd(currentCa[i][next_y_idx][k], currentCa[i][j][k]);
-				y_prev_sub = _mm256_sub_pd(currentCa[i][prev_y_idx][k], currentCa[i][j][k]);
-				z_next_sub = _mm256_sub_pd(currentCa[i][j][next_z_idx], currentCa[i][j][k]);
-				z_prev_sub = _mm256_sub_pd(currentCa[i][j][prev_z_idx], currentCa[i][j][k]);
-				sub_sum = _mm256_add_pd(x_next_sub, _mm256_add_pd(x_prev_sub, _mm256_add_pd(y_next_sub, _mm256_add_pd(y_prev_sub, _mm256_add_pd(z_next_sub, z_prev_sub)))));
-				nextCa[i][j][k] = _mm256_add_pd(
-					currentCa[i][j][k],
-					_mm256_mul_pd(dt_ca_4d,
-						_mm256_add_pd(
-							_mm256_mul_pd(dA_4d,_mm256_div_pd(sub_sum,dxSq_4d)),_mm256_sub_pd(_sum,_mm256_mul_pd(Kaa_4d, currentCa[i][j][k]))
-							)
-						)
-					);
+    const _3DScalar4d& currentCa,
+    const std::vector<CellSet4d>& all_cells,
+    const std::vector<__m256d>& d_ci_dt,
+    _3DScalar4d& nextCa) {
+    //x is compressed by 4
+    int prev_x_idx, next_x_idx, prev_y_idx, next_y_idx, prev_z_idx, next_z_idx;
 
-			}
-		}
-	}
+    int _i,_i1,_i2,_i3,_i4;
+    __m256d _sum;
+    __m256d x_next_sub,x_prev_sub,y_next_sub,y_prev_sub,z_next_sub,z_prev_sub,sub_sum;
+    __m256d x_tmp;
+    alignas(32) double x_store_prev[4],x_store_next[4],x_store_current[4];
+    VSet4d CaPos;
+    //currently boundary conditon is not considered
+    for (int i = calc_area.x.min; i <= calc_area.x.max/4; i++) {
+        _i = i * 4;
+        _i1 = _i*dx; _i2 = _i1 + dx; _i3 = _i2 + dx; _i4 = _i3 + dx;
+        CaPos.x = _mm256_set_pd(_i1, _i2,_i3,_i4);
+        //periodic boundary condition for x and y
+        prev_x_idx = ((i - 4 + NX) % NX) / 4;
+        next_x_idx = ((i + 4 + NX) % NX) / 4;
+        for (int j = calc_area.y.min; j <= calc_area.y.max; j++) {
+            CaPos.y = _mm256_set1_pd(i*dy);
+            prev_y_idx = (j - 1 + NY) % NY;
+            next_y_idx = (j + 1 + NY) % NY;
+            for (int k = calc_area.z.min; k <= calc_area.z.max; k++) {
+                CaPos.z = _mm256_set1_pd(i*dz);
+                //neumann
+                prev_z_idx = k == 0 ? 1 : k - 1;
+                next_z_idx = k == NZ ? NZ - 1 : k + 1;
+                for (int l = CELL_START_IDX; l < current_cell_num;l++){
+                    _sum = _mm256_add_pd(_sum, G(CaPos, all_cells[l].pos, d_ci_dt[l]));
+                }
+                _mm256_store_pd(x_store_prev,currentCa[prev_x_idx][j][k]);
+                _mm256_store_pd(x_store_next,currentCa[next_x_idx][j][k]);
+                _mm256_store_pd(x_store_current,currentCa[i][j][k]);
+                //there is a more efficient way
+                x_tmp = _mm256_set_pd(x_store_current[1], x_store_current[2], x_store_current[3], x_store_next[0]);
+                x_next_sub = _mm256_sub_pd(x_tmp, currentCa[i][j][k]);
+                x_tmp = _mm256_set_pd(x_store_prev[3], x_store_current[0], x_store_current[1], x_store_current[2]);
+                x_prev_sub = _mm256_sub_pd(x_tmp, currentCa[i][j][k]);
+
+                y_next_sub = _mm256_sub_pd(currentCa[i][next_y_idx][k], currentCa[i][j][k]);
+                y_prev_sub = _mm256_sub_pd(currentCa[i][prev_y_idx][k], currentCa[i][j][k]);
+                z_next_sub = _mm256_sub_pd(currentCa[i][j][next_z_idx], currentCa[i][j][k]);
+                z_prev_sub = _mm256_sub_pd(currentCa[i][j][prev_z_idx], currentCa[i][j][k]);
+                sub_sum = _mm256_add_pd(x_next_sub, _mm256_add_pd(x_prev_sub, _mm256_add_pd(y_next_sub, _mm256_add_pd(y_prev_sub, _mm256_add_pd(z_next_sub, z_prev_sub)))));
+                nextCa[i][j][k] = _mm256_add_pd(
+                    currentCa[i][j][k],
+                    _mm256_mul_pd(dt_ca_4d,
+                        _mm256_add_pd(
+                            _mm256_mul_pd(dA_4d,_mm256_div_pd(sub_sum,dxSq_4d)),_mm256_sub_pd(_sum,_mm256_mul_pd(Kaa_4d, currentCa[i][j][k]))
+                            )
+                        )
+                    );
+
+            }
+        }
+    }
 }
 
 void Ca2P::refresh_P_i(int calc_index_min, int calc_index_max,
-	const _3DScalar4d& currentCa,
-	const std::vector<CellSet4d>& all_current_cells,
-	std::vector<CellSet4d>& refreshed_cells) {
-	VSet4d lat;
-	__m256d react_sum;
-	__m256d neg_me_dead_val, react_alive_val, me_val, react_val;//dt unmultiplied
-	for (int i = calc_index_min/4; i < calc_index_max/4; i++) {
-		neg_me_dead_val = _mm256_and_pd(all_current_cells[i].state.smask[PState4d::DEAD],_mm256_mul_pd(Kpp_4d, all_current_cells[i].P));
-		for (int j = 0; j < C::max_cell_num / 4; j++) {
-			if (all_current_cells[i].react_flag_4d[j]) {
-				react_alive_val = _mm256_add_pd(
-					react_alive_val, 
-					_mm256_and_pd(
-						all_current_cells[j].state.smask[PState4d::ALIVE],
-						_mm256_sub_pd(all_current_cells[j].P, all_current_cells[i].P)
-						)
-					);
-			}
-		}
-		react_alive_val = _mm256_and_pd(all_current_cells[i].state.smask[PState4d::DEAD], _mm256_mul_pd(dP_4d, react_alive_val));
-		all_current_cells[i].get_lattice(lat);
-		//バラバラに計算しなきゃダメそう
-		/*
-		me_val = _mm256_and_pd(
-			all_current_cells[i].state.getORMask(PState4d::ALIVE, PState4d::FIX, PState4d::MUSUME),FP()
-		refreshed_cells[i].P = _mm256_add_pd()
-		*/
-		if(all_current_cells[i].state.DEAD)
-		for (int j = 0; j < CellSet4d::max_reaction_cell_num; j++) {
-			react_sum = _mm256_add_pd(react_sum,_mm256_and_pd(all_current_cells[i].react_mask[j],)
-		}
-	}
+    const _3DScalar4d& currentCa,
+    const std::vector<CellSet4d>& all_current_cells,
+    std::vector<CellSet4d>& refreshed_cells) {
+    VSet4d lat;int lat_x_val;
+    std::vector<VSet4d> avg_lat(8);
+    __m256d avg;
+    alignas(16) int avg_index_x[4],avg_index_y[4],avg_index_z[4],avg_vec_index_x[4],avg_invec_index_x[4];
+    __m256d pre_avg1,pre_avg2;
+    __m256d react_sum;
+    __m256d neg_me_dead_val, react_alive_val, me_val, react_val;//dt unmultiplied
+    for (int i = calc_index_min/4; i < calc_index_max/4; i++) {
+        neg_me_dead_val = _mm256_and_pd(all_current_cells[i].state.smask[PState4d::DEAD],_mm256_mul_pd(Kpp_4d, all_current_cells[i].P));
+        for (int j = 0; j < C::max_cell_num / 4; j++) {
+            if (_mm256_testz_pd(all_current_cells[j].state.smask[PState4d::ALIVE],all_current_cells[j].state.smask[PState4d::ALIVE]) == 0 ) {// !0 -> all masks are zero == no need to calc all 4 of them
+                react_alive_val = _mm256_add_pd(
+                    react_alive_val,
+                    _mm256_and_pd(
+                        all_current_cells[j].state.smask[PState4d::ALIVE],
+                        _mm256_sub_pd(all_current_cells[j].P, all_current_cells[i].P)
+                        )
+                    );
+            }
+        }
+        react_alive_val = _mm256_and_pd(all_current_cells[i].state.smask[PState4d::DEAD], _mm256_mul_pd(dP_4d, react_alive_val));
+
+        all_current_cells[i].get_lattice(lat);
+        avg_lat[0].x=lat.x;
+        avg_lat[0].y=lat.y;
+        avg_lat[0].z=lat.z;
+
+        //boundary is not considered
+        avg_lat[1].x=_mm256_add_pd(_mm256_set1_pd(1.0),lat.x);
+        avg_lat[1].y=lat.y;
+        avg_lat[1].z=lat.z;
+
+        avg_lat[2].x=lat.x;
+        avg_lat[2].y=_mm256_add_pd(_mm256_set1_pd(1.0),lat.y);
+        avg_lat[2].z=lat.z;
+
+        avg_lat[3].x=lat.x;
+        avg_lat[3].y=lat.y;
+        avg_lat[3].z=_mm256_add_pd(_mm256_set1_pd(1.0),lat.z);
+
+        avg_lat[4].x=lat.x;
+        avg_lat[4].y=avg_lat[2].y; //reuse that is already added
+        avg_lat[4].z=avg_lat[3].z;
+
+        avg_lat[5].x=avg_lat[1].x;
+        avg_lat[5].y=lat.y;
+        avg_lat[5].z=avg_lat[3].z;
+
+        avg_lat[6].x=avg_lat[1].x;
+        avg_lat[6].y=avg_lat[2].y;
+        avg_lat[6].z=lat.z;
+
+        avg_lat[7].x=avg_lat[1].x;
+        avg_lat[7].y=avg_lat[2].y;
+        avg_lat[7].z=avg_lat[3].z;
+
+        for(int k=0;k<8;k++){
+            _mm_store_si128(avg_index_x,_mm256_cvtpd_epi32(avg_lat[k].x));
+            _mm_store_si128(avg_index_y,_mm256_cvtpd_epi32(avg_lat[k].y));
+            _mm_store_si128(avg_index_z,_mm256_cvtpd_epi32(avg_lat[k].z));
+
+            _mm_store_si128(avg_vec_index_x,_mm256_cvtpd_epi32(_mm256_div_pd(avg_lat[k].x,_mm256_set1_pd(4.0)))); //truncated?
+
+            avg=_mm256_add_pd(avg,_mm256_set_pd())
+        }
+        _mm256_store_pd(lat_x,lat.x);//_mm256_store_pd(lat_y,lat.y);_mm256_store_pd(lat_y,lat.y);
+        lat_x_val=(int)lat_x[0];
+        if(((int)lat_x[0])%4 == 3 && ){ //last elem
+            (((int)lat_x[0])+1)/4
+        }
+        if(all_current_cells[i].state.DEAD)
+        for (int j = 0; j < CellSet4d::max_reaction_cell_num; j++) {
+            //react_sum = _mm256_add_pd(react_sum,_mm256_and_pd(all_current_cells[i].react_mask[j],)
+        }
+    }
 }
 }

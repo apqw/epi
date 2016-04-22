@@ -102,56 +102,16 @@ namespace EPI{
 			MEMB=9
 		};
 		__m256d smask[10];
-		template<STATE,STATE...>
-		__m256d getORMask(STATE first, STATE... rest);
+        template<typename T,typename... U>
+        __m256d getORMask(T first, U... rest); //test
 		__m256d getORMask();
 
-		template<STATE, STATE...>
-		__m256d getANDMask(STATE first, STATE... rest);
+        template<typename T,typename... U>
+        __m256d getANDMask(T first, U... rest);
 		__m256d getANDMask();
 
 	};
-	class CellSet4d {
-	public:
 
-		static constexpr int max_reaction_cell_num = 400;
-		__m256d valid_mask;
-		VSet4d pos;
-		__m256d P; //?
-		__m256d c; //?
-		__m256d ageb;//?
-		__m256d agek;//?
-		PState4d state;
-		std::vector<bool> react_flag_4d; //flagged block num must be eq or less than max_reaction_cell_num*4
-		std::vector<__m256d> react_mask;
-		std::vector<__m256d> w;//?
-		CellSet4d() {
-			//huge memory usage?
-			react_mask.resize(C::max_cell_num/4);
-			w.resize(C::max_cell_num/4);
-			react_flag_4d.resize(C::max_cell_num/4);
-			/*
-			react_flag_4dで4つとも相互作用しないCellSet4dを除外してからAVXで計算する。
-			最悪でも計算量は通常と同じ、最高で1/4以下
-			*/
-		};
-		void get_lattice(VSet4d& out) const;
-		/*
-		void get_lattice(VSet4d& out) {
-			__m256d raw_x_l = _mm256_floor_pd(_mm256_div_pd(pos.x, C::dx_4d));
-			__m256d raw_y_l = _mm256_floor_pd(_mm256_div_pd(pos.y, C::dy_4d));
-			__m256d raw_z_l = _mm256_floor_pd(_mm256_div_pd(pos.z, C::dz_4d));
-			__m256d q_x = _mm256_floor_pd(_mm256_div_pd(raw_x_l, C::NX_4d));
-			__m256d q_y = _mm256_floor_pd(_mm256_div_pd(raw_y_l, C::NY_4d));
-			__m256d q_z = _mm256_floor_pd(_mm256_div_pd(raw_z_l, C::NZ_4d));
-			out.x = _mm256_round_pd(_mm256_sub_pd(raw_x_l, _mm256_mul_pd(q_x, C::NX_4d)), _MM_FROUND_NINT);
-			out.y = _mm256_round_pd(_mm256_sub_pd(raw_y_l, _mm256_mul_pd(q_y, C::NY_4d)), _MM_FROUND_NINT);
-			out.z = _mm256_round_pd(_mm256_sub_pd(raw_z_l, _mm256_mul_pd(q_z, C::NZ_4d)), _MM_FROUND_NINT);
-			//a%x == ROUND[a-[a/x]x]
-		}
-		*/
-	};
-	
 //3次元のベクトルをいくつか(レジスタのサイズに応じて)セットで用意する。
 
 /*
@@ -216,10 +176,50 @@ public:
 	static int z_prev_arr[NZ];
 	static int z_next_arr[NZ];
 };
+
+int current_cell_num = 0;
+class CellSet4d {
+public:
+
+    static constexpr int max_reaction_cell_num = 400;
+    __m256d valid_mask;
+    VSet4d pos;
+    __m256d P; //?
+    __m256d c; //?
+    __m256d ageb;//?
+    __m256d agek;//?
+    PState4d state;
+    std::vector<bool> react_flag_4d; //flagged block num must be eq or less than max_reaction_cell_num*4
+    std::vector<__m256d> react_mask;
+    std::vector<__m256d> w;//?
+    CellSet4d() {
+        //huge memory usage?
+        react_mask.resize(C::max_cell_num/4);
+        w.resize(C::max_cell_num/4);
+        react_flag_4d.resize(C::max_cell_num/4);
+        /*
+        react_flag_4dで4つとも相互作用しないCellSet4dを除外してからAVXで計算する。
+        最悪でも計算量は通常と同じ、最高で1/4以下
+        */
+    };
+    void get_lattice(VSet4d& out) const;
+    /*
+    void get_lattice(VSet4d& out) {
+        __m256d raw_x_l = _mm256_floor_pd(_mm256_div_pd(pos.x, C::dx_4d));
+        __m256d raw_y_l = _mm256_floor_pd(_mm256_div_pd(pos.y, C::dy_4d));
+        __m256d raw_z_l = _mm256_floor_pd(_mm256_div_pd(pos.z, C::dz_4d));
+        __m256d q_x = _mm256_floor_pd(_mm256_div_pd(raw_x_l, C::NX_4d));
+        __m256d q_y = _mm256_floor_pd(_mm256_div_pd(raw_y_l, C::NY_4d));
+        __m256d q_z = _mm256_floor_pd(_mm256_div_pd(raw_z_l, C::NZ_4d));
+        out.x = _mm256_round_pd(_mm256_sub_pd(raw_x_l, _mm256_mul_pd(q_x, C::NX_4d)), _MM_FROUND_NINT);
+        out.y = _mm256_round_pd(_mm256_sub_pd(raw_y_l, _mm256_mul_pd(q_y, C::NY_4d)), _MM_FROUND_NINT);
+        out.z = _mm256_round_pd(_mm256_sub_pd(raw_z_l, _mm256_mul_pd(q_z, C::NZ_4d)), _MM_FROUND_NINT);
+        //a%x == ROUND[a-[a/x]x]
+    }
+    */
+};
 std::vector<CellSet4d> cells(C::max_cell_num);
 std::vector<CellSet4d> next_cells(C::max_cell_num);
-int current_cell_num = 0;
-
 
 /*
 	param.hに定義されているものを整理
@@ -356,4 +356,5 @@ public:
 __m256d _tanh_poly(const __m256d&);
 __m256d tanh_avx(const __m256d&);
 __m256d tanh_alt(const __m256d&);
+__m256d m256dintmod(const __m256d&,const __m256d&);
 void init();
