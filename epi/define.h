@@ -1,6 +1,7 @@
 #pragma once
 #include <immintrin.h>
 #include <vector>
+#include <cassert>
 #define _mm256_full_hadd_ps(v0, v1) \
         (_mm256_hadd_ps(_mm256_permute2f128_ps(v0, v1, 0x20), \
                        _mm256_permute2f128_ps(v0, v1, 0x31)))
@@ -12,6 +13,12 @@
 #define SET8s_d(cl,val) const __m256 cl::val##_8s=_mm256_set1_ps((float)(val))
 #define SET4d_d(cl,val) const __m256d cl::val##_4d=_mm256_set1_pd((double)(val))
 
+//Check if the 4-paired-cell contains the cell which has this state 
+#define CONTAIN_STATE(_cell,state) (_mm256_testz_pd(_cell.state.smask[(state)], _cell.state.smask[(state)]) == 0)
+
+#define VEC_X_RANGE_VALIDATION(var) do{ assert(var >=0);\
+assert(var % 4 == 0);\
+}while(0)
 
 
 typedef double real;	//高速化の際にfloatにした方が良い場合があるかもしれないので実数は一旦realとして定義しておく
@@ -60,7 +67,7 @@ public:
 		NONE, DIRICHLET, NEUMANN, PERIODIC
 	};
 	//範囲
-	real min, max;
+	int min, max;
 	//任意のデータ(へのポインタ)(例えば周期境界条件での反対側の値を与えたりするために使う)
 	void* data;
 
@@ -68,8 +75,8 @@ public:
 	BCond min_bcond, max_bcond;
 	
 	BoundaryInfo():min(),max(),min_bcond(),max_bcond() {};
-	BoundaryInfo(real _min, real _max, BCond _minbc, BCond _maxbc) :min(_min), max(_max), min_bcond(_minbc), max_bcond(_maxbc) {};
-	BoundaryInfo(real _min, real _max) :min(_min), max(_max), min_bcond(NONE), max_bcond(NONE) {};
+	BoundaryInfo(int _min, int _max, BCond _minbc, BCond _maxbc) :min(_min), max(_max), min_bcond(_minbc), max_bcond(_maxbc) {};
+	BoundaryInfo(int _min, int _max) :min(_min), max(_max), min_bcond(NONE), max_bcond(NONE) {};
 };
 
 class AREA {
@@ -85,30 +92,34 @@ public:
 
 
 namespace EPI{
+	enum STATE {
+		ALIVE = 0,
+		DEAD = 1,
+		DISA = 2,
+		FIX = 4,
+		BLANK = 5,
+		DER = 6,
+		MUSUME = 7,
+		AIR = 8,
+		MEMB = 9
+	};
+	typedef STATE CELL_STATE;
 	class PState4d {
 	private:
 		static __m256d all1;
 		static __m256d all0;
 	public:
-		enum STATE {
-			ALIVE=0,
-			DEAD=1,
-			DISA=2,
-			FIX=4,
-			BLANK=5,
-			DER=6,
-			MUSUME=7,
-			AIR=8,
-			MEMB=9
-		};
+
 		__m256d smask[10];
         template<typename T,typename... U>
-        __m256d getORMask(T first, U... rest); //test
-		__m256d getORMask();
+        __m256d getORMask(T first, U... rest) const; //test
+		__m256d getORMask() const;
 
         template<typename T,typename... U>
-        __m256d getANDMask(T first, U... rest);
-		__m256d getANDMask();
+        __m256d getANDMask(T first, U... rest) const;
+		__m256d getANDMask() const;
+
+		
 
 	};
 
@@ -203,6 +214,7 @@ public:
         */
     };
     void get_lattice(VSet4d& out) const;
+	bool hasState(STATE s) const;
     /*
     void get_lattice(VSet4d& out) {
         __m256d raw_x_l = _mm256_floor_pd(_mm256_div_pd(pos.x, C::dx_4d));

@@ -137,7 +137,7 @@ __m256d tanh_alt(const __m256d&x){
     //inefficient?
     return _mm256_mul_pd(EPI::C::half_4d,_mm256_add_pd(EPI::C::one_4d,tanh_avx(x)));
 }
-__m256d m256dintmod(const __m256d &num,const __m256d den){
+__m256d m256dintmod(const __m256d &num,const __m256d& den){
     return _mm256_round_pd(
                 _mm256_sub_pd(num,
                               _mm256_mul_pd(
@@ -161,27 +161,29 @@ void VSet4d::operator+=(const VSet4d &a) {
 namespace EPI{
 
     template<typename T,typename... U>
-    __m256d PState4d::getORMask(T first, U... rest) {
+    __m256d PState4d::getORMask(T first, U... rest) const{
         return _mm256_or_pd(smask[first], getORMask(rest...));
     }
-    __m256d PState4d::getORMask() {
+    __m256d PState4d::getORMask() const{
         return PState4d::all0;
     }
 
     template<typename T,typename... U>
-    __m256d PState4d::getANDMask(T first, U... rest) {
+    __m256d PState4d::getANDMask(T first, U... rest) const{
         return _mm256_and_pd(smask[first], getANDMask(rest...));
     }
-    __m256d PState4d::getANDMask() {
+    __m256d PState4d::getANDMask() const{
         return PState4d::all1;
     }
+
+	
     void CellSet4d::get_lattice(VSet4d& out) const {
         __m256d raw_x_l = _mm256_floor_pd(_mm256_div_pd(pos.x, C::dx_4d));
         __m256d raw_y_l = _mm256_floor_pd(_mm256_div_pd(pos.y, C::dy_4d));
         __m256d raw_z_l = _mm256_floor_pd(_mm256_div_pd(pos.z, C::dz_4d));
         out.x=m256dintmod(raw_x_l,C::NX_4d);
         out.y=m256dintmod(raw_y_l,C::NY_4d);
-        out.z =M256dintmod(raw_z_l,C::NZ_4d);
+        out.z =m256dintmod(raw_z_l,C::NZ_4d);
         /*
         __m256d q_x = _mm256_floor_pd(_mm256_div_pd(raw_x_l, C::NX_4d));
         __m256d q_y = _mm256_floor_pd(_mm256_div_pd(raw_y_l, C::NY_4d));
@@ -191,6 +193,10 @@ namespace EPI{
         out.z = _mm256_round_pd(_mm256_sub_pd(raw_z_l, _mm256_mul_pd(q_z, C::NZ_4d)), _MM_FROUND_NINT);
         */
     }
+
+	bool CellSet4d::hasState(STATE s) const {
+		return (_mm256_testz_pd(this->state.smask[s], this->state.smask[s]) == 0);
+	}
 __m256d Ca2P::G(const VSet4d& x_vec, const VSet4d& xi_vec, const __m256d& dcdt) {
     __m256d x_dist = _mm256_sub_pd(x_vec.x, xi_vec.x);
     __m256d y_dist = _mm256_sub_pd(x_vec.y, xi_vec.y);
@@ -283,6 +289,8 @@ void Ca2P::refresh_Ca(const CUBE& calc_area,
     const std::vector<__m256d>& d_ci_dt,
     _3DScalar4d& nextCa) {
     //x is compressed by 4
+	VEC_X_RANGE_VALIDATION(calc_area.x.min); VEC_X_RANGE_VALIDATION(calc_area.x.max);
+
     int prev_x_idx, next_x_idx, prev_y_idx, next_y_idx, prev_z_idx, next_z_idx;
 
     int _i,_i1,_i2,_i3,_i4;
@@ -292,7 +300,7 @@ void Ca2P::refresh_Ca(const CUBE& calc_area,
     alignas(32) double x_store_prev[4],x_store_next[4],x_store_current[4];
     VSet4d CaPos;
     //currently boundary conditon is not considered
-    for (int i = calc_area.x.min; i <= calc_area.x.max/4; i++) {
+    for (int i = calc_area.x.min/4; i <= calc_area.x.max/4; i++) {
         _i = i * 4;
         _i1 = _i*dx; _i2 = _i1 + dx; _i3 = _i2 + dx; _i4 = _i3 + dx;
         CaPos.x = _mm256_set_pd(_i1, _i2,_i3,_i4);
@@ -339,32 +347,40 @@ void Ca2P::refresh_Ca(const CUBE& calc_area,
     }
 }
 
-void Ca2P::refresh_P_i(int calc_index_min, int calc_index_max,
-    const _3DScalar4d& currentCa,
-    const std::vector<CellSet4d>& all_current_cells,
+//indices must be 4n-aligned
+void Ca2P::refresh_P_i(int calc_index_min, int calc_index_max,\
+    const _3DScalar4d& currentCa,\
+    const std::vector<CellSet4d>& all_current_cells,\
     std::vector<CellSet4d>& refreshed_cells) {
+
+	VEC_X_RANGE_VALIDATION(calc_index_min);
+	VEC_X_RANGE_VALIDATION(calc_index_max);
+
     VSet4d lat;int lat_x_val;
     std::vector<VSet4d> avg_lat(8);
-    __m256d avg;
+	alignas(32) double avg_vec_store[4], avg_Ca_value[4];
+	__m256d avg = { 0 };
     alignas(16) int avg_index_x[4],avg_index_y[4],avg_index_z[4],avg_vec_index_x[4],avg_invec_index_x[4];
-    __m256d pre_avg1,pre_avg2;
-    __m256d react_sum;
+	__m256d avg_vec_idx_d;
+    __m256d react_sum= { 0 };
     __m256d neg_me_dead_val, react_alive_val, me_val, react_val;//dt unmultiplied
-    for (int i = calc_index_min/4; i < calc_index_max/4; i++) {
-        neg_me_dead_val = _mm256_and_pd(all_current_cells[i].state.smask[PState4d::DEAD],_mm256_mul_pd(Kpp_4d, all_current_cells[i].P));
-        for (int j = 0; j < C::max_cell_num / 4; j++) {
-            if (_mm256_testz_pd(all_current_cells[j].state.smask[PState4d::ALIVE],all_current_cells[j].state.smask[PState4d::ALIVE]) == 0 ) {// !0 -> all masks are zero == no need to calc all 4 of them
-                react_alive_val = _mm256_add_pd(
-                    react_alive_val,
-                    _mm256_and_pd(
-                        all_current_cells[j].state.smask[PState4d::ALIVE],
-                        _mm256_sub_pd(all_current_cells[j].P, all_current_cells[i].P)
-                        )
-                    );
-            }
-        }
-        react_alive_val = _mm256_and_pd(all_current_cells[i].state.smask[PState4d::DEAD], _mm256_mul_pd(dP_4d, react_alive_val));
 
+    for (int i = calc_index_min/4; i < calc_index_max/4; i++) {
+		if (all_current_cells[i].hasState(DEAD)) {
+			neg_me_dead_val = _mm256_and_pd(all_current_cells[i].state.smask[DEAD], _mm256_mul_pd(Kpp_4d, all_current_cells[i].P));
+			for (int j = 0; j < C::max_cell_num / 4; j++) {
+				if (all_current_cells[j].hasState(ALIVE)) {
+					react_alive_val = _mm256_add_pd(
+						react_alive_val,
+						_mm256_and_pd(
+							all_current_cells[j].state.smask[ALIVE],
+							_mm256_sub_pd(all_current_cells[j].P, all_current_cells[i].P)
+							)
+						);
+				}
+			}
+			react_alive_val = _mm256_and_pd(all_current_cells[i].state.smask[DEAD], _mm256_mul_pd(dP_4d, react_alive_val));
+		}
         all_current_cells[i].get_lattice(lat);
         avg_lat[0].x=lat.x;
         avg_lat[0].y=lat.y;
@@ -400,14 +416,29 @@ void Ca2P::refresh_P_i(int calc_index_min, int calc_index_max,
         avg_lat[7].z=avg_lat[3].z;
 
         for(int k=0;k<8;k++){
-            _mm_store_si128(avg_index_x,_mm256_cvtpd_epi32(avg_lat[k].x));
-            _mm_store_si128(avg_index_y,_mm256_cvtpd_epi32(avg_lat[k].y));
-            _mm_store_si128(avg_index_z,_mm256_cvtpd_epi32(avg_lat[k].z));
 
-            _mm_store_si128(avg_vec_index_x,_mm256_cvtpd_epi32(_mm256_div_pd(avg_lat[k].x,_mm256_set1_pd(4.0)))); //truncated?
-
-            avg=_mm256_add_pd(avg,_mm256_set_pd())
+            _mm_store_si128((__m128i*)avg_index_y,_mm256_cvtpd_epi32(avg_lat[k].y));
+            _mm_store_si128((__m128i*)avg_index_z,_mm256_cvtpd_epi32(avg_lat[k].z));
+			avg_vec_idx_d = _mm256_round_pd(_mm256_div_pd(avg_lat[k].x, _mm256_set1_pd(4.0)),_MM_FROUND_NINT); //index as double
+            _mm_store_si128((__m128i*)avg_vec_index_x,_mm256_cvtpd_epi32(avg_vec_idx_d)); //index of 4-pair data
+			_mm_store_si128(
+				(__m128i*)avg_invec_index_x,
+				_mm256_cvtpd_epi32(
+					_mm256_sub_pd(avg_lat[k].x,
+						_mm256_mul_pd(avg_vec_idx_d,_mm256_set1_pd(4.0))
+						)
+					)
+				); //index of element in 4-pairs [0,1,2,3]
+			
+			//Žd•û‚È‚¢‚Ì‚Å‚S‚Âƒoƒ‰ƒoƒ‰‚É‚µ‚ÄŽæ“¾
+			for (int cell_count = 0; cell_count < 4; cell_count++) {
+				_mm256_store_pd(avg_vec_store, currentCa[avg_vec_index_x[cell_count]][avg_index_y[cell_count]][avg_index_z[cell_count]]);
+				avg_Ca_value[cell_count] = avg_vec_store[avg_invec_index_x[cell_count]];
+			}
+			avg = _mm256_add_pd(avg, _mm256_load_pd(avg_Ca_value));
         }
+		avg = _mm256_div_pd(avg, _mm256_set1_pd(8.0)); //4‰ÓŠ‚»‚ê‚¼‚ê‚Ì•½‹Ï‚ª“ü‚Á‚Ä‚é
+
         _mm256_store_pd(lat_x,lat.x);//_mm256_store_pd(lat_y,lat.y);_mm256_store_pd(lat_y,lat.y);
         lat_x_val=(int)lat_x[0];
         if(((int)lat_x[0])%4 == 3 && ){ //last elem
