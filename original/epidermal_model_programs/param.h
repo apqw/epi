@@ -94,7 +94,7 @@ extern int SYSTEM;
 #define delta_K 1.0//0.1  //0.1 //done
 #define delta_I 1.5//0.15 //0.01 //done
 
-#define para_iage_kitei 0.
+#define para_iage_kitei 0. //done
 
 #define T_TURNOVER 0.0
 #define KEY_FORCED_SC 0

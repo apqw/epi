@@ -105,11 +105,9 @@ namespace EPI{
 	};
 	typedef STATE CELL_STATE;
 	class PState4d {
-	private:
+	public:
 		static __m256d all1;
 		static __m256d all0;
-	public:
-
 		__m256d smask[10];
         template<typename T,typename... U>
         __m256d getORMask(T first, U... rest) const; //test
@@ -214,7 +212,9 @@ public:
         */
     };
     void get_lattice(VSet4d& out) const;
-	bool hasState(STATE s) const;
+	template<typename T,typename... U>
+	bool hasState(T s,U... rest) const;
+	bool hasState() const;
     /*
     void get_lattice(VSet4d& out) {
         __m256d raw_x_l = _mm256_floor_pd(_mm256_div_pd(pos.x, C::dx_4d));
@@ -326,17 +326,20 @@ public:
 	//R?
 	DEFC real _r = 1;
 	DEFC_VEC(_rSq, _r*_r);
+
+	DEFC_VEC(iage_kitei, 0.0);
+
 	//functions
 
 	__m256d G(const VSet4d&,const VSet4d&,const __m256d&);
     __m256d Fc(const __m256d&, const __m256d&, const __m256d&, const __m256d&);
-    __m256d FP(const __m256d&,const __m256d&);
+    __m256d FP(const CellSet4d&,const __m256d&);
     __m256d Fh(const __m256d&,const __m256d&);
     __m256d Fw(const __m256d&,const __m256d&,const __m256d&);
     //__m256d FB(const __m256d&,const __m256d&);
     __m256d tau_h(const __m256d&);
-    __m256d In(const __m256d&);
-    __m256d Kpa(const __m256d&);
+    __m256d In(const CellSet4d&);
+    __m256d Kpa(const CellSet4d&);
 
 	void refresh_Ca(const CUBE& calc_area,
 		const _3DScalar4d& currentCa,

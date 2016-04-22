@@ -208,6 +208,18 @@ double Kpa(double age, int state)
 	else {
 		return 0;
 	}
+	/*
+		if (state == ALIVE){
+		return para_Kgra + 0.5*(para_Kpri - para_Kgra) * (1.0 + tanh((THRESH_SP - age) / delta_K));
+	}
+	else if (state == FIX || state == MUSUME){
+		return para_Kpri;
+	}
+	else {
+		return 0;
+	}
+	
+	*/
 }
 
 /* reaction terms for Ca */

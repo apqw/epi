@@ -77,6 +77,7 @@ VEC_INIT(EPI::Ca2P,delta_k);
 VEC_INIT(EPI::Ca2P,kg);
 VEC_INIT(EPI::Ca2P,ks);
 VEC_INIT(EPI::Ca2P,_rSq);
+VEC_INIT(EPI::Ca2P, iage_kitei);
 void init() {
     /*
     for (int i = 0; i < EPI::C::NX; i++) {
@@ -193,9 +194,13 @@ namespace EPI{
         out.z = _mm256_round_pd(_mm256_sub_pd(raw_z_l, _mm256_mul_pd(q_z, C::NZ_4d)), _MM_FROUND_NINT);
         */
     }
+	template<typename T,typename... U>
+	bool CellSet4d::hasState(T s,U... rest) const {
+		return (_mm256_testz_pd(this->state.smask[s], this->state.smask[s]) == 0 || hasState(rest);
+	}
 
-	bool CellSet4d::hasState(STATE s) const {
-		return (_mm256_testz_pd(this->state.smask[s], this->state.smask[s]) == 0);
+	bool CellSet4d::hasState()const {
+		return false;
 	}
 __m256d Ca2P::G(const VSet4d& x_vec, const VSet4d& xi_vec, const __m256d& dcdt) {
     __m256d x_dist = _mm256_sub_pd(x_vec.x, xi_vec.x);
@@ -254,8 +259,8 @@ __m256d Ca2P::Fc(const __m256d& P, const __m256d& c, const __m256d& h, const __m
     //add(sub):8 mul: 16
 }
 //inline?
-__m256d Ca2P::FP(const __m256d& A,const __m256d& Ski){
-    return _mm256_div_pd(_mm256_mul_pd(Kpa(Ski),A),_mm256_add_pd(H0_4d,A));
+__m256d Ca2P::FP(const CellSet4d& cset,const __m256d& A){
+    return _mm256_div_pd(_mm256_mul_pd(Kpa(cset),A),_mm256_add_pd(H0_4d,A));
 }
 __m256d Ca2P::Fh(const __m256d &c, const __m256d & h){
     __m256d K2Sq = _mm256_mul_pd(K2_4d,K2_4d);
@@ -276,11 +281,34 @@ __m256d Ca2P::Fw(const __m256d &wij, const __m256d &ci, const __m256d &cj){
 __m256d Ca2P::tau_h(const __m256d & Ski){
     return _mm256_add_pd(tau_g_4d,_mm256_mul_pd(_mm256_sub_pd(tau_s_4d,tau_g_4d),tanh_alt(_mm256_div_pd(_mm256_sub_pd(Ss_4d,Ski),delta_tau_4d))));
 }
-__m256d Ca2P::In(const __m256d &Ski){
-    return tanh_alt(_mm256_div_pd(_mm256_sub_pd(Ski,Ss_4d),delta_I_4d));
+__m256d Ca2P::In(const CellSet4d& cset){
+	__m256d mask = cset.state.getORMask(FIX, MUSUME);
+
+	//use agek?
+	return _mm256_or_pd(_mm256_and_pd(mask, iage_kitei_4d), _mm256_andnot_pd(mask, tanh_alt(_mm256_div_pd(_mm256_sub_pd(cset.agek, Ss_4d), delta_I_4d))));
+    //return tanh_alt(_mm256_div_pd(_mm256_sub_pd(Ski,Ss_4d),delta_I_4d));
 }
-__m256d Ca2P::Kpa(const __m256d &Ski){
-    return _mm256_add_pd(kg_4d,_mm256_mul_pd(_mm256_sub_pd(ks_4d,kg_4d),tanh_alt(_mm256_div_pd(_mm256_sub_pd(Ss_4d,Ski),delta_k_4d))));
+__m256d Ca2P::Kpa(const CellSet4d& cset){
+
+	__m256d mask = cset.state.getORMask(FIX, MUSUME);
+	__m256d age = _mm256_or_pd(_mm256_and_pd(mask, cset.ageb), _mm256_andnot_pd(mask, cset.agek));
+	__m256d alive_val = _mm256_add_pd(kg_4d, _mm256_mul_pd(_mm256_sub_pd(ks_4d, kg_4d), tanh_alt(_mm256_div_pd(_mm256_sub_pd(Ss_4d, age), delta_k_4d))));
+	//__m256d fixmusume_val = ks_4d;
+	__m256d not_alive_but_fix_or_musume = _mm256_andnot_pd(cset.state.smask[ALIVE], mask);
+	__m256d not_alive_nor_fix_nor_musume = _mm256_andnot_pd(cset.state.smask[ALIVE], _mm256_andnot_pd(mask, PState4d::all1));
+
+	return _mm256_or_pd(
+
+		_mm256_and_pd(cset.state.smask[ALIVE], alive_val),
+
+		_mm256_or_pd(
+			_mm256_and_pd(not_alive_but_fix_or_musume, ks_4d), 
+			_mm256_and_pd(not_alive_nor_fix_nor_musume, zero_4d)
+			)
+		);
+
+
+    //return _mm256_add_pd(kg_4d,_mm256_mul_pd(_mm256_sub_pd(ks_4d,kg_4d),tanh_alt(_mm256_div_pd(_mm256_sub_pd(Ss_4d,age),delta_k_4d))));
 }
 
 void Ca2P::refresh_Ca(const CUBE& calc_area,
@@ -294,7 +322,7 @@ void Ca2P::refresh_Ca(const CUBE& calc_area,
     int prev_x_idx, next_x_idx, prev_y_idx, next_y_idx, prev_z_idx, next_z_idx;
 
     int _i,_i1,_i2,_i3,_i4;
-    __m256d _sum;
+	__m256d _sum = { 0 };
     __m256d x_next_sub,x_prev_sub,y_next_sub,y_prev_sub,z_next_sub,z_prev_sub,sub_sum;
     __m256d x_tmp;
     alignas(32) double x_store_prev[4],x_store_next[4],x_store_current[4];
@@ -356,20 +384,32 @@ void Ca2P::refresh_P_i(int calc_index_min, int calc_index_max,\
 	VEC_X_RANGE_VALIDATION(calc_index_min);
 	VEC_X_RANGE_VALIDATION(calc_index_max);
 
-    VSet4d lat;int lat_x_val;
+    VSet4d lat;int lat_x_val=0;
     std::vector<VSet4d> avg_lat(8);
-	alignas(32) double avg_vec_store[4], avg_Ca_value[4];
+	alignas(32) double avg_vec_store[4] = { 0 }, avg_Ca_value[4] = { 0 };
 	__m256d avg = { 0 };
-    alignas(16) int avg_index_x[4],avg_index_y[4],avg_index_z[4],avg_vec_index_x[4],avg_invec_index_x[4];
-	__m256d avg_vec_idx_d;
+    alignas(16) int avg_index_x[4] = { 0 },avg_index_y[4] = { 0 },avg_index_z[4] = { 0 },avg_vec_index_x[4] = { 0 },avg_invec_index_x[4] = { 0 };
+	__m256d avg_vec_idx_d = { 0 };
     __m256d react_sum= { 0 };
-    __m256d neg_me_dead_val, react_alive_val, me_val, react_val;//dt unmultiplied
-
+	__m256d neg_me_dead_val = { 0 }, react_alive_val = { 0 }, me_val = { 0 }, react_val = { 0 };//dt unmultiplied
+	__m256d first_calc_val = { 0 }, second_calc_val = { 0 };
+	__m256d react_mask = { 0 };
+	__m256d In_val = { 0 };
+	__m256d main_cond_mask = { 0 };
     for (int i = calc_index_min/4; i < calc_index_max/4; i++) {
+		neg_me_dead_val = { 0 };
+		react_alive_val = { 0 };
+		me_val = { 0 };
+		react_val = { 0 };
+
+		//first calc
 		if (all_current_cells[i].hasState(DEAD)) {
-			neg_me_dead_val = _mm256_and_pd(all_current_cells[i].state.smask[DEAD], _mm256_mul_pd(Kpp_4d, all_current_cells[i].P));
+			//Kpp*Pi
+			neg_me_dead_val = _mm256_mul_pd(Kpp_4d, all_current_cells[i].P);
 			for (int j = 0; j < C::max_cell_num / 4; j++) {
-				if (all_current_cells[j].hasState(ALIVE)) {
+				if (all_current_cells[j].hasState(ALIVE)) { //これでは全ての細胞に対して計算する
+					//やっぱり重いなら変える
+					//Pj-Pi
 					react_alive_val = _mm256_add_pd(
 						react_alive_val,
 						_mm256_and_pd(
@@ -379,75 +419,120 @@ void Ca2P::refresh_P_i(int calc_index_min, int calc_index_max,\
 						);
 				}
 			}
-			react_alive_val = _mm256_and_pd(all_current_cells[i].state.smask[DEAD], _mm256_mul_pd(dP_4d, react_alive_val));
+			//dp*Sum(Pj-Pi)
+			react_alive_val = _mm256_mul_pd(dP_4d, react_alive_val);
 		}
-        all_current_cells[i].get_lattice(lat);
-        avg_lat[0].x=lat.x;
-        avg_lat[0].y=lat.y;
-        avg_lat[0].z=lat.z;
+		first_calc_val = _mm256_and_pd(all_current_cells[i].state.smask[DEAD], _mm256_sub_pd(react_alive_val, neg_me_dead_val));
+		//先にDEADマスクをかけずにneg_me_dead_val+react_alive_valを計算してからかけたほうが良い?
+		//->変わらない,けど見やすいかも
 
-        //boundary is not considered
-        avg_lat[1].x=_mm256_add_pd(_mm256_set1_pd(1.0),lat.x);
-        avg_lat[1].y=lat.y;
-        avg_lat[1].z=lat.z;
+		main_cond_mask = all_current_cells[i].state.getORMask(ALIVE, FIX, MUSUME);
+		if (_mm256_testz_pd(main_cond_mask, main_cond_mask) == 0) {
+			//座標を格子点の番号に変換
+			all_current_cells[i].get_lattice(lat);
 
-        avg_lat[2].x=lat.x;
-        avg_lat[2].y=_mm256_add_pd(_mm256_set1_pd(1.0),lat.y);
-        avg_lat[2].z=lat.z;
+			//平均をとる番号
+			avg_lat[0].x = lat.x;
+			avg_lat[0].y = lat.y;
+			avg_lat[0].z = lat.z;
 
-        avg_lat[3].x=lat.x;
-        avg_lat[3].y=lat.y;
-        avg_lat[3].z=_mm256_add_pd(_mm256_set1_pd(1.0),lat.z);
+			//boundary is not considered
+			avg_lat[1].x = _mm256_add_pd(_mm256_set1_pd(1.0), lat.x);
+			avg_lat[1].y = lat.y;
+			avg_lat[1].z = lat.z;
 
-        avg_lat[4].x=lat.x;
-        avg_lat[4].y=avg_lat[2].y; //reuse that is already added
-        avg_lat[4].z=avg_lat[3].z;
+			avg_lat[2].x = lat.x;
+			avg_lat[2].y = _mm256_add_pd(_mm256_set1_pd(1.0), lat.y);
+			avg_lat[2].z = lat.z;
 
-        avg_lat[5].x=avg_lat[1].x;
-        avg_lat[5].y=lat.y;
-        avg_lat[5].z=avg_lat[3].z;
+			avg_lat[3].x = lat.x;
+			avg_lat[3].y = lat.y;
+			avg_lat[3].z = _mm256_add_pd(_mm256_set1_pd(1.0), lat.z);
 
-        avg_lat[6].x=avg_lat[1].x;
-        avg_lat[6].y=avg_lat[2].y;
-        avg_lat[6].z=lat.z;
+			avg_lat[4].x = lat.x;
+			avg_lat[4].y = avg_lat[2].y; //reuse that is already added
+			avg_lat[4].z = avg_lat[3].z;
 
-        avg_lat[7].x=avg_lat[1].x;
-        avg_lat[7].y=avg_lat[2].y;
-        avg_lat[7].z=avg_lat[3].z;
+			avg_lat[5].x = avg_lat[1].x;
+			avg_lat[5].y = lat.y;
+			avg_lat[5].z = avg_lat[3].z;
 
-        for(int k=0;k<8;k++){
+			avg_lat[6].x = avg_lat[1].x;
+			avg_lat[6].y = avg_lat[2].y;
+			avg_lat[6].z = lat.z;
 
-            _mm_store_si128((__m128i*)avg_index_y,_mm256_cvtpd_epi32(avg_lat[k].y));
-            _mm_store_si128((__m128i*)avg_index_z,_mm256_cvtpd_epi32(avg_lat[k].z));
-			avg_vec_idx_d = _mm256_round_pd(_mm256_div_pd(avg_lat[k].x, _mm256_set1_pd(4.0)),_MM_FROUND_NINT); //index as double
-            _mm_store_si128((__m128i*)avg_vec_index_x,_mm256_cvtpd_epi32(avg_vec_idx_d)); //index of 4-pair data
-			_mm_store_si128(
-				(__m128i*)avg_invec_index_x,
-				_mm256_cvtpd_epi32(
-					_mm256_sub_pd(avg_lat[k].x,
-						_mm256_mul_pd(avg_vec_idx_d,_mm256_set1_pd(4.0))
+			avg_lat[7].x = avg_lat[1].x;
+			avg_lat[7].y = avg_lat[2].y;
+			avg_lat[7].z = avg_lat[3].z;
+
+			for (int k = 0; k < 8; k++) {
+
+				_mm_store_si128((__m128i*)avg_index_y, _mm256_cvtpd_epi32(avg_lat[k].y));
+				_mm_store_si128((__m128i*)avg_index_z, _mm256_cvtpd_epi32(avg_lat[k].z));
+				avg_vec_idx_d = _mm256_round_pd(_mm256_div_pd(avg_lat[k].x, _mm256_set1_pd(4.0)), _MM_FROUND_NINT); //index as double
+				_mm_store_si128((__m128i*)avg_vec_index_x, _mm256_cvtpd_epi32(avg_vec_idx_d)); //index of 4-pair data
+				_mm_store_si128(
+					(__m128i*)avg_invec_index_x,
+					_mm256_cvtpd_epi32(
+						_mm256_sub_pd(avg_lat[k].x,
+							_mm256_mul_pd(avg_vec_idx_d, _mm256_set1_pd(4.0))
+							)
 						)
-					)
-				); //index of element in 4-pairs [0,1,2,3]
-			
-			//仕方ないので４つバラバラにして取得
-			for (int cell_count = 0; cell_count < 4; cell_count++) {
-				_mm256_store_pd(avg_vec_store, currentCa[avg_vec_index_x[cell_count]][avg_index_y[cell_count]][avg_index_z[cell_count]]);
-				avg_Ca_value[cell_count] = avg_vec_store[avg_invec_index_x[cell_count]];
-			}
-			avg = _mm256_add_pd(avg, _mm256_load_pd(avg_Ca_value));
-        }
-		avg = _mm256_div_pd(avg, _mm256_set1_pd(8.0)); //4箇所それぞれの平均が入ってる
+					); //index of element in 4-pairs [0,1,2,3]
 
-        _mm256_store_pd(lat_x,lat.x);//_mm256_store_pd(lat_y,lat.y);_mm256_store_pd(lat_y,lat.y);
-        lat_x_val=(int)lat_x[0];
-        if(((int)lat_x[0])%4 == 3 && ){ //last elem
-            (((int)lat_x[0])+1)/4
-        }
-        if(all_current_cells[i].state.DEAD)
-        for (int j = 0; j < CellSet4d::max_reaction_cell_num; j++) {
-            //react_sum = _mm256_add_pd(react_sum,_mm256_and_pd(all_current_cells[i].react_mask[j],)
-        }
+				//仕方ないので４つバラバラにして取得
+				for (int cell_count = 0; cell_count < 4; cell_count++) {
+					_mm256_store_pd(avg_vec_store, currentCa[avg_vec_index_x[cell_count]][avg_index_y[cell_count]][avg_index_z[cell_count]]);
+					avg_Ca_value[cell_count] = avg_vec_store[avg_invec_index_x[cell_count]];
+				}
+				avg = _mm256_add_pd(avg, _mm256_load_pd(avg_Ca_value));
+			}
+			avg = _mm256_div_pd(avg, _mm256_set1_pd(8.0)); //4箇所それぞれの平均が入ってる
+
+
+			//FP(A_avg)-Kpp*Pi
+			me_val = _mm256_sub_pd(FP(all_current_cells[i], avg), _mm256_mul_pd(Kpp_4d, all_current_cells[i].P));
+
+			//In(Ski)
+			In_val = In(all_current_cells[i]);
+
+
+			for (int j = 0; j < C::max_cell_num / 4; j++) {
+				//とりあえず全部
+
+				react_mask = all_current_cells[j].state.getORMask(ALIVE, DEAD, FIX, MUSUME);
+
+				if (_mm256_testz_pd(react_mask, react_mask) == 0) { //対象がある hasState(ALIVE,DEAD,FIX,MUSUME)も可だがマスクを使うので
+
+					//ここを他の計算と一緒にしたら早くなるけどとりあえず放置..読みにくい
+
+
+
+					//In*w_ij*(Pj-Pi)  Pj-Piさっきやったから使えそう
+
+
+					react_val = _mm256_add_pd(react_val, _mm256_and_pd(react_mask,
+						_mm256_mul_pd(
+							In_val,
+							_mm256_mul_pd(all_current_cells[i].w[j],
+								_mm256_sub_pd(all_current_cells[j].P, all_current_cells[i].P)
+								)
+							)
+						)
+						);
+
+				}
+			}
+			//dp*Sum(In*w_ij*(Pj-Pi))
+			react_val = _mm256_mul_pd(dP_4d, react_val);
+
+		}
+
+		second_calc_val= _mm256_and_pd(main_cond_mask, _mm256_add_pd(me_val, react_val));
+
+		next_cells[i].P = _mm256_add_pd(all_current_cells[i].P,
+			_mm256_mul_pd(C::dt_ca_4d, _mm256_add_pd(first_calc_val, second_calc_val))
+			);
     }
 }
 }
