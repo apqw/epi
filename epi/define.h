@@ -2,16 +2,25 @@
 #include <immintrin.h>
 #include <vector>
 #include <cassert>
+#define VECTORMATH 2
+
+
+#include "VCL/vectorclass.h"
+
+#include "VCL/vectormath_lib.h"
+
 #define _mm256_full_hadd_ps(v0, v1) \
         (_mm256_hadd_ps(_mm256_permute2f128_ps(v0, v1, 0x20), \
                        _mm256_permute2f128_ps(v0, v1, 0x31)))
 #define SET8(val) static const __m256 val##_8
-#define SET8s(val) static const __m256 val##_8s
-#define SET4d(val) static const __m256d val##_4d
+#define SET8s(val) static const Vec4f val##_8s
+#define SET4d(val) static const Vec4d val##_4d
+#define SET4i(val) static const Vec4i val##_4i
 
-#define SET8_d(cl,val) const __m256 cl::val##_8=_mm256_set1_ps((float)(val))
-#define SET8s_d(cl,val) const __m256 cl::val##_8s=_mm256_set1_ps((float)(val))
-#define SET4d_d(cl,val) const __m256d cl::val##_4d=_mm256_set1_pd((double)(val))
+#define SET8_d(cl,val) const Vec4f cl::val##_8=(float)(val)
+#define SET8s_d(cl,val) const Vec4f cl::val##_8s=(float)(val)
+#define SET4d_d(cl,val) const Vec4d cl::val##_4d=(double)(val)
+#define SET4i_d(cl,val) const Vec4i cl::val##_4i=(int)(val)
 
 //Check if the 4-paired-cell contains the cell which has this state 
 #define CONTAIN_STATE(_cell,state) (_mm256_testz_pd(_cell.state.smask[(state)], _cell.state.smask[(state)]) == 0)
@@ -25,11 +34,15 @@ typedef double real;	//高速化の際にfloatにした方が良い場合があるかもしれないので
 						//必要になったらfloatに変える
 						//SSEとか使う時には注意
 						//floatがdoubleより遅い場合はコンパイル時のオプションをチェック
-typedef std::vector<std::vector<std::vector<__m256d>>> _3DScalar4d;
+typedef std::vector<std::vector<std::vector<Vec4d>>> _3DScalar4d;
 #define DEFC static constexpr //打つの面倒
 
-#define DEFC_VEC(name,val) DEFC real name=(val);SET8s(name);SET4d(name)
-#define VEC_INIT(cl,name) SET8s_d(cl,name);SET4d_d(cl,name)
+
+#define DEFC_VEC(name,val) DEFC real name=(real)(val);DEFC real INV_##name=(real)(1.0/((real)(val)));SET8s(name);SET8s(INV_##name);SET4d(name);SET4d(INV_##name)
+#define DEFC_VEC_int(name,val) DEFC int name=(int)(val);DEFC real INV_##name=(real)(1.0/((real)(val)));SET8s(name);SET8s(INV_##name);SET4d(name);SET4d(INV_##name)
+#define DEFC_VEC_no_inv(name,val) DEFC real name=(val);SET8s(name);SET4d(name);
+#define VEC_INIT(cl,name) SET8s_d(cl,name);SET8s_d(cl,INV_##name);SET4d_d(cl,name);SET4d_d(cl,INV_##name)
+#define VEC_INIT_no_inv(cl,name) SET8s_d(cl,name);SET4d_d(cl,name)
 
 class V3D {
 
@@ -37,28 +50,62 @@ class V3D {
 
 //__m256 == float*8
 //__m256d == double*4
+//もっと型が要るならtemplateで
 class VSet4d :V3D {
 public:
-	__m256d x;
-	__m256d y;
-	__m256d z;
+    Vec4d x;
+    Vec4d y;
+    Vec4d z;
 	//need alignment
 	//align出来ないなら_mm256_loadu_ps
-	VSet4d() {
-		x = _mm256_setzero_pd();
-		y = _mm256_setzero_pd();
-		z = _mm256_setzero_pd();
-	}
-	VSet4d(const double* &x_arr, const double* &y_arr, const double* &z_arr) {
+    VSet4d():x(0),y(0),z(0) {
+        /*
+        x = Vec4d(0);
+        y = Vec4d(0);
+        z = Vec4d(0);
+        */
+    }
+    VSet4d(const double* &x_arr, const double* &y_arr, const double* &z_arr) {
+        x.load(x_arr);
+        y.load(y_arr);
+        z.load(z_arr);
+        /*
 		x = _mm256_load_pd(x_arr);
 		y = _mm256_load_pd(y_arr);
 		z = _mm256_load_pd(z_arr);
-	}
+        */
+    }
 	//VSet8& operator+(const VSet8 &a); //avoid creating instances
-	void operator+=(const VSet4d &a);
+    void operator+=(const VSet4d &a);
 	//VSet8& operator*(const VSet8 &a);
 	//VSet8& operator*=(const VSet8 &a);
 };
+
+class VSet4i:V3D{
+public:
+    Vec4i x;
+    Vec4i y;
+    Vec4i z;
+    //need alignment
+    //align出来ないなら_mm256_loadu_ps
+    VSet4i():x(0),y(0),z(0) {
+    }
+    VSet4i(const int* &x_arr, const int* &y_arr, const int* &z_arr) {
+        x.load(x_arr);
+        y.load(y_arr);
+        z.load(z_arr);
+        /*
+        x = _mm256_load_pd(x_arr);
+        y = _mm256_load_pd(y_arr);
+        z = _mm256_load_pd(z_arr);
+        */
+    }
+    //VSet8& operator+(const VSet8 &a); //avoid creating instances
+    //void operator+=(const VSet4d &a);
+    //VSet8& operator*(const VSet8 &a);
+    //VSet8& operator*=(const VSet8 &a);
+};
+
 
 class BoundaryInfo {
 public:
@@ -107,16 +154,14 @@ namespace EPI {
 	typedef STATE CELL_STATE;
 	class PState4d {
 	public:
-		static __m256d all1;
-		static __m256d all0;
-		__m256d smask[10];
+        Vec4db smask[10];
 		template<typename T, typename... U>
-		__m256d getORMask(T first, U... rest) const; //test
-		__m256d getORMask() const;
+        Vec4db getORMask(T first, U... rest) const; //test
+        Vec4db getORMask() const;
 
 		template<typename T, typename... U>
-		__m256d getANDMask(T first, U... rest) const;
-		__m256d getANDMask() const;
+        Vec4db getANDMask(T first, U... rest) const;
+        Vec4db getANDMask() const;
 
 
 
@@ -129,10 +174,12 @@ namespace EPI {
 	*/
 	class C {
 	public:
-		DEFC_VEC(zero, 0.0);
+        static Vec4db v4d_false;
+        static Vec4db v4d_true;
+        DEFC_VEC_no_inv(zero, 0.0);
 		DEFC_VEC(half, 0.5);
 		DEFC_VEC(one, 1.0);
-		DEFC_VEC(neg_zero, -0.0);
+        DEFC_VEC_no_inv(neg_zero, -0.0);
 		// http://www.math.utah.edu/~beebe/software/ieee/tanh.pdf
 		DEFC_VEC(tanh_s_th, 1.29047814397589243466E-08);
 		DEFC_VEC(tanh_l_th, 19.06154746539849600897);
@@ -158,12 +205,20 @@ namespace EPI {
 		/*
 		NX,NY,NZ:分割数
 		*/
+        DEFC_VEC_int(NX,100);
+        DEFC_VEC_int(NY,100);
+        DEFC_VEC_int(NZ,200);
+        SET4i(NX);SET4i(NY);SET4i(NZ);
+        /*
 		static constexpr int NX = 100;
 		static constexpr int NY = 100;
 		static constexpr int NZ = 200;
-		SET8s(NX); SET4d(NX);
-		SET8s(NY); SET4d(NY);
-		SET8s(NZ); SET4d(NZ);
+        static constexpr double INV_NX=1.0/(double)NX;
+        static constexpr double INV_NY=1.0/(double)NY;
+        SET8s(NX); SET4d(NX); SET4i(NX);
+        SET8s(NY); SET4d(NY); SET4i(NY);
+        SET8s(NZ); SET4d(NZ); SET4i(NZ);
+        */
 		/*
 		dx,dy,dz:グリッドの幅
 		*/
@@ -192,18 +247,18 @@ namespace EPI {
 	public:
 
 		static constexpr int max_reaction_cell_num = 400;
-		__m256d valid_mask;
+        Vec4db valid_mask;
 		VSet4d pos;
-		__m256d P; //?
-		__m256d c; //?
-		__m256d ageb;//?
-		__m256d agek;//?
-		__m256d diff_c; //dc_dt
-		__m256d h;
+        Vec4d P; //?
+        Vec4d c; //?
+        Vec4d ageb;//?
+        Vec4d agek;//?
+        Vec4d diff_c; //dc_dt
+        Vec4d h;
 		PState4d state;
 		std::vector<bool> react_flag_4d; //flagged block num must be eq or less than max_reaction_cell_num*4
-		std::vector<__m256d> react_mask;
-		std::vector<__m256d> w;//?
+        std::vector<Vec4db> react_mask;
+        std::vector<Vec4d> w;//?
 		CellSet4d() {
 			//huge memory usage?
 			react_mask.resize(C::max_cell_num / 4);
@@ -214,7 +269,7 @@ namespace EPI {
 			最悪でも計算量は通常と同じ、最高で1/4以下
 			*/
 		};
-		void get_lattice(VSet4d& out) const;
+        void get_lattice(VSet4i& out) const;
 		template<typename T, typename... U>
 		bool hasState(T s, U... rest) const;
 		bool hasState() const;
@@ -320,19 +375,19 @@ namespace EPI {
 		DEFC real _r = 1;
 		DEFC_VEC(_rSq, _r*_r);
 
-		DEFC_VEC(iage_kitei, 0.0);
+        DEFC_VEC_no_inv(iage_kitei, 0.0);
 
 		//functions
 
-		__m256d G(const VSet4d&, const VSet4d&, const __m256d&);
-		__m256d Fc(const CellSet4d&, const __m256d&);
-		__m256d FP(const CellSet4d&, const __m256d&);
-		__m256d Fh(const CellSet4d&);
-		__m256d Fw(const __m256d&, const __m256d&, const __m256d&);
+        Vec4d G(const VSet4d&, const VSet4d&, const Vec4d&);
+        Vec4d Fc(const CellSet4d&, const Vec4d&);
+        Vec4d FP(const CellSet4d&, const Vec4d&);
+        Vec4d Fh(const CellSet4d&);
+        Vec4d Fw(const Vec4d&, const Vec4d&, const Vec4d&);
 		//__m256d FB(const __m256d&,const __m256d&);
-		__m256d tau_h(const CellSet4d&);
-		__m256d In(const CellSet4d&);
-		__m256d Kpa(const CellSet4d&);
+        Vec4d tau_h(const CellSet4d&);
+        Vec4d In(const CellSet4d&);
+        Vec4d Kpa(const CellSet4d&);
 
 		void refresh_Ca(const CUBE& calc_area,
 			const _3DScalar4d& currentCa,
@@ -347,7 +402,7 @@ namespace EPI {
 		void refresh_c_i(int calc_index_min, int calc_index_max,
 			const _3DScalar4d& currentB,
 			const std::vector<CellSet4d>& all_current_cells,
-			std::vector<__m256d>& diff_c_out,
+            std::vector<Vec4d>& diff_c_out,
 			std::vector<CellSet4d>& refreshed_cells);
 
 		void refresh_h_i(int calc_index_min, int calc_index_max,
@@ -376,13 +431,13 @@ namespace EPI {
 		DEFC_VEC(T_0_stem_fix, T_stem_fix*(1.0 - stoch_div_time_ratio));
 
 		static constexpr bool STOCHASTIC = true;
-		void divide_cell
+        //void div_cell()
 	};
 
 }
-__m256d _tanh_poly(const __m256d&);
-__m256d tanh_avx(const __m256d&);
-__m256d tanh_alt(const __m256d&);
-__m256d m256dintmod(const __m256d&, const __m256d&);
-__m256d calc_avg8(const VSet4d& lattice_4d, const _3DScalar4d& _3DVal_4d); //no boundary condition
+Vec4d _tanh_poly(const Vec4d&);
+Vec4d tanh_avx(const Vec4d&);
+Vec4d tanh_alt(const Vec4d&);
+Vec4d m256dintmod(const Vec4d&, const Vec4d&);
+Vec4d calc_avg8(const VSet4d& lattice_4d, const _3DScalar4d& _3DVal_4d); //no boundary condition
 void init();
