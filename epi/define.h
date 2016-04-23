@@ -2,12 +2,13 @@
 #include <immintrin.h>
 #include <vector>
 #include <cassert>
-#define VECTORMATH 2
+#include <math.h>
+#define VECTORMATH 0
 
 
-#include "VCL/vectorclass.h"
+#include "../VCL/vectorclass.h"
 
-#include "VCL/vectormath_lib.h"
+#include "../VCL/vectormath_lib.h"
 
 #define _mm256_full_hadd_ps(v0, v1) \
         (_mm256_hadd_ps(_mm256_permute2f128_ps(v0, v1, 0x20), \
@@ -51,61 +52,20 @@ class V3D {
 //__m256 == float*8
 //__m256d == double*4
 //もっと型が要るならtemplateで
-class VSet4d :V3D {
+
+template<typename T>
+class VSet4 :V3D {
 public:
-    Vec4d x;
-    Vec4d y;
-    Vec4d z;
-	//need alignment
-	//align出来ないなら_mm256_loadu_ps
-    VSet4d():x(0),y(0),z(0) {
-        /*
-        x = Vec4d(0);
-        y = Vec4d(0);
-        z = Vec4d(0);
-        */
-    }
-    VSet4d(const double* &x_arr, const double* &y_arr, const double* &z_arr) {
-        x.load(x_arr);
-        y.load(y_arr);
-        z.load(z_arr);
-        /*
-		x = _mm256_load_pd(x_arr);
-		y = _mm256_load_pd(y_arr);
-		z = _mm256_load_pd(z_arr);
-        */
-    }
-	//VSet8& operator+(const VSet8 &a); //avoid creating instances
-    void operator+=(const VSet4d &a);
-	//VSet8& operator*(const VSet8 &a);
-	//VSet8& operator*=(const VSet8 &a);
+	T x;
+	T y;
+	T z;
+	VSet4():x(0),y(0),z(0){}
+	VSet4(const T&_x, const T&_y, const T&_z):x(_x),y(_y),z(_z) {
+	}
 };
 
-class VSet4i:V3D{
-public:
-    Vec4i x;
-    Vec4i y;
-    Vec4i z;
-    //need alignment
-    //align出来ないなら_mm256_loadu_ps
-    VSet4i():x(0),y(0),z(0) {
-    }
-    VSet4i(const int* &x_arr, const int* &y_arr, const int* &z_arr) {
-        x.load(x_arr);
-        y.load(y_arr);
-        z.load(z_arr);
-        /*
-        x = _mm256_load_pd(x_arr);
-        y = _mm256_load_pd(y_arr);
-        z = _mm256_load_pd(z_arr);
-        */
-    }
-    //VSet8& operator+(const VSet8 &a); //avoid creating instances
-    //void operator+=(const VSet4d &a);
-    //VSet8& operator*(const VSet8 &a);
-    //VSet8& operator*=(const VSet8 &a);
-};
-
+typedef VSet4<Vec4d> VSet4d;
+typedef VSet4<Vec4i> VSet4i;
 
 class BoundaryInfo {
 public:
@@ -209,16 +169,7 @@ namespace EPI {
         DEFC_VEC_int(NY,100);
         DEFC_VEC_int(NZ,200);
         SET4i(NX);SET4i(NY);SET4i(NZ);
-        /*
-		static constexpr int NX = 100;
-		static constexpr int NY = 100;
-		static constexpr int NZ = 200;
-        static constexpr double INV_NX=1.0/(double)NX;
-        static constexpr double INV_NY=1.0/(double)NY;
-        SET8s(NX); SET4d(NX); SET4i(NX);
-        SET8s(NY); SET4d(NY); SET4i(NY);
-        SET8s(NZ); SET4d(NZ); SET4i(NZ);
-        */
+
 		/*
 		dx,dy,dz:グリッドの幅
 		*/
@@ -439,5 +390,5 @@ Vec4d _tanh_poly(const Vec4d&);
 Vec4d tanh_avx(const Vec4d&);
 Vec4d tanh_alt(const Vec4d&);
 Vec4d m256dintmod(const Vec4d&, const Vec4d&);
-Vec4d calc_avg8(const VSet4d& lattice_4d, const _3DScalar4d& _3DVal_4d); //no boundary condition
+Vec4d calc_avg8(const VSet4i& lattice_4d, const _3DScalar4d& _3DVal_4d); //no boundary condition
 void init();

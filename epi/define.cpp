@@ -92,24 +92,11 @@ Vec4d tanh_alt(const Vec4d&x) {
     return 0.5*(1.0+tanh(x));
     //return _mm256_mul_pd(EPI::C::half_4d, _mm256_add_pd(EPI::C::one_4d, tanh_avx(x)));
 }
-Vec4d m256dintmod(const Vec4d &_num, const Vec4d& _den) {
-    __m256d num=_num;__m256d den=_den;
-    return Vec4d(_mm256_round_pd(
-		_mm256_sub_pd(num,
-			_mm256_mul_pd(
-				_mm256_floor_pd(
-					_mm256_div_pd(num, den)
-					), den
-				)
-			),
-        _MM_FROUND_NINT));
-	//Round(num-Floor(num/den)*den)
-}
+Vec4d m256dintmod(const Vec4d &num, const Vec4d& den) {
 
-void VSet4d::operator+=(const VSet4d &a) {
-    x+=a.x;
-    y+=a.y;
-    z+=a.z;
+	return round(
+		num-floor(num/den)*den
+		);
 }
 
 Vec4d calc_avg8(const VSet4i& lat, const _3DScalar4d& _3DVal_4d) {
@@ -207,33 +194,30 @@ namespace EPI {
 	}
 
     Vec4d Ca2P::Fc(const CellSet4d& cset, const Vec4d& B) {
-		//??????????C??????????????
-        Vec4d vBSq = square(B); //__m256d BSq = _mm256_mul_pd(B, B);
+		//Š„‚èŽZ‚ðŒ¸‚ç‚µ‚½
+        Vec4d vBSq = square(B);
 
         Vec4d vden_Km_p = Kmu_4d+cset.P;
         Vec4d vden_K1_c = K1_4d+cset.c;
-        Vec4d vden_Kg_c = Kg_4d+cset.c;//__m256d den_Kg_c = _mm256_add_pd(Kg_4d, cset.c);
-        Vec4d vden_Hb_BSq = Hb_4d+vBSq;//__m256d den_Hb_BSq = _mm256_add_pd(Hb_4d, BSq);
+        Vec4d vden_Kg_c = Kg_4d+cset.c;
+        Vec4d vden_Hb_BSq = Hb_4d+vBSq;
 
-        Vec4d vnum_mu1p = mu1_4d*cset.P;//__m256d num_mu1p = _mm256_mul_pd(mu1_4d, cset.P);
-        Vec4d vnum_salphac = sub1Alpha0_4d*cset.c;//__m256d num_salphac = _mm256_mul_pd(sub1Alpha0_4d, cset.c);
-        Vec4d vnum_KbcBSq = Kbc_4d*Cout_4d*vBSq;//__m256d num_KbcBSq = _mm256_mul_pd(_mm256_mul_pd(Kbc_4d,Cout_4d), BSq); //why cout?
-        Vec4d vnum_gammac = gamma_4d*cset.c;//__m256d num_gammac = _mm256_mul_pd(gamma_4d, cset.c);
+        Vec4d vnum_mu1p = mu1_4d*cset.P;
+        Vec4d vnum_salphac = sub1Alpha0_4d*cset.c;
+        Vec4d vnum_KbcBSq = Kbc_4d*Cout_4d*vBSq;//why cout?
+        Vec4d vnum_gammac = gamma_4d*cset.c;
 
 		//fmadd available if AVX2
-        Vec4d vnum_mu0Kmu_p = vnum_mu1p+mu0_4d*vden_Km_p;//__m256d num_mu0Kmu_p = _mm256_add_pd(_mm256_mul_pd(mu0_4d, den_Km_p), num_mu1p);
-        Vec4d vnum_a0K1_c_salc = vnum_salphac+alpha0_4d*vden_K1_c;//__m256d num_a0K1_c_salc = _mm256_add_pd(_mm256_mul_pd(alpha0_4d, den_K1_c), num_salphac);
+        Vec4d vnum_mu0Kmu_p = vnum_mu1p+mu0_4d*vden_Km_p;
+        Vec4d vnum_a0K1_c_salc = vnum_salphac+alpha0_4d*vden_K1_c;
         Vec4d vnum_KbcBSqKg_c__gcHB_BSq = vnum_KbcBSq*vden_Kg_c-vnum_gammac*vden_Hb_BSq;
 
-                //__m256d num_KbcBSqKg_c__gcHb_BSq = _mm256_sub_pd(_mm256_mul_pd(num_KbcBSq, den_Kg_c), _mm256_mul_pd(num_gammac, den_Hb_BSq));
-
-        Vec4d vden_p1 = vden_Km_p*vden_K1_c;//__m256d den_p1 = _mm256_mul_pd(den_Km_p, den_K1_c);
-        Vec4d vden_p2 = vden_Kg_c*vden_Hb_BSq;//__m256d den_p2 = _mm256_mul_pd(den_Kg_c, den_Hb_BSq);
+        Vec4d vden_p1 = vden_Km_p*vden_K1_c;
+        Vec4d vden_p2 = vden_Kg_c*vden_Hb_BSq;
         Vec4d vnum_p1 = vden_p2*Kf_4d*cset.h*vnum_mu0Kmu_p*vnum_a0K1_c_salc;
 
-        //__m256d num_p1 = _mm256_mul_pd(_mm256_mul_pd(den_p2, _mm256_mul_pd(Kf_4d, cset.h)), _mm256_mul_pd(num_mu0Kmu_p, num_a0K1_c_salc));
+      
         Vec4d vnum_p2 = vden_p1*vnum_KbcBSqKg_c__gcHB_BSq;
-        //__m256d num_p2 = _mm256_mul_pd(den_p1, num_KbcBSqKg_c__gcHb_BSq);
         return beta_4d+((vnum_p1*vnum_p2)/(vden_p1*vden_p2));
         //add(sub):8 mul: 17 div:1
 	}

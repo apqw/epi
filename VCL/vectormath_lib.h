@@ -440,11 +440,11 @@ static inline Vec4d atan (Vec4d const & x) {   // inverse tangent
     return Vec4d(atan(x.get_low()), atan(x.get_high()));
 }
 
-static inline Vec8f atan (Vec8f const & a, Vec8f const & b) {   // inverse tangent of a/b
-    return Vec8f(atan(a.get_low(),b.get_low()), atan(a.get_high(),b.get_high()));
+static inline Vec8f atan2 (Vec8f const & a, Vec8f const & b) {   // inverse tangent of a/b
+    return Vec8f(atan2(a.get_low(),b.get_low()), atan2(a.get_high(),b.get_high()));
 }
-static inline Vec4d atan (Vec4d const & a, Vec4d const & b) {   // inverse tangent of a/b
-    return Vec4d(atan(a.get_low(),b.get_low()), atan(a.get_high(),b.get_high()));
+static inline Vec4d atan2 (Vec4d const & a, Vec4d const & b) {   // inverse tangent of a/b
+    return Vec4d(atan2(a.get_low(),b.get_low()), atan2(a.get_high(),b.get_high()));
 }
 #endif // VECTORMATH_COMMON_H
 
