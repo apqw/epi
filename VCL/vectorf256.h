@@ -1306,8 +1306,9 @@ static inline Vec8f change_sign(Vec8f const & a) {
 
 class Vec4d {
 protected:
-    __m256d ymm; // double vector
+    
 public:
+	__m256d ymm; // double vector
     // Default constructor:
     Vec4d() {
     }

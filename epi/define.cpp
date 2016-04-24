@@ -1,12 +1,16 @@
 #include <math.h>
+#include <omp.h>
 #include "define.h"
+#include "SFMT.h"
 //?t?@?C??????????????????
-int EPI::C::NMEMB = -1;
-int EPI::C::NDER = -1;
+int EPI::C::NMEMB = 100;
+int EPI::C::NDER = 100;
 int EPI::C::CELL_START_IDX = NMEMB + NDER; //tmp def
+/*
 int EPI::Field_Data::current_cell_num = 0;
 std::vector<EPI::CellSet4d> EPI::Field_Data::cells(C::max_cell_num/4);
 std::vector<EPI::CellSet4d> EPI::Field_Data::next_cells(C::max_cell_num/4);
+*/
 //int EPI::current_cell_num = 0;
 
 Vec4db EPI::C::v4d_false =Vec4db(false);
@@ -86,11 +90,26 @@ VEC_INIT(EPI::Ca2P, _rSq);
 VEC_INIT_no_inv(EPI::Ca2P, iage_kitei);
 VEC_INIT(EPI::Ca2P, Cout);
 
+VEC_INIT(EPI::CellDiv,eps_kb);
+VEC_INIT(EPI::CellDiv,u0);
+VEC_INIT(EPI::CellDiv,alpha_b);
+
+VEC_INIT(EPI::CellDiv,agki_max);
+VEC_INIT(EPI::CellDiv,fac);
+VEC_INIT(EPI::CellDiv,agki_max_fix);
+VEC_INIT(EPI::CellDiv,stoch_div_time_ratio);
+
+VEC_INIT(EPI::CellDiv,S_star);
+VEC_INIT(EPI::CellDiv,T_musume);
+VEC_INIT(EPI::CellDiv,T_stem_fix);
+VEC_INIT(EPI::CellDiv,T_0_musume);
+VEC_INIT(EPI::CellDiv,T_0_stem_fix);
+
+VEC_INIT(EPI::CellDiv,div_fin_dist_coef);
+
 
 Vec4d tanh_alt(const Vec4d&x) {
-	//inefficient?
     return 0.5*(1.0+tanh(x));
-    //return _mm256_mul_pd(EPI::C::half_4d, _mm256_add_pd(EPI::C::one_4d, tanh_avx(x)));
 }
 Vec4d m256dintmod(const Vec4d &num, const Vec4d& den) {
 
@@ -153,6 +172,9 @@ Vec4d calc_avg8(const VSet4i& lat, const _3DScalar4d& _3DVal_4d) {
     return avg*0.125; // div by 8
 }
 
+Vec4d distSq4d(const VSet4d& p1, const VSet4d& p2) {
+	return square(p1.x - p2.x) + square(p1.y - p2.y) + square(p1.z - p2.z);
+}
 
 namespace EPI {
 
@@ -173,6 +195,7 @@ namespace EPI {
 	}
 
 
+
     void CellSet4d::get_lattice(VSet4i& out) const {
         Vec4i raw_x = round_to_int(pos.x/C::dx_4d); //inv kakero
         Vec4i raw_y = round_to_int(pos.y/C::dy_4d);
@@ -189,10 +212,25 @@ namespace EPI {
 	bool CellSet4d::hasState()const {
 		return false;
 	}
+
+	CellSet4d& Field_Data::get_new_cell(int* new_cell_index,int* )
+
+	/*
+
+	カルシウムダイナミクスに関連する定義(クラス:Ca2P)
+
+	*/
+
+	/*
+		G(VSet4d グリッドの座標(Ca2+の座標),VSet4d 細胞の座標,Vec4d 細胞のdc/dt);
+	*/
    Vec4d Ca2P::G(const VSet4d& x_vec, const VSet4d& xi_vec, const Vec4d& dcdt) {
-        return select(square(x_vec.x-xi_vec.x)+square(x_vec.y-xi_vec.y)+square(x_vec.z-xi_vec.z)<=_rSq_4d && dcdt>=0,Kac_4d,0);
+        return select(distSq4d(x_vec,xi_vec)<=_rSq_4d && dcdt>=0,Kac_4d,0);
 	}
 
+   /*
+	Fc(CellSet4d 細胞,Vec4d 外刺激物質の値)
+   */
     Vec4d Ca2P::Fc(const CellSet4d& cset, const Vec4d& B) {
 		//割り算を減らした
         Vec4d vBSq = square(B);
@@ -257,20 +295,28 @@ namespace EPI {
 
 	void Ca2P::refresh_Ca(const CUBE& calc_area,
 		const _3DScalar4d& currentCa,
+		const std::vector<Vec4d>& diff_c,
+		int current_cell_num,
 		const std::vector<CellSet4d>& all_cells,
 		_3DScalar4d& nextCa) {
 		//x is compressed by 4
 		VEC_X_RANGE_VALIDATION(calc_area.x.min); VEC_X_RANGE_VALIDATION(calc_area.x.max);
 
-		int prev_x_idx, next_x_idx, prev_y_idx, next_y_idx, prev_z_idx, next_z_idx;
-
-		double _i, _i1, _i2, _i3, _i4;
-        Vec4d _sum = 0;
-        Vec4d x_next_sub, x_prev_sub, y_next_sub, y_prev_sub, z_next_sub, z_prev_sub, sub_sum;
-        Vec4d x_tmp;
-		VSet4d CaPos;
+		
 		//currently boundary conditon is not considered
+		//TODO:openmp
+#pragma omp parallel for 
 		for (int i = calc_area.x.min / 4; i <= calc_area.x.max / 4; i++) {
+			int prev_x_idx, next_x_idx, prev_y_idx, next_y_idx, prev_z_idx, next_z_idx;
+
+			double _i, _i1, _i2, _i3, _i4;
+			Vec4d _sum = 0;
+			Vec4d x_next_sub, x_prev_sub, y_next_sub, y_prev_sub, z_next_sub, z_prev_sub, sub_sum;
+			Vec4d x_tmp;
+			VSet4d CaPos;
+			__m256d xprevbl = { 0 }, xnextbl = { 0 }, xprevtmp = { 0 }, xnexttmp = { 0 };
+			alignas(32) double current[4], next_x[4], prev_x[4], next_y[4], prev_y[4], next_z[4], prev_z[4];
+			//printf("i:%d\n", i);
 			_i = i * 4;
 			_i1 = _i*dx; _i2 = _i1 + dx; _i3 = _i2 + dx; _i4 = _i3 + dx;
             CaPos.x = Vec4d(_i1, _i2, _i3, _i4);
@@ -278,28 +324,67 @@ namespace EPI {
 			prev_x_idx = ((i - 4 + NX) % NX) / 4;
 			next_x_idx = ((i + 4 + NX) % NX) / 4;
 			for (int j = calc_area.y.min; j <= calc_area.y.max; j++) {
-                CaPos.y = Vec4d(i*dy);
+				
+                CaPos.y =i*dy;
 				prev_y_idx = (j - 1 + NY) % NY;
 				next_y_idx = (j + 1 + NY) % NY;
 				for (int k = calc_area.z.min; k <= calc_area.z.max; k++) {
+					
                     _sum=0;
-                    CaPos.z = Vec4d(i*dz);
+                    CaPos.z =i*dz;
 					//neumann
 					prev_z_idx = k == 0 ? 1 : k - 1;
 					next_z_idx = k == NZ ? NZ - 1 : k + 1;
-					for (int l = CELL_START_IDX; l < Field_Data::current_cell_num; l++) {
-                        _sum += G(CaPos, all_cells[l].pos, all_cells[l].diff_c);
+					/*
+					for (int l = CELL_START_IDX; l < current_cell_num; l++) {
+                        _sum += G(CaPos, all_cells[l].pos, diff_c[i]); //too slow
 					}
-					//there is a more efficient way
-                    x_next_sub = Vec4d(currentCa[i][j][k] [1], currentCa[i][j][k] [2], currentCa[i][j][k] [3], currentCa[next_x_idx][j][k] [0])-currentCa[i][j][k];
-                    x_prev_sub = Vec4d(currentCa[prev_x_idx][j][k] [3], currentCa[i][j][k] [0], currentCa[i][j][k] [1], currentCa[i][j][k] [2])-currentCa[i][j][k];
-                    y_next_sub = currentCa[i][next_y_idx][k]-currentCa[i][j][k];
-                    y_prev_sub = currentCa[i][prev_y_idx][k] -currentCa[i][j][k];
-                    z_next_sub = currentCa[i][j][next_z_idx]-currentCa[i][j][k];
-                    z_prev_sub = currentCa[i][j][prev_z_idx]- currentCa[i][j][k];
-                    sub_sum=x_next_sub+x_prev_sub+y_next_sub+y_prev_sub+z_next_sub+z_prev_sub;
+					*/
+					/*
+					_mm256_add_pd(xnextbl, xnextbl);
+					__m256d aaaaaxnextbl=_mm256_permute4x64_pd(xnextbl, 0);
+					xnexttmp = _mm256_permute4x64_pd(currentCa[next_x_idx][j][k].ymm, _MM_SHUFFLE(0, 3, 2, 1));
+					xnextbl = _mm256_blend_pd(xnextbl, xnexttmp, 0b0001);
 
-                    nextCa[i][j][k] = currentCa[i][j][k]+dt_ca_4d*((dA_4d*sub_sum/dxSq_4d)+_sum-Kaa_4d*currentCa[i][j][k]);
+					xprevbl = _mm256_permute4x64_pd(currentCa[i][j][k].ymm, _MM_SHUFFLE(2,1,0,3));
+					xprevtmp = _mm256_permute4x64_pd(currentCa[prev_x_idx][j][k].ymm, _MM_SHUFFLE(2, 1, 0, 3));
+					xprevbl = _mm256_blend_pd(xprevbl, xprevtmp, 0b1000);
+					*/
+					/*
+					currentCa[i][j][k].store_a(current);
+					currentCa[prev_x_idx][j][k].store_a(prev_x); currentCa[next_x_idx][j][k].store(next_x);
+					currentCa[i][prev_y_idx][k].store_a(prev_y); currentCa[i][next_y_idx][k].store(next_y);
+					currentCa[i][j][prev_z_idx].store_a(prev_z); currentCa[i][j][next_z_idx].store(next_z);
+					*/
+					//there is a more efficient way
+					/*
+					x_next_sub = Vec4d(currentCa[i][j][k] [1], currentCa[i][j][k] [2], currentCa[i][j][k] [3], currentCa[next_x_idx][j][k] [0])-currentCa[i][j][k];
+					x_prev_sub = Vec4d(currentCa[prev_x_idx][j][k] [3], currentCa[i][j][k] [0], currentCa[i][j][k] [1], currentCa[i][j][k] [2])-currentCa[i][j][k];
+					y_next_sub = currentCa[i][next_y_idx][k]-currentCa[i][j][k];
+					y_prev_sub = currentCa[i][prev_y_idx][k] -currentCa[i][j][k];
+					z_next_sub = currentCa[i][j][next_z_idx]-currentCa[i][j][k];
+					z_prev_sub = currentCa[i][j][prev_z_idx]- currentCa[i][j][k];
+					sub_sum=x_next_sub+x_prev_sub+y_next_sub+y_prev_sub+z_next_sub+z_prev_sub;
+					*/
+
+#define SUB_SUM (_mm256_add_pd(\
+					_mm256_add_pd(_mm256_add_pd(_mm256_sub_pd(xnextbl, currentCa[i][j][k].ymm),\
+						_mm256_sub_pd(xprevbl, currentCa[i][j][k].ymm)),\
+						_mm256_add_pd(_mm256_sub_pd(currentCa[i][next_y_idx][k].ymm, currentCa[i][j][k].ymm), _mm256_sub_pd(currentCa[i][prev_y_idx][k].ymm, currentCa[i][j][k].ymm))\
+						), _mm256_add_pd(_mm256_sub_pd(currentCa[i][j][next_z_idx].ymm, currentCa[i][j][k].ymm), _mm256_sub_pd(currentCa[i][j][prev_z_idx].ymm, currentCa[i][j][k].ymm))))
+
+					nextCa[i][j][k].ymm = _mm256_add_pd(
+						currentCa[i][j][k].ymm, 
+						_mm256_mul_pd(
+							dt_ca_4d, 
+							_mm256_mul_pd( 
+								_mm256_mul_pd(INV_dxSq_4d, SUB_SUM),
+								dA_4d))
+						);
+					
+#undef SUB_SUM
+
+                   // nextCa[i][j][k] = currentCa[i][j][k]+dt_ca_4d*((dA_4d*sub_sum/dxSq_4d)+_sum-Kaa_4d*currentCa[i][j][k]);
 
 
 				}
@@ -316,90 +401,102 @@ namespace EPI {
 		VEC_X_RANGE_VALIDATION(calc_index_min);
 		VEC_X_RANGE_VALIDATION(calc_index_max);
 
-        VSet4i lat;
-        Vec4d neg_me_dead_val = 0, react_alive_val = 0, me_val = 0 , react_val = 0 ;//dt unmultiplied
-        Vec4d first_calc_val =  0 , second_calc_val =  0 ;
-        Vec4db react_mask =  false ;
-        Vec4d In_val =  0 ;
-        Vec4db main_cond_mask =  false ;
 		for (int i = calc_index_min / 4; i < calc_index_max / 4; i++) {
-            neg_me_dead_val =  0 ;
-            react_alive_val =  0 ;
-            me_val =  0 ;
-            react_val =  0 ;
-
-			//first calc
-			if (all_current_cells[i].hasState(DEAD)) {
-				//Kpp*Pi
-                neg_me_dead_val = Kpp_4d*all_current_cells[i].P;
-				for (int j = 0; j < C::max_cell_num / 4; j++) {
-					if (all_current_cells[j].hasState(ALIVE)) { //これでは全ての細胞に対して計算する
-						//やっぱり重いなら変える
-						//Pj-Pi
-                        react_alive_val += select(all_current_cells[j].state.smask[ALIVE],all_current_cells[j].P- all_current_cells[i].P,0);
-					}
-				}
-				//dp*Sum(Pj-Pi)
-                react_alive_val *= dP_4d;
-			}
-            first_calc_val = select(all_current_cells[i].state.smask[DEAD],react_alive_val- neg_me_dead_val,0);
-			//先にDEADマスクをかけずにneg_me_dead_val+react_alive_valを計算してからかけたほうが良い?
-			//->変わらない,けど見やすいかも
-
-            //better:use ALIVE||FIX||MUSUME MASK for check cond and later masking
-            main_cond_mask = all_current_cells[i].state.getORMask(ALIVE,FIX,MUSUME);
-
-            if(horizontal_or(main_cond_mask)){
-                all_current_cells[i].get_lattice(lat);
-                me_val = FP(all_current_cells[i],calc_avg8(lat,currentCa))-Kpp_4d*all_current_cells[i].P;
-                In_val=In(all_current_cells[i]);
-                for(int j=0;j<C::max_cell_num/4;j++){
-                    react_mask=all_current_cells[j].state.getORMask(ALIVE,DEAD,FIX,MUSUME);
-                    if(horizontal_or(react_mask)){
-                        react_val +=select(react_mask,In_val*all_current_cells[i].w[j]*(all_current_cells[j].P-all_current_cells[i].P),0);
-                    }
-                }
-                react_val*=dP_4d;
-            }
-
-            second_calc_val = select(main_cond_mask,me_val+react_val,0);
-            refreshed_cells[i].P=all_current_cells[i].P+C::dt_ca_4d*(first_calc_val+second_calc_val);
+			refresh_P_i_in_cell_loop(currentCa, all_current_cells, i, refreshed_cells);
 		}
+	}
+
+	void Ca2P::refresh_P_i_in_cell_loop(const _3DScalar4d& currentCa,
+		const std::vector<CellSet4d>& all_current_cells,int i,
+		std::vector<CellSet4d>& refreshed_cells) {
+
+		VSet4i lat;
+		Vec4d neg_me_dead_val = 0, react_alive_val = 0, me_val = 0, react_val = 0;//dt unmultiplied
+		Vec4d first_calc_val = 0, second_calc_val = 0;
+		Vec4db react_mask = false;
+		Vec4d In_val = 0;
+		Vec4db main_cond_mask = false;
+
+		//first calc
+		if (all_current_cells[i].hasState(DEAD)) {
+			//Kpp*Pi
+			neg_me_dead_val = Kpp_4d*all_current_cells[i].P;
+			for (int j = 0; j < C::max_cell_num / 4; j++) {
+				if (all_current_cells[j].hasState(ALIVE)) { //これでは全ての細胞に対して計算する
+															//やっぱり重いなら変える
+															//Pj-Pi
+					react_alive_val += select(all_current_cells[j].state.smask[ALIVE], all_current_cells[j].P - all_current_cells[i].P, 0);
+				}
+			}
+			//dp*Sum(Pj-Pi)
+			react_alive_val *= dP_4d;
+		}
+		first_calc_val = select(all_current_cells[i].state.smask[DEAD], react_alive_val - neg_me_dead_val, 0);
+		//先にDEADマスクをかけずにneg_me_dead_val+react_alive_valを計算してからかけたほうが良い?
+		//->変わらない,けど見やすいかも
+
+		//better:use ALIVE||FIX||MUSUME MASK for check cond and later masking
+		main_cond_mask = all_current_cells[i].state.getORMask(ALIVE, FIX, MUSUME);
+
+		if (horizontal_or(main_cond_mask)) {
+			all_current_cells[i].get_lattice(lat);
+			me_val = FP(all_current_cells[i], calc_avg8(lat, currentCa)) - Kpp_4d*all_current_cells[i].P;
+			In_val = In(all_current_cells[i]);
+			for (int j = 0; j<C::max_cell_num / 4; j++) {
+				react_mask = all_current_cells[j].state.getORMask(ALIVE, DEAD, FIX, MUSUME);
+				if (horizontal_or(react_mask)) {
+					react_val += select(react_mask, In_val*all_current_cells[i].w[j] * (all_current_cells[j].P - all_current_cells[i].P), 0);
+				}
+			}
+			react_val *= dP_4d;
+		}
+
+		second_calc_val = select(main_cond_mask, me_val + react_val, 0);
+		refreshed_cells[i].P = all_current_cells[i].P + C::dt_ca_4d*(first_calc_val + second_calc_val);
+
 	}
 
 	void Ca2P::refresh_c_i(int calc_index_min, int calc_index_max,
 		const _3DScalar4d& currentB,
 		const std::vector<CellSet4d>& all_current_cells,
-        std::vector<Vec4d>& diff_c_out,
+		std::vector<Vec4d>& diff_c,
 		std::vector<CellSet4d>& refreshed_cells) {
 		VEC_X_RANGE_VALIDATION(calc_index_min);
 		VEC_X_RANGE_VALIDATION(calc_index_max);
-        Vec4db main_cond_mask =  false ;
-        Vec4db react_mask =  false ;
-        Vec4d In_val =  0 , react_val =  0 ;
-        VSet4i lat;
-        std::fill(diff_c_out.begin(), diff_c_out.end(), 0);
-		for (int i = calc_index_min / 4; i < calc_index_max / 4; i++) {
-            react_val =  0 ;
-            main_cond_mask =all_current_cells[i].state.getORMask(ALIVE,FIX,MUSUME);
 
-            if (horizontal_or(main_cond_mask)) {
-				all_current_cells[i].get_lattice(lat);
-				//default diffu=0
-				In_val = In(all_current_cells[i]);
-				for (int j = 0; j < C::max_cell_num / 4; j++) {
-                    react_mask=all_current_cells[j].state.getORMask(ALIVE,DEAD,FIX,MUSUME);
-                    if (horizontal_or(react_mask)) {
-                        react_val+=select(react_mask,In_val*all_current_cells[i].w[j]*(all_current_cells[j].c-all_current_cells[i].c),0);
-					}
-                }
-				//mask over all value,
-                diff_c_out[i] = select(main_cond_mask,Fc(all_current_cells[i], calc_avg8(lat, currentB))+dc_4d+react_val,0);
-			}
-			//0 when the cond not satisfied
-			//see -> u_ave[j]=u[j]=0.0;
-            refreshed_cells[i].c = select(main_cond_mask,all_current_cells[i].c+dt_ca_4d*diff_c_out[i],0);
+		for (int i = calc_index_min / 4; i < calc_index_max / 4; i++) {
+			refresh_ci_in_cell_loop(currentB, all_current_cells, i, diff_c,refreshed_cells);
 		}
+	}
+
+	void Ca2P::refresh_ci_in_cell_loop(const _3DScalar4d& currentB,
+		const std::vector<CellSet4d>& all_current_cells, int i,
+		std::vector<Vec4d>& diff_c,
+		std::vector<CellSet4d>& refreshed_cells) {
+		Vec4db main_cond_mask = false;
+		Vec4db react_mask = false;
+		Vec4d In_val = 0, react_val = 0;
+		VSet4i lat;
+		react_val = 0;
+		main_cond_mask = all_current_cells[i].state.getORMask(ALIVE, FIX, MUSUME);
+		diff_c[i] = 0;
+		if (horizontal_or(main_cond_mask)) {
+			all_current_cells[i].get_lattice(lat);
+			//default diffu=0
+			In_val = In(all_current_cells[i]);
+			for (int j = 0; j < C::max_cell_num / 4; j++) {
+				react_mask = all_current_cells[j].state.getORMask(ALIVE, DEAD, FIX, MUSUME);
+				if (horizontal_or(react_mask)) {
+					react_val += select(react_mask, In_val*all_current_cells[i].w[j] * (all_current_cells[j].c - all_current_cells[i].c), 0);
+				}
+			}
+			//mask over all value,
+			diff_c[i] = select(main_cond_mask, Fc(all_current_cells[i], calc_avg8(lat, currentB)) + dc_4d + react_val, 0);
+			//break paralellization?
+		}
+		//0 when the cond not satisfied
+		//see -> u_ave[j]=u[j]=0.0;
+		refreshed_cells[i].c = select(main_cond_mask, all_current_cells[i].c + dt_ca_4d*diff_c[i], 0);
 	}
 
 	void Ca2P::refresh_h_i(int calc_index_min, int calc_index_max,
@@ -407,45 +504,120 @@ namespace EPI {
 		std::vector<CellSet4d>& refreshed_cells) {
 		VEC_X_RANGE_VALIDATION(calc_index_min);
 		VEC_X_RANGE_VALIDATION(calc_index_max);
-
-        Vec4db main_cond_mask =  false ;
-        Vec4d me_val =  0 ;
 		for (int i = calc_index_min / 4; i < calc_index_max / 4; i++) {
-            me_val = 0;
-			main_cond_mask = all_current_cells[i].state.getORMask(ALIVE, FIX, MUSUME);
-            if (horizontal_or(main_cond_mask)) {
-                me_val += select(main_cond_mask,Fh(all_current_cells[i])/tau_h(all_current_cells[i]),0);
-			}
-            refreshed_cells[i].h = all_current_cells[i].h+select(main_cond_mask,dt_ca_4d*me_val,0);
+			refresh_h_i_in_cell_loop(all_current_cells, i, refreshed_cells);
 
 		}
 	}
 
+	void Ca2P::refresh_h_i_in_cell_loop(const std::vector<CellSet4d>& all_current_cells, int i,
+		std::vector<CellSet4d>& refreshed_cells) {
+		Vec4db main_cond_mask = false;
+		Vec4d me_val = 0;
+		me_val = 0;
+		main_cond_mask = all_current_cells[i].state.getORMask(ALIVE, FIX, MUSUME);
+		if (horizontal_or(main_cond_mask)) {
+			me_val += select(main_cond_mask, Fh(all_current_cells[i]) / tau_h(all_current_cells[i]), 0);
+		}
+		refreshed_cells[i].h = all_current_cells[i].h + select(main_cond_mask, dt_ca_4d*me_val, 0);
+	}
+
 	void Ca2P::refresh_w_i_j(int calc_index_min, int calc_index_max,
 		const std::vector<CellSet4d>& all_current_cells,
+		int current_cell_num,
 		std::vector<CellSet4d>& refreshed_cells) {
 		VEC_X_RANGE_VALIDATION(calc_index_max);
 
-        Vec4db main_cond_mask = false;
+        
 		//__m256d me_val = { 0 };
 
 		for (int i = calc_index_min / 4; i < calc_index_max / 4; i++) {
-			//me_val = { 0 };
-			main_cond_mask = all_current_cells[i].state.getORMask(ALIVE, FIX, MUSUME);
-            if (horizontal_or(main_cond_mask)) {
-				for (int j = 0; j < C::max_cell_num; j++) {
-					if (all_current_cells[j].hasState(ALIVE)) {
+			refresh_w_i_j_in_cell_loop(all_current_cells, i, current_cell_num,refreshed_cells);
+		}
+	}
 
-                        refreshed_cells[i].w[j]=all_current_cells[i].w[j]+
-                                select(main_cond_mask && all_current_cells[j].state.smask[ALIVE],
-                                       Fw(all_current_cells[i].w[j], all_current_cells[i].c, all_current_cells[j].c),
-                                       0);
-					}
+	void Ca2P::refresh_w_i_j_in_cell_loop(const std::vector<CellSet4d>& all_current_cells, int i,
+		int current_cell_num,
+		std::vector<CellSet4d>& refreshed_cells) {
+		Vec4db main_cond_mask = false;
+		main_cond_mask = all_current_cells[i].state.getORMask(ALIVE, FIX, MUSUME);
+		if (horizontal_or(main_cond_mask)) {
+			for (int j = 0; j < C::max_cell_num/4; j++) {
+				if (all_current_cells[j].hasState(ALIVE)) {
+
+					refreshed_cells[i].w[j] = all_current_cells[i].w[j] +
+						select(main_cond_mask && all_current_cells[j].state.smask[ALIVE],
+							Fw(all_current_cells[i].w[j], all_current_cells[i].c, all_current_cells[j].c),
+							0);
 				}
-				
 			}
-			
 
 		}
+	}
+
+	void Ca2P::ca_dynamics(const Field_Data* field,Field_Data* new_field) {
+		VEC_X_RANGE_VALIDATION(field->current_cell_num);
+		VEC_X_RANGE_VALIDATION(C::NMEMB + C::NDER);
+		CUBE area;
+		//bconds do nothing currently
+		area.x.min = 0; area.x.max = NX; area.x.min_bcond = BoundaryInfo::BCond::PERIODIC;
+		area.y.min = 0; area.y.max = NY; area.y.min_bcond = BoundaryInfo::BCond::PERIODIC;
+		area.z.min = 0; area.z.max = NZ; area.y.min_bcond = BoundaryInfo::BCond::NEUMANN;
+		
+		//TODO:openmp-ize
+
+		for (int i = 0; i < ca_N; i++) {
+			printf("%d\n", i);
+#pragma omp parallel for 
+			for (int j = (C::NMEMB + C::NDER)/4; j < field->current_cell_num / 4;j++) {
+				
+				refresh_P_i_in_cell_loop(field->Ca2P_value, field->cells, j,new_field->cells);
+				refresh_ci_in_cell_loop(field->ext_stim_value, field->cells, j, new_field->diff_c,new_field->cells);
+				refresh_h_i_in_cell_loop(field->cells, j, new_field->cells);
+				refresh_w_i_j_in_cell_loop(field->cells, j, field->current_cell_num,new_field->cells);
+			}
+			refresh_Ca(area, field->Ca2P_value, field->diff_c, field->current_cell_num,field->cells, new_field->Ca2P_value);
+
+		}
+	}
+
+	/*
+		細胞分裂に関する定義
+	*/
+	Vec4db CellDiv::is_div_finished(const CellSet4d& div_pair_1, const CellSet4d& div_pair_2) {
+		return distSq4d(div_pair_1.pos, div_pair_2.pos)>div_fin_dist_coef_4d*(div_pair_1.radius + div_pair_2.radius);
+	}
+
+	//single-threaded
+	void CellDiv::div_cell(Field_Data* field,int test_cellset_index,int elem) {
+#define C_CELL (field->cells[test_cellset_index])
+		double par,div_beta,div_gamma;
+		if (C_CELL.div_pair[elem] != -1)return; //now in dividing
+
+		par = C_CELL.state.smask[MUSUME][elem] ? agki_max : agki_max_fix;
+		div_gamma= dt_cell*(C_CELL.tb[elem] < field->malignant_stemcell_num ? accel_div : 1)*eps_kb*u0 / (par*stoch_div_time_ratio);
+
+		if (STOCHASTIC && genrand_res53() > div_gamma)return;
+		int new_cell_index,new_cell_elem;
+		CellSet4d& new_cell = field->get_new_cell(&new_cell_index,&new_cell_elem);
+		new_cell.radius.insert(new_cell_elem,C_CELL.radius[elem]);
+		new_cell.div_times.insert(new_cell_elem,C_CELL.state.smask[FIX][elem] ? div_max : C_CELL.div_times[elem]);
+
+		if (C_CELL.state.smask[MUSUME][elem]) {
+			C_CELL.div_times.insert(elem, C_CELL.div_times[elem] - 1);
+			new_cell.div_times.insert(new_cell_elem, C_CELL.div_times[elem]);
+		}
+
+		
+
+		
+
+
+
+
+	}
+
+	void cell_dynamics(Field_Data field,const CUBE& calc_area) {
+		//Ca2P::refresh_P_i();
 	}
 }

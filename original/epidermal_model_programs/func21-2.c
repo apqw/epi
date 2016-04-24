@@ -107,6 +107,7 @@ void connect_lj(int lj[][N2], int state[], int ncell, double xx[], double yy[], 
   check_area(state, xx, yy, zz, area, aindx, ncell);
   
   /* connect MEMB only once : no area information needed */
+  //周囲の4つと
   for(j=0; j < NMEMB; j++){
     if(flg) continue; 
     indx[j] = 0;

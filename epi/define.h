@@ -3,8 +3,9 @@
 #include <vector>
 #include <cassert>
 #include <math.h>
+#include <deque>
 #define VECTORMATH 0
-
+#define __AVX__ 1
 
 #include "../VCL/vectorclass.h"
 
@@ -26,8 +27,8 @@
 //Check if the 4-paired-cell contains the cell which has this state 
 #define CONTAIN_STATE(_cell,state) (_mm256_testz_pd(_cell.state.smask[(state)], _cell.state.smask[(state)]) == 0)
 
-#define VEC_X_RANGE_VALIDATION(var) do{ assert(var >=0);\
-assert(var % 4 == 0);\
+#define VEC_X_RANGE_VALIDATION(var) do{ assert((var) >=0);\
+assert((var) % 4 == 0);\
 }while(0)
 
 
@@ -44,6 +45,7 @@ typedef std::vector<std::vector<std::vector<Vec4d>>> _3DScalar4d;
 #define DEFC_VEC_no_inv(name,val) DEFC real name=(val);SET8s(name);SET4d(name);
 #define VEC_INIT(cl,name) SET8s_d(cl,name);SET8s_d(cl,INV_##name);SET4d_d(cl,name);SET4d_d(cl,INV_##name)
 #define VEC_INIT_no_inv(cl,name) SET8s_d(cl,name);SET4d_d(cl,name)
+#define _3DSC_INIT(x,y,z) (std::vector<std::vector<std::vector<Vec4d>>>((x),std::vector<std::vector<Vec4d>>((y),std::vector<Vec4d>((z),0))))
 
 class V3D {
 
@@ -206,6 +208,10 @@ namespace EPI {
         Vec4d agek;//?
         Vec4d diff_c; //dc_dt
         Vec4d h;
+		Vec4i div_pair; //-1:none
+		Vec4d radius;
+		Vec4i div_times;
+		Vec4i tb; //num from original stem
 		PState4d state;
 		std::vector<bool> react_flag_4d; //flagged block num must be eq or less than max_reaction_cell_num*4
         std::vector<Vec4db> react_mask;
@@ -225,13 +231,28 @@ namespace EPI {
 		bool hasState(T s, U... rest) const;
 		bool hasState() const;
 	};
+
 	class Field_Data {
 	public:
-		static int current_cell_num;
-		static std::vector<CellSet4d> cells;
-		static std::vector<CellSet4d> next_cells;
-		static _3DScalar4d Ca2P_value;
-		static int malignant_stemcell_num;
+		int current_cell_num;
+		std::vector<CellSet4d> cells;
+		_3DScalar4d Ca2P_value;
+		int malignant_stemcell_num;
+		_3DScalar4d ext_stim_value; //B
+		std::vector<Vec4d> diff_c;
+		int born_num;
+		int disap_num;
+		std::deque<int> vanished_cell_indices;
+		CellSet4d& get_new_cell(int* new_cell_index,int* new_cell_elem);
+		//void add_new_div_cell(int pair_cell_index,CellSet4d& newcell);
+		Field_Data(int _cell_num,int _nx,int _ny,int _nz) {
+			current_cell_num = _cell_num;
+			cells = std::vector<CellSet4d>(_cell_num);
+			Ca2P_value = _3DSC_INIT(_nx+1, _ny+1, _nz+1);
+			malignant_stemcell_num = 10;
+			ext_stim_value = _3DSC_INIT(_nx+1, _ny+1, _nz+1);
+			diff_c = std::vector<Vec4d>(_cell_num);
+		}
 	};
 
 	/*
@@ -328,41 +349,66 @@ namespace EPI {
 
         DEFC_VEC_no_inv(iage_kitei, 0.0);
 
+		DEFC_VEC_int(ca_N, 1000);
+
 		//functions
 
-        Vec4d G(const VSet4d&, const VSet4d&, const Vec4d&);
-        Vec4d Fc(const CellSet4d&, const Vec4d&);
-        Vec4d FP(const CellSet4d&, const Vec4d&);
-        Vec4d Fh(const CellSet4d&);
-        Vec4d Fw(const Vec4d&, const Vec4d&, const Vec4d&);
+        static Vec4d G(const VSet4d&, const VSet4d&, const Vec4d&);
+        static Vec4d Fc(const CellSet4d&, const Vec4d&);
+		static Vec4d FP(const CellSet4d&, const Vec4d&);
+		static Vec4d Fh(const CellSet4d&);
+		static Vec4d Fw(const Vec4d&, const Vec4d&, const Vec4d&);
 		//__m256d FB(const __m256d&,const __m256d&);
-        Vec4d tau_h(const CellSet4d&);
-        Vec4d In(const CellSet4d&);
-        Vec4d Kpa(const CellSet4d&);
+		static  Vec4d tau_h(const CellSet4d&);
+		static Vec4d In(const CellSet4d&);
+		static Vec4d Kpa(const CellSet4d&);
 
-		void refresh_Ca(const CUBE& calc_area,
+		//this function is (will be) internally multithreaded
+		static void refresh_Ca(const CUBE& calc_area,
 			const _3DScalar4d& currentCa,
+			const std::vector<Vec4d>& diff_c,
+			int current_cell_num,//temporary
 			const std::vector<CellSet4d>& all_cells,
 			_3DScalar4d& nextCa);
 
-		void refresh_P_i(int calc_index_min, int calc_index_max,
+
+		static void refresh_P_i(int calc_index_min, int calc_index_max,
 			const _3DScalar4d& currentCa,
 			const std::vector<CellSet4d>& all_current_cells,
 			std::vector<CellSet4d>& refreshed_cells);
 
-		void refresh_c_i(int calc_index_min, int calc_index_max,
+		static void refresh_P_i_in_cell_loop(const _3DScalar4d& currentCa,
+			const std::vector<CellSet4d>& all_current_cells,int cellset_index,
+			std::vector<CellSet4d>& refreshed_cells);
+
+		static void refresh_c_i(int calc_index_min, int calc_index_max,
 			const _3DScalar4d& currentB,
 			const std::vector<CellSet4d>& all_current_cells,
-            std::vector<Vec4d>& diff_c_out,
+			std::vector<Vec4d>& diff_c,
 			std::vector<CellSet4d>& refreshed_cells);
 
-		void refresh_h_i(int calc_index_min, int calc_index_max,
+		static void refresh_ci_in_cell_loop(const _3DScalar4d& currentB,
+			const std::vector<CellSet4d>& all_current_cells, int cellset_index,
+			std::vector<Vec4d>& diff_c,
+			std::vector<CellSet4d>& refreshed_cells);
+
+		static void refresh_h_i(int calc_index_min, int calc_index_max,
 			const std::vector<CellSet4d>& all_current_cells,
 			std::vector<CellSet4d>& refreshed_cells);
 
-		void refresh_w_i_j(int calc_index_min, int calc_index_max,
-			const std::vector<CellSet4d>& all_current_cells,
+		static void refresh_h_i_in_cell_loop(const std::vector<CellSet4d>& all_current_cells, int cellset_index,
 			std::vector<CellSet4d>& refreshed_cells);
+
+		static void refresh_w_i_j(int calc_index_min, int calc_index_max,
+			const std::vector<CellSet4d>& all_current_cells,
+			int current_cell_num,
+			std::vector<CellSet4d>& refreshed_cells);
+
+		static void refresh_w_i_j_in_cell_loop(const std::vector<CellSet4d>& all_current_cells, int cellset_index,
+			int current_cell_num,
+			std::vector<CellSet4d>& refreshed_cells);
+
+		static void ca_dynamics(const Field_Data* field, Field_Data* new_field);
 	};
 
 	class CellDiv :C {
@@ -381,9 +427,16 @@ namespace EPI {
 		DEFC_VEC(T_0_musume, T_musume*(1.0 - stoch_div_time_ratio));
 		DEFC_VEC(T_0_stem_fix, T_stem_fix*(1.0 - stoch_div_time_ratio));
 
+		DEFC_VEC(div_fin_dist_coef, 0.9);
+		DEFC_VEC(accel_div, 1.0);
+		DEFC_VEC_int(div_max, 10);
+
 		static constexpr bool STOCHASTIC = true;
-        //void div_cell()
+		Vec4db is_div_finished(const CellSet4d& div_pair_1, const CellSet4d& div_pair_2);
+		void div_cell(Field_Data* field, int test_cellset_index,int elem);
 	};
+
+	void cell_dynamics(const Field_Data* field, Field_Data* new_field);
 
 }
 Vec4d _tanh_poly(const Vec4d&);
@@ -391,4 +444,5 @@ Vec4d tanh_avx(const Vec4d&);
 Vec4d tanh_alt(const Vec4d&);
 Vec4d m256dintmod(const Vec4d&, const Vec4d&);
 Vec4d calc_avg8(const VSet4i& lattice_4d, const _3DScalar4d& _3DVal_4d); //no boundary condition
+Vec4d distSq4d(const VSet4d& p1, const VSet4d& p2);
 void init();

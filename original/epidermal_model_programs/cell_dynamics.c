@@ -209,6 +209,7 @@ void cell_dynamics(int *state, double *ageb, double *agek,
     }
   }
   
+  //single-threaded!
   /*--------------------- State renewal -------------------------*/
   
   /*ageb[j]>=para_agki_maxでFIX,MUSUMEは分裂                      */

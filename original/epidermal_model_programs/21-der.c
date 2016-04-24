@@ -121,7 +121,7 @@ void evolution(double u[NN], double v[NN], double p[NN], double w[NN][N2], doubl
 	fprintf(stdout, "t=%f: calculating ca_dynamics...", i*DT);
 	fflush(stdout);
 	ca_dynamics(u_ave, B, u, v, p, a, w, ixx, iyy, izz, lj, indx, state, ageb, agek, map,
-		    map2, zzmax, r, xx, yy, zz, ncell);
+		    map2, zzmax, r, xx, yy, zz, ncell); //almost done
 	fprintf(stdout, "done.\n");
 	fflush(stdout);
 	if (num_sc > 0) num_sc--;
