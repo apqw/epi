@@ -43,10 +43,10 @@ void evolution(double u[NN], double v[NN], double p[NN], double w[NN][N2], doubl
   char str_energy[256];
   int ixx[NN], iyy[NN], izz[NN];
   void dumpall(double [], double [], double [], double []);  
-  double old_B[NX+1][NY+1][NZ+1]; //too large
+  double old_B[NX+1][NY+1][NZ+1];
   int flg_forced_sc = KEY_FORCED_SC;
   int num_sc = 0;
-  int map[NX+1][NY+1][NZ+1], map2[NX+1][NY+1][NZ+1];  //tl
+  int map[NX+1][NY+1][NZ+1], map2[NX+1][NY+1][NZ+1];  
   int sw = INIT_SW;
   int NFIX=0;
   FILE *fdebug_cm; 
@@ -121,7 +121,7 @@ void evolution(double u[NN], double v[NN], double p[NN], double w[NN][N2], doubl
 	fprintf(stdout, "t=%f: calculating ca_dynamics...", i*DT);
 	fflush(stdout);
 	ca_dynamics(u_ave, B, u, v, p, a, w, ixx, iyy, izz, lj, indx, state, ageb, agek, map,
-		    map2, zzmax, r, xx, yy, zz, ncell);
+		    map2, zzmax, r, xx, yy, zz, ncell); //almost done
 	fprintf(stdout, "done.\n");
 	fflush(stdout);
 	if (num_sc > 0) num_sc--;

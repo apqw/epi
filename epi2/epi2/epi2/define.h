@@ -1,5 +1,7 @@
 #pragma once
 #include <array>
+#include <immintrin.h>
+
 template<typename T,unsigned X,unsigned Y,unsigned Z>
 using Arr3D = std::array<std::array<std::array<T, Z>, Y>, X>;
 template<typename T,unsigned X, unsigned Y>
@@ -12,7 +14,7 @@ namespace CONST {
 	constexpr double dt_cell = 0.01;
 	constexpr double dt_ca = 0.02;
 	
-	constexpr int MAX_CELL_NUM = 3000;
+    constexpr int MAX_CELL_NUM = 100000;
 	constexpr int MAX_REACT_CELL_NUM = 400;
 
 	//計算領域のサイズ
@@ -23,10 +25,17 @@ namespace CONST {
 
 	//グリッドサイズ
 	constexpr double dx = Lx / NX, dy = Ly / NY, dz = Lz / NZ;
+    constexpr double dxSq=dx*dx,dySq=dy*dy,dzSq=dz*dz;
+    constexpr double inv_dxSq = 1/dxSq,inv_dySq=1/dySq,inv_dzSq=1/dzSq;
+    constexpr double inv_dx = 1/dx,inv_dy=1/dy,inv_dz=1/dz;
 
 	//生存時間
 	constexpr double THRESH_DEAD = 22.0, DUR_DEAD = 2.0, DUR_ALIVE = 0.5, THRESH_SP = 3.0;
 
+    constexpr double FAC_MAP = 2.0;
+    constexpr double R_memb = 1.0;
+    constexpr double R_max = 1.4;
+    constexpr double R_der=1.4;
 	namespace Ca2P {
 		//拡散係数
 		constexpr double dA = 1.0, dP = 0.1, dc = 0.01, dB = 0.0009;
@@ -62,6 +71,8 @@ namespace CONST {
 		
 		//smooth step
 		constexpr int ca_N = 1000;
+
+        constexpr int AIR_STIM=0.1;
 	}
 
 }
@@ -83,23 +94,31 @@ public:
 	int NMEMB;
 	int NDER;
 	int current_cell_num;
-	Arr3D<double, CONST::NX, CONST::NY, CONST::NZ> Ca2P_value;
-	Arr3D<double, CONST::NX, CONST::NY, CONST::NZ> B_value;
+    alignas(32) double Ca2P_value[CONST::NX+1][CONST::NY+1][CONST::NZ+1];
+    alignas(32) double B_value[CONST::NX+1][CONST::NY+1][CONST::NZ+1];
 
-	Arr<double, CONST::MAX_CELL_NUM> cell_x;
-	Arr<double, CONST::MAX_CELL_NUM> cell_y;
-	Arr<double, CONST::MAX_CELL_NUM> cell_z;
-	Arr<int, CONST::MAX_CELL_NUM> cell_x_index;
-	Arr<int, CONST::MAX_CELL_NUM> cell_y_index;
-	Arr<int, CONST::MAX_CELL_NUM> cell_z_index;
-	Arr<double,CONST::MAX_CELL_NUM> cell_connected_num;
-	Arr2D<double, CONST::MAX_CELL_NUM, CONST::MAX_REACT_CELL_NUM> cell_connected_index; //max==cell_connected_num
-	Arr<double, CONST::MAX_CELL_NUM> cell_P;
-	Arr<double, CONST::MAX_CELL_NUM> cell_c;
-	Arr<double, CONST::MAX_CELL_NUM> cell_h;
-	Arr<double, CONST::MAX_CELL_NUM> cell_ageb;
-	Arr<double, CONST::MAX_CELL_NUM> cell_agek;
-	Arr<CELL_STATE, CONST::MAX_CELL_NUM> cell_state;
-	Arr2D<double,CONST::MAX_CELL_NUM, CONST::MAX_REACT_CELL_NUM> cell_w;
-
+    alignas(32) double cell_x[CONST::MAX_CELL_NUM];
+    alignas(32) double cell_y[CONST::MAX_CELL_NUM];
+    alignas(32) double cell_z[CONST::MAX_CELL_NUM];
+    alignas(32) int cell_x_index[CONST::MAX_CELL_NUM];
+    alignas(32) int cell_y_index[CONST::MAX_CELL_NUM];
+    alignas(32) int cell_z_index[CONST::MAX_CELL_NUM];
+    alignas(32) int cell_connected_num[CONST::MAX_CELL_NUM];
+    alignas(32) int cell_connected_index[CONST::MAX_CELL_NUM][CONST::MAX_REACT_CELL_NUM]; //max==cell_connected_num
+    alignas(32) double cell_P[CONST::MAX_CELL_NUM];
+    alignas(32) double cell_c[CONST::MAX_CELL_NUM];
+    alignas(32) double cell_h[CONST::MAX_CELL_NUM];
+    alignas(32) double cell_ageb[CONST::MAX_CELL_NUM];
+    alignas(32) double cell_agek[CONST::MAX_CELL_NUM];
+    alignas(32) CELL_STATE cell_state[CONST::MAX_CELL_NUM];
+    alignas(32) double cell_w[CONST::MAX_CELL_NUM][CONST::MAX_REACT_CELL_NUM];
+    alignas(32) double cell_diff_c[CONST::MAX_CELL_NUM];
+    alignas(32) int cell_map[CONST::NX+1][CONST::NY+1][CONST::NZ+1];
+    alignas(32) int cell_map2[CONST::NZ+1][CONST::NY+1][CONST::NZ+1];
+    alignas(32) int cell_radius[CONST::MAX_CELL_NUM];
+    alignas(32) double cell_ca_ave[CONST::MAX_CELL_NUM];
+    alignas(32) double air_stim[CONST::NX+1][CONST::NY+1][CONST::NZ+1];
+    double zzmax;
+    alignas(32) int cell_div_pair_index[CONST::MAX_CELL_NUM];
+    alignas(32) int origin_stem_cell_index[CONST::MAX_CELL_NUM];//stem cell num?
 };
