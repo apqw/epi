@@ -571,6 +571,147 @@ void memb_memb_interact(const ENV* env, ENV* new_env) {
 		}
 	}
 }
+
+void interact_lj(int j, int connected_index, const ENV* env, ENV* new_env) {
+	double diffx = env->cell_x[j] - env->cell_x[connected_index];
+	double diffy = env->cell_y[j] - env->cell_y[connected_index];
+	double diffz = env->cell_z[j] - env->cell_z[connected_index];
+	double distlj_inv = t_sqrtD(diffx*diffx + diffy*diffy + diffz*diffz);
+	double LJ1 = (env->cell_radius[j] + env->cell_radius[connected_index])*distlj_inv;
+	double LJ1Sq = LJ1*LJ1;
+	double dum_lj6 = LJ1Sq*LJ1Sq*LJ1Sq;
+	double dum_ljmain = 4.0*CONST::eps_m*dum_lj6*(dum_lj6 - 1.0)*distlj_inv*distlj_inv;
+
+	double dumxx = CONST::dt_cell*dum_ljmain*(env->cell_x[j] - ret__(env->cell_x[j], env->cell_x[connected_index], CONST::Lx));
+	double dumyy= CONST::dt_cell*dum_ljmain*(env->cell_y[j] - ret__(env->cell_y[j], env->cell_y[connected_index], CONST::Ly));
+	double dumzz = CONST::dt_cell*dum_ljmain*diffz;
+	new_env->cell_x[j] += dumxx;
+	new_env->cell_y[j] += dumyy;
+	new_env->cell_z[j] += dumzz;
+
+	new_env->cell_x[connected_index] -= dumxx;
+	new_env->cell_y[connected_index] -= dumyy;
+	new_env->cell_z[connected_index] -= dumzz;
+}
+
+void der_der_interact(const ENV* env, ENV* new_env) {
+	for (int j = env->NMEMB; j < env->NMEMB + env->NDER; j++) {
+		//”¼Œa‚Ì•û‚ªzˆÊ’u(‚‚³)‚æ‚è‘å‚«‚¢->z=0‚ÆÚ‚µ‚Ä‚¢‚é
+		if (env->cell_z[j] < env->cell_radius[j]) {
+			interac_wall(env->cell_z[j], env->cell_radius[j], &(new_env->cell_z[j]));
+		}
+
+		for (int k = 0; k < env->cell_connected_num[j]; k++) {
+			int connected_index = env->cell_connected_index[j][k];
+			switch (env->cell_state[connected_index])
+			{
+			case MEMB:case FIX:case MUSUME:case ALIVE:case DEAD:case AIR:
+				interact_lj(j, connected_index, env, new_env);
+				break;
+			case DER:
+				double diffx = env->cell_x[j] - env->cell_x[connected_index];
+				double diffy = env->cell_y[j] - env->cell_y[connected_index];
+				double diffz = env->cell_z[j] - env->cell_z[connected_index];
+				double distlj_inv = t_sqrtD(diffx*diffx + diffy*diffy + diffz*diffz);
+				double distlj_delta_inv = distlj_inv / (1.0 + CONST::delta_R*distlj_inv);
+				double rad_sum = (env->cell_radius[j] + env->cell_radius[connected_index]);
+				double LJ1 = rad_sum*distlj_delta_inv;
+				double dum_lj6, dum_ljmain;
+
+				if (rad_sum*distlj_inv > 1) {
+					dum_ljmain = CONST::ljp2;
+				}
+				else {
+					double LJ1Sq = LJ1*LJ1;
+					dum_lj6 = LJ1Sq*LJ1Sq*LJ1Sq;
+					dum_ljmain = 4.0*CONST::eps_m*dum_lj6*(dum_lj6 - 1.0)*(LJ1>1 ? distlj_delta_inv : distlj_inv)*distlj_inv + CONST::ljp2;
+				}
+				double dumxx = CONST::dt_cell*dum_ljmain*(env->cell_x[j] - ret__(env->cell_x[j], env->cell_x[connected_index], CONST::Lx));
+				double dumyy = CONST::dt_cell*dum_ljmain*(env->cell_y[j] - ret__(env->cell_y[j], env->cell_y[connected_index], CONST::Ly));
+				double dumzz = CONST::dt_cell*dum_ljmain*diffz;
+				new_env->cell_x[j] += dumxx;
+				new_env->cell_y[j] += dumyy;
+				new_env->cell_z[j] += dumzz;
+
+				new_env->cell_x[connected_index] -= dumxx;
+				new_env->cell_y[connected_index] -= dumyy;
+				new_env->cell_z[connected_index] -= dumzz;
+				break;
+			default:
+				printf("derder error: state\n");
+				exit(1);
+				break;
+			}
+		}
+	}
+}
+
+inline double adhesion(double distlj, double r_sum, double spring_const)
+{
+
+	double LJ2_m1 = distlj / r_sum-1;
+	return (LJ2_m1+1 > CONST::LJ_THRESH ?
+		0.0 :
+		-(spring_const / distlj)*LJ2_m1
+		* (1 - LJ2_m1*LJ2_m1 / ((CONST::LJ_THRESH - 1.0)*(CONST::LJ_THRESH - 1.0))));
+}
+
+void other_interact(const ENV* env, ENV* new_env) {
+	double diffx, diffy, diffz, dumxx, dumyy, dumzz,distlj_inv,rad_sum,LJ1,LJ1Sq,dum_lj6,dum_ljmain;
+	for (int j = env->NMEMB + env->NDER; j < env->current_cell_num; j++) {
+		switch (env->cell_state[j]) {
+		case DISA:
+			break;
+		case ALIVE:case DEAD:case AIR:
+			for (int k = 0; k < env->cell_connected_num[j]; k++) {
+				int connected_index = env->cell_connected_index[j][k];
+				if ((env->cell_state[connected_index] == ALIVE
+					|| env->cell_state[connected_index] == DEAD
+					|| env->cell_state[connected_index] == AIR) && connected_index>j) continue;
+				if (env->cell_state[connected_index] == DER)continue;
+
+
+				//supra
+				diffx = env->cell_x[j] - env->cell_x[connected_index];
+				diffy = env->cell_y[j] - env->cell_y[connected_index];
+				diffz = env->cell_z[j] - env->cell_z[connected_index];
+				distlj_inv = t_sqrtD(diffx*diffx + diffy*diffy + diffz*diffz);
+				rad_sum = (env->cell_radius[j] + env->cell_radius[connected_index]);
+				double spring_force;
+				if (rad_sum*distlj_inv > 1) {
+					LJ1 = distlj_inv*rad_sum;
+					LJ1Sq = LJ1*LJ1;
+					dum_lj6 = LJ1Sq*LJ1Sq*LJ1Sq;
+					dum_ljmain = 4.0*CONST::eps_m*dum_lj6*(dum_lj6 - 1.0)*distlj_inv*distlj_inv;
+				}
+				else {
+					//attr
+					spring_force = env->cell_agek[j] > CONST::THRESH_SP && env->cell_agek[connected_index] > CONST::THRESH_SP ?
+						CONST::K_TOTAL :
+						CONST::K_DESMOSOME;
+					//adhe
+					//check precision...
+					dum_ljmain = adhesion(1 / distlj_inv, rad_sum, CONST::K_DESMOSOME);
+				}
+				dumxx = CONST::dt_cell*dum_ljmain*(env->cell_x[j] - ret__(env->cell_x[j], env->cell_x[connected_index], CONST::Lx));
+				dumyy = CONST::dt_cell*dum_ljmain*(env->cell_y[j] - ret__(env->cell_y[j], env->cell_y[connected_index], CONST::Ly));
+				dumzz = CONST::dt_cell*dum_ljmain*diffz;
+				new_env->cell_x[j] += dumxx;
+				new_env->cell_y[j] += dumyy;
+				new_env->cell_z[j] += dumzz;
+
+				new_env->cell_x[connected_index] -= dumxx;
+				new_env->cell_y[connected_index] -= dumyy;
+				new_env->cell_z[connected_index] -= dumzz;
+
+			}
+			break;
+
+		case FIX:case MUSUME:
+			break; //coffee
+		}
+	}
+}
 //celldyn
 void cell_div(ENV *env,int target_idx){
 	genrand_res53();

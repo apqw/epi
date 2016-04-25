@@ -37,6 +37,7 @@ namespace CONST {
     constexpr double R_memb = 1.0;
     constexpr double R_max = 1.4;
     constexpr double R_der=1.4;
+	constexpr double delta_R = 0.4*R_der;
 
 	constexpr double KBEND = 0.5;
 	constexpr double eps_m =0.01;
@@ -44,6 +45,11 @@ namespace CONST {
 	constexpr double COMPRESS_FACTOR= 4;
 	constexpr double P_MEMB = 1.0 / COMPRESS_FACTOR;
 	constexpr double DER_DER_CONST = 0.2;
+	constexpr double ljp2 = 0.005;
+	constexpr double K_TOTAL = 3.0;
+	constexpr double K_DESMOSOME_RATIO = 0.01;
+	constexpr double K_DESMOSOME = K_TOTAL*K_DESMOSOME_RATIO;
+	constexpr double LJ_THRESH = 1.2;
 	namespace Ca2P {
 		//ägéUåWêî
 		constexpr double dA = 1.0, dP = 0.1, dc = 0.01, dB = 0.0009;

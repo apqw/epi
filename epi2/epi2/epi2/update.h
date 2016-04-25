@@ -15,3 +15,5 @@ void set_memv_indices(ENV* env);
 void bend(ENV* env);
 void bend_interac(ENV* env);
 void memb_memb_interact(const ENV* env,ENV* new_env);
+void der_der_interact(const ENV* env, ENV* new_env);
+void other_interact(const ENV* env, ENV* new_env);
