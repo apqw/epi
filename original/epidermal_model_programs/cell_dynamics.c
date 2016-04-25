@@ -72,7 +72,7 @@ void cell_dynamics(int *state, double *ageb, double *agek,
 
   distmax=0.0;
   distmin=100.0;
-
+  //jll,jb
   bend_interac(old_xx, old_yy, old_zz, ipn, ipm, 
 	       dn, dm, nx, ny, nz, mx, my, mz, jr, jl, jll, ju, jb, jbb, &distmax, &distmin);
 

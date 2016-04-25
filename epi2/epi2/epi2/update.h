@@ -11,4 +11,7 @@ void reset_ca_ave_in_cell(ENV* update_env);
 void update_all(ENV** current_env,ENV** updated_env);
 void cell_div(ENV* env,int cell_index);
 
+void set_memv_indices(ENV* env);
+void bend(ENV* env);
+void bend_interac(ENV* env);
 void memb_memb_interact(const ENV* env,ENV* new_env);

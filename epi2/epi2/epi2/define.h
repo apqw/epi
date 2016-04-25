@@ -22,6 +22,7 @@ namespace CONST {
 
 	//計算領域の分割数
 	constexpr int NX = 100, NY = 100, NZ = 200;
+	constexpr int NMX = 100, NMY = 100;
 
 	//グリッドサイズ
 	constexpr double dx = Lx / NX, dy = Ly / NY, dz = Lz / NZ;
@@ -36,6 +37,13 @@ namespace CONST {
     constexpr double R_memb = 1.0;
     constexpr double R_max = 1.4;
     constexpr double R_der=1.4;
+
+	constexpr double KBEND = 0.5;
+	constexpr double eps_m =0.01;
+	constexpr int N_NEIGHBOR = 4;
+	constexpr double COMPRESS_FACTOR= 4;
+	constexpr double P_MEMB = 1.0 / COMPRESS_FACTOR;
+	constexpr double DER_DER_CONST = 0.2;
 	namespace Ca2P {
 		//拡散係数
 		constexpr double dA = 1.0, dP = 0.1, dc = 0.01, dB = 0.0009;
@@ -121,4 +129,13 @@ public:
     double zzmax;
     alignas(32) int cell_div_pair_index[CONST::MAX_CELL_NUM];
     alignas(32) int origin_stem_cell_index[CONST::MAX_CELL_NUM];//stem cell num?
+
+	alignas(32) int memb_idx_jr[CONST::NMX*CONST::NMY],
+		memb_idx_jrr[CONST::NMX*CONST::NMY],
+		memb_idx_jl[CONST::NMX*CONST::NMY],
+		memb_idx_jll[CONST::NMX*CONST::NMY],
+		memb_idx_ju[CONST::NMX*CONST::NMY],
+		memb_idx_juu[CONST::NMX*CONST::NMY],
+		memb_idx_jb[CONST::NMX*CONST::NMY],
+		memb_idx_jbb[CONST::NMX*CONST::NMY];
 };
