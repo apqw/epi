@@ -160,7 +160,7 @@ void connect_lj(int lj[][N2], int state[], int ncell, double xx[], double yy[], 
 	  aiz = (l + ANZ) % ANZ;
 	  for(m = 0; m < aindx[aix][aiy][aiz]; m++) {
 	    o = area[aix][aiy][aiz][m];
-	    if((i != o) && state[o] != DISA) {
+	    if((i != o) && state[o] != DISA) { //disaは入ってない
 	      if (state[i] == MEMB && state[o] == MEMB) { // already treated above
 		continue;
 	      }
