@@ -947,13 +947,13 @@ void interac_memb_memb(int j, int l, double old_xx[], double old_yy[], double ol
     dum_ljmain = -(DER_DER_CONST/ rad_sum)*((1.0-P_MEMB)/P_MEMB)
       -4*eps_m*(dum_lj6*(dum_lj6-1.0)) / ((lambda_dist - distlj)*distlj);
   }
-  /*
+/*
   if (fabs(dum_ljmain) > 100.0) {
     printf("error: interaction der-der too strong\n");
     printf("id=%d state=%d l=%d state=%d xx=%f yy=%f zz=%f, dum_ljmain=%f\n", j, old_state[j], l, old_state[l], xx[j], yy[j], zz[j], dum_ljmain);
     exit(1);
   }
-  */
+*/
   dumxx = DT * dum_ljmain * diffx;
   dumyy = DT * dum_ljmain *diffy;
   dumzz = DT * dum_ljmain * diffz;

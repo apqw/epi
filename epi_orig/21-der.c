@@ -75,12 +75,17 @@ void evolution(double u[NN], double v[NN], double p[NN], double w[NN][N2], doubl
     exit(1);
   }
   fclose(fdebug_cm);
-struct timeval stop,start;
-
+#define TIME_DISP_PER 100
+long stt = time(0);
+long elapsed;
   /* -------------------------------  メインループ ------------------------------------- */
   for(i = 0; i <= NUM_ITR; i++) {
-if(i==1)gettimeofday(&start,NULL);
+//if(i==1)time(&start);
     //        dumpall(xx, yy, zz, u_ave);
+      if(i%TIME_DISP_PER == 0){
+          elapsed=time(0)-stt;
+          printf("Prog.:%ld/%ld Elapsed[sec]:%ld Lps.(approx.):%lf\n",i,(int)NUM_ITR,elapsed,(double)i/(elapsed));
+      }
     if(i % CUT == 0){
       
       check_localization(lj, indx, state, touch, ncell);
@@ -102,8 +107,7 @@ if(i==1)gettimeofday(&start,NULL);
     cell_dynamics(state, ageb, agek, xx, yy, zz, r, 
 		  lj, indx, u, v, p, fat, Vc, w, u_ave, div_times, &ncell, &nvac, vanished_cell, i, 
 		  &sw, &nborn, &ndisap, touch, pair, pair2, pair_indx,  L, other_cell, ljd, ljd_indx, tb);
-    gettimeofday(&stop,NULL);
-    printf("cell_dyn_per_sec:%lf\n",(double)i/(stop.tv_sec-start.tv_sec));
+
     check_zzmax(zz, state, ncell, &zzmax);
     
     if (SYSTEM==WHOLE ) {
