@@ -1,5 +1,4 @@
 //#include <stdlib.h>
-
 #include <stdio.h>
 #include "update.h"
 
@@ -9,6 +8,7 @@
 #include "SFMT.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <cstring>
 
 #define max(a,b) ((a)<=(b)?(b):(a))
 #define min(a,b) ((a)<=(b)?(a):(b))
@@ -380,14 +380,14 @@ void update_map(ENV *update_env){
 void update_all(ENV **current_env, ENV **updated_env){
 	static int sw = 0;
     update_map(*current_env);
-    reset_ca_ave_in_cell(*updated_env); //do not use current value
-    set_air_stim(*current_env);
+    //reset_ca_ave_in_cell(*updated_env); //do not use current value
+   // set_air_stim(*current_env);
     ENV* old_env,*new_env,*tmp_env_ptr;
     old_env=*current_env;new_env=*updated_env;
 	update_cell_dyn(old_env, new_env);
 	//test
 	sw++;
-	if (sw > 20) {
+    if (sw > 20 && false) {
 		for (int i = 0; i < CONST::Ca2P::ca_N; i++) {
 			//printf("%d\n", i);
 			update_cell_internal(*old_env, *new_env);

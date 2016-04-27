@@ -5,7 +5,7 @@ CONFIG -= qt
 
 SOURCES += main.cpp \
     update.cpp \
-    SFMT.c
+    SFMT.cpp
 
 HEADERS += \
     define.h \
@@ -17,4 +17,3 @@ HEADERS += \
 
 QMAKE_CXXFLAGS += -fopenmp -mavx
 QMAKE_LFLAGS += -fopenmp -DMEXP=607
-LIBS+= ../epi2/SFMT.c

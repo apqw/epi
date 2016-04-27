@@ -30,7 +30,7 @@
 
 #ifndef SFMT_H
 #define SFMT_H
-#define MEXP 607
+
 #include <stdio.h>
 
 #if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)

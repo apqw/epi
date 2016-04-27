@@ -1,4 +1,5 @@
 #pragma once
+#define MEXP 607
 #include <array>
 #include <immintrin.h>
 #define isNOTMINUS(val) ((((~(val))&0x80000000)>>31) & 1)
@@ -31,7 +32,7 @@ namespace CONST {
 	constexpr double dt_cell = 0.01;
 	constexpr double dt_ca = 0.02;
 	
-    constexpr int MAX_CELL_NUM = 3000;
+    constexpr int MAX_CELL_NUM = 30000;
 	constexpr int MAX_REACT_CELL_NUM = 400;
 
 	//計算領域のサイズ
