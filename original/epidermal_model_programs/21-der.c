@@ -82,7 +82,7 @@ void evolution(double u[NN], double v[NN], double p[NN], double w[NN][N2], doubl
     //        dumpall(xx, yy, zz, u_ave);
     if(i % CUT == 0){
       
-      check_localization(lj, indx, state, touch, ncell);
+      check_localization(lj, indx, state, touch, ncell); //dont need in my code
       output_data(i / CUT, xx, yy, zz, lj, state, r, ageb, agek, u, w, u_ave,
 		  div_times, L, fat, Vc, touch, other_cell, tb, indx, ncell, a, B);
       

@@ -1,0 +1,9 @@
+﻿  field.cpp
+c:\program files (x86)\microsoft visual studio 14.0\vc\include\array(219): error C2148: 配列サイズの合計は 0x7fffffff バイトを超えることはできません。
+  c:\users\airp\source\repos\epi3\epi3\field.h(49): note: コンパイル対象のクラス テンプレート インスタンス化 'std::array<std::array<double,30001>,30001>' のリファレンスを確認してください
+  コードを生成中...
+  コンパイル中...
+  main.cpp
+c:\program files (x86)\microsoft visual studio 14.0\vc\include\array(219): error C2148: 配列サイズの合計は 0x7fffffff バイトを超えることはできません。
+  c:\users\airp\source\repos\epi3\epi3\field.h(49): note: コンパイル対象のクラス テンプレート インスタンス化 'std::array<std::array<double,30001>,30001>' のリファレンスを確認してください
+  コードを生成中...
