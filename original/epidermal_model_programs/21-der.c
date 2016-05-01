@@ -113,7 +113,7 @@ void evolution(double u[NN], double v[NN], double p[NN], double w[NN][N2], doubl
 	flg_forced_sc = 0;
 	fprintf(stdout, "t=%f: forced cornification...", i*DT);
 	fflush(stdout);
-	initialize_sc(state, zz, zzmax, agek, ncell);
+	initialize_sc(state, zz, zzmax, agek, ncell); //should be done in ca state renew part
 	num_sc = NUM_SC_INIT;
       }
       

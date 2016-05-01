@@ -22,18 +22,39 @@ double bend_force_sqr(
 inline double perio_diff_x(const double x1, const double x2)
 {
 	double diff = x1 - x2;
+	if (fabs(diff) < 0.5*LX) {
+		return diff;
+	}
+	else {
+		if (x1 > x2) {
+			return diff - LX;
+		}
+		else {
+			return diff + LX;
+		}
+	}
+	//return diff + (fabs(diff) < 0.5*LX?0:(x1 > x2 ? -LX : LX));
+	/*
 	if (diff*diff < 0.25*LX*LX) return diff;
 	else {
 		return diff + (x1 > x2 ? -LX : LX);
 	}
+	*/
 }
 
 inline double perio_diff_y(const double x1, const double x2)
 {
 	double diff = x1 - x2;
-	if (diff*diff < 0.25*LY*LY) return diff;
+	if (fabs(diff) < 0.5*LY) {
+		return diff;
+	}
 	else {
-		return diff + (x1 > x2 ? -LY : LY);
+		if (x1 > x2) {
+			return diff - LY;
+		}
+		else {
+			return diff + LY;
+		}
 	}
 }
 

@@ -19,7 +19,7 @@ struct CellData {
 
 	double radius;
 
-	double ca2p, ca2p_avg;
+	double ca2p, ca2p_avg,ca2p_diff;
 
 	double IP3;
 
@@ -35,8 +35,10 @@ struct CellData {
 
 	double poisson_div_thresh;
 
+
 	int rest_div_times;
 
+	int latx, laty, latz;
 	bool infinite_div;
 	bool malignant;
 	bool touch;
@@ -71,7 +73,7 @@ struct CellData {
 		double _spring_force = 0,
 		double _div_age = 0,
 		double _ex_inert = v0
-		) :src_stem_id(_src_stem_id), x(_x), y(_y), z(_z), radius(_radius), ca2p(_ca2p), ca2p_avg(_ca2p_avg), re_ex_fat(_re_ex_fat), in_fat(_in_fat),
+		) :ca2p_diff(0),latx(0),laty(0),latz(0),src_stem_id(_src_stem_id), x(_x), y(_y), z(_z), radius(_radius), ca2p(_ca2p), ca2p_avg(_ca2p_avg), re_ex_fat(_re_ex_fat), in_fat(_in_fat),
 		pair_spr_nat_len(_pair_spr_nat_len), rest_div_times(_rest_div_times),
 		agek(_agek), ageb(_ageb), IP3(_IP3), div_pair_cell(nullptr), dermis(nullptr), spring_force(_spring_force),
 		div_age_thresh(_div_age), infinite_div(false), malignant(false),ex_inert(_ex_inert) {

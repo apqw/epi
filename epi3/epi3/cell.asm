@@ -129,17 +129,17 @@ PUBLIC	__real@4008000000000000
 PUBLIC	__real@400921fb54442d18
 PUBLIC	__real@4014000000000000
 PUBLIC	__real@401921fb54442d18
+PUBLIC	__real@4039000000000000
 PUBLIC	__real@4049000000000000
 PUBLIC	__real@4059000000000000
-PUBLIC	__real@4083880000000000
 PUBLIC	__real@40a3880000000000
 PUBLIC	__real@7fefffffffffffff
-PUBLIC	__real@c049000000000000
 PUBLIC	__xmm@80000000000000008000000000000000
 EXTRN	__imp__invalid_parameter:PROC
 EXTRN	__imp_??0_Lockit@std@@QEAA@H@Z:PROC
 EXTRN	__imp_??1_Lockit@std@@QEAA@XZ:PROC
 EXTRN	cos:PROC
+EXTRN	fabs:PROC
 EXTRN	sin:PROC
 EXTRN	sqrt:PROC
 EXTRN	tanh:PROC
@@ -317,13 +317,13 @@ pdata	ENDS
 ;	COMDAT pdata
 pdata	SEGMENT
 $pdata$?perio_diff_x@@YANNN@Z DD imagerel $LN7
-	DD	imagerel $LN7+124
+	DD	imagerel $LN7+118
 	DD	imagerel $unwind$?perio_diff_x@@YANNN@Z
 pdata	ENDS
 ;	COMDAT pdata
 pdata	SEGMENT
 $pdata$?perio_diff_y@@YANNN@Z DD imagerel $LN7
-	DD	imagerel $LN7+124
+	DD	imagerel $LN7+118
 	DD	imagerel $unwind$?perio_diff_y@@YANNN@Z
 pdata	ENDS
 ;	COMDAT pdata
@@ -682,10 +682,6 @@ CONST	SEGMENT
 __xmm@80000000000000008000000000000000 DB 00H, 00H, 00H, 00H, 00H, 00H, 00H
 	DB	080H, 00H, 00H, 00H, 00H, 00H, 00H, 00H, 080H
 CONST	ENDS
-;	COMDAT __real@c049000000000000
-CONST	SEGMENT
-__real@c049000000000000 DQ 0c049000000000000r	; -50
-CONST	ENDS
 ;	COMDAT __real@7fefffffffffffff
 CONST	SEGMENT
 __real@7fefffffffffffff DQ 07fefffffffffffffr	; 1.79769e+308
@@ -694,10 +690,6 @@ CONST	ENDS
 CONST	SEGMENT
 __real@40a3880000000000 DQ 040a3880000000000r	; 2500
 CONST	ENDS
-;	COMDAT __real@4083880000000000
-CONST	SEGMENT
-__real@4083880000000000 DQ 04083880000000000r	; 625
-CONST	ENDS
 ;	COMDAT __real@4059000000000000
 CONST	SEGMENT
 __real@4059000000000000 DQ 04059000000000000r	; 100
@@ -705,6 +697,10 @@ CONST	ENDS
 ;	COMDAT __real@4049000000000000
 CONST	SEGMENT
 __real@4049000000000000 DQ 04049000000000000r	; 50
+CONST	ENDS
+;	COMDAT __real@4039000000000000
+CONST	SEGMENT
+__real@4039000000000000 DQ 04039000000000000r	; 25
 CONST	ENDS
 ;	COMDAT __real@401921fb54442d18
 CONST	SEGMENT
@@ -1528,14 +1524,14 @@ $unwind$?normSq@@YANNNN@Z DD 05031a01H
 xdata	ENDS
 ;	COMDAT xdata
 xdata	SEGMENT
-$unwind$?perio_diff_y@@YANNN@Z DD 05031401H
-	DD	092110314H
+$unwind$?perio_diff_y@@YANNN@Z DD 025031601H
+	DD	0d2112316H
 	DD	0500dH
 xdata	ENDS
 ;	COMDAT xdata
 xdata	SEGMENT
-$unwind$?perio_diff_x@@YANNN@Z DD 05031401H
-	DD	092110314H
+$unwind$?perio_diff_x@@YANNN@Z DD 025031601H
+	DD	0d2112316H
 	DD	0500dH
 xdata	ENDS
 ;	COMDAT xdata
@@ -2483,7 +2479,7 @@ $LN4:
 ??0?$_Iterator012@Urandom_access_iterator_tag@std@@V?$shared_ptr@VCell@@@2@_JPEBV32@AEBV32@U_Iterator_base12@2@@std@@QEAA@XZ ENDP ; std::_Iterator012<std::random_access_iterator_tag,std::shared_ptr<Cell>,__int64,std::shared_ptr<Cell> const * __ptr64,std::shared_ptr<Cell> const & __ptr64,std::_Iterator_base12>::_Iterator012<std::random_access_iterator_tag,std::shared_ptr<Cell>,__int64,std::shared_ptr<Cell> const * __ptr64,std::shared_ptr<Cell> const & __ptr64,std::_Iterator_base12>
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\cell.cpp
+; File c:\users\airp\source\repos\epi\epi3\epi3\cell.cpp
 ;	COMDAT ?calc_normal@@YAXAEBUCellData@@0PEAN11@Z
 _TEXT	SEGMENT
 nx1$ = 0
@@ -2575,7 +2571,7 @@ $LN3:
 ?calc_normal@@YAXAEBUCellData@@0PEAN11@Z ENDP		; calc_normal
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\cell.cpp
+; File c:\users\airp\source\repos\epi\epi3\epi3\cell.cpp
 ;	COMDAT ?find_dermis@@YA?AV?$shared_ptr@VCell@@@std@@AEBV12@@Z
 _TEXT	SEGMENT
 cptr_ptr$ = 0
@@ -2626,7 +2622,7 @@ $LN13:
 
 	mov	rcx, QWORD PTR me$[rbp]
 	call	??C?$shared_ptr@VCell@@@std@@QEBAPEAVCell@@XZ ; std::shared_ptr<Cell>::operator->
-	add	rax, 416				; 000001a0H
+	add	rax, 448				; 000001c0H
 	mov	edx, 9
 	mov	rcx, rax
 	call	??A?$vector@V?$vector@V?$shared_ptr@VCell@@@std@@V?$allocator@V?$shared_ptr@VCell@@@std@@@2@@std@@V?$allocator@V?$vector@V?$shared_ptr@VCell@@@std@@V?$allocator@V?$shared_ptr@VCell@@@std@@@2@@std@@@2@@std@@QEAAAEAV?$vector@V?$shared_ptr@VCell@@@std@@V?$allocator@V?$shared_ptr@VCell@@@std@@@2@@1@_K@Z ; std::vector<std::vector<std::shared_ptr<Cell>,std::allocator<std::shared_ptr<Cell> > >,std::allocator<std::vector<std::shared_ptr<Cell>,std::allocator<std::shared_ptr<Cell> > > > >::operator[]
@@ -2685,18 +2681,18 @@ $LN4@find_dermi:
 	mov	rcx, QWORD PTR me$[rbp]
 	call	??C?$shared_ptr@VCell@@@std@@QEBAPEAVCell@@XZ ; std::shared_ptr<Cell>::operator->
 	mov	rcx, QWORD PTR tv133[rbp]
-	vmovsd	xmm0, QWORD PTR [rcx+264]
+	vmovsd	xmm0, QWORD PTR [rcx+280]
 	vmovsd	QWORD PTR [rsp+40], xmm0
 	mov	rcx, QWORD PTR tv138[rbp]
-	vmovsd	xmm0, QWORD PTR [rcx+256]
+	vmovsd	xmm0, QWORD PTR [rcx+272]
 	vmovsd	QWORD PTR [rsp+32], xmm0
 	mov	rcx, QWORD PTR tv143[rbp]
-	vmovsd	xmm3, QWORD PTR [rcx+248]
+	vmovsd	xmm3, QWORD PTR [rcx+264]
 	mov	rcx, QWORD PTR tv148[rbp]
-	vmovsd	xmm2, QWORD PTR [rcx+264]
+	vmovsd	xmm2, QWORD PTR [rcx+280]
 	mov	rcx, QWORD PTR tv153[rbp]
-	vmovsd	xmm1, QWORD PTR [rcx+256]
-	vmovsd	xmm0, QWORD PTR [rax+248]
+	vmovsd	xmm1, QWORD PTR [rcx+272]
+	vmovsd	xmm0, QWORD PTR [rax+264]
 	call	?dist3Sq@@YANNNNNNN@Z			; dist3Sq
 	vmovsd	QWORD PTR distSq$[rbp], xmm0
 
@@ -2901,7 +2897,7 @@ me$ = 248
 ?dtor$1@?0??find_dermis@@YA?AV?$shared_ptr@VCell@@@std@@AEBV12@@Z@4HA ENDP ; `find_dermis'::`1'::dtor$1
 text$x	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\cell.cpp
+; File c:\users\airp\source\repos\epi\epi3\epi3\cell.cpp
 ;	COMDAT ?k_lipid@@YANNN@Z
 _TEXT	SEGMENT
 tv69 = 64
@@ -2947,7 +2943,7 @@ $LN3:
 ?k_lipid@@YANNN@Z ENDP					; k_lipid
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\cell.cpp
+; File c:\users\airp\source\repos\epi\epi3\epi3\cell.cpp
 ;	COMDAT ?k_lipid_release@@YANNN@Z
 _TEXT	SEGMENT
 tv69 = 64
@@ -2993,7 +2989,7 @@ $LN3:
 ?k_lipid_release@@YANNN@Z ENDP				; k_lipid_release
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\cell.cpp
+; File c:\users\airp\source\repos\epi\epi3\epi3\cell.cpp
 ;	COMDAT ??Rpair_coef@@QEAANAEBV?$shared_ptr@VCell@@@std@@0NNN@Z
 _TEXT	SEGMENT
 dist$ = 0
@@ -3031,7 +3027,7 @@ $LN3:
 	mov	rcx, QWORD PTR me$[rbp]
 	call	??C?$shared_ptr@VCell@@@std@@QEBAPEAVCell@@XZ ; std::shared_ptr<Cell>::operator->
 	vmovsd	xmm0, QWORD PTR dist$[rbp]
-	vsubsd	xmm0, xmm0, QWORD PTR [rax+336]
+	vsubsd	xmm0, xmm0, QWORD PTR [rax+360]
 	vmovsd	xmm1, QWORD PTR __real@4014000000000000
 	vmulsd	xmm0, xmm1, xmm0
 	vmovsd	QWORD PTR force$[rbp], xmm0
@@ -3049,7 +3045,7 @@ $LN3:
 ??Rpair_coef@@QEAANAEBV?$shared_ptr@VCell@@@std@@0NNN@Z ENDP ; pair_coef::operator()
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\cell.cpp
+; File c:\users\airp\source\repos\epi\epi3\epi3\cell.cpp
 ;	COMDAT ??Rstem_stem_coef@@QEAANAEBV?$shared_ptr@VCell@@@std@@0NNN@Z
 _TEXT	SEGMENT
 rad_sum$1 = 0
@@ -3081,7 +3077,7 @@ $LN7:
 
 	mov	rcx, QWORD PTR me$[rbp]
 	call	??C?$shared_ptr@VCell@@@std@@QEBAPEAVCell@@XZ ; std::shared_ptr<Cell>::operator->
-	add	rax, 384				; 00000180H
+	add	rax, 416				; 000001a0H
 	mov	rdx, QWORD PTR oppo$[rbp]
 	mov	rcx, rax
 	call	??$?8VCell@@V0@@std@@YA_NAEBV?$shared_ptr@VCell@@@0@0@Z ; std::operator==<Cell,Cell>
@@ -3108,8 +3104,8 @@ $LN2@operator:
 	mov	rcx, QWORD PTR oppo$[rbp]
 	call	??C?$shared_ptr@VCell@@@std@@QEBAPEAVCell@@XZ ; std::shared_ptr<Cell>::operator->
 	mov	rcx, QWORD PTR tv74[rbp]
-	vmovsd	xmm0, QWORD PTR [rcx+272]
-	vaddsd	xmm0, xmm0, QWORD PTR [rax+272]
+	vmovsd	xmm0, QWORD PTR [rcx+288]
+	vaddsd	xmm0, xmm0, QWORD PTR [rax+288]
 	vmovsd	QWORD PTR rad_sum$1[rbp], xmm0
 
 ; 190  : 
@@ -3184,7 +3180,7 @@ $LN1@operator:
 ??Rstem_stem_coef@@QEAANAEBV?$shared_ptr@VCell@@@std@@0NNN@Z ENDP ; stem_stem_coef::operator()
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\cell.cpp
+; File c:\users\airp\source\repos\epi\epi3\epi3\cell.cpp
 ;	COMDAT ??Rsupra_others_coef@@QEAANAEBV?$shared_ptr@VCell@@@std@@0NNN@Z
 _TEXT	SEGMENT
 rad_sum$ = 0
@@ -3221,8 +3217,8 @@ $LN7:
 	mov	rcx, QWORD PTR oppo$[rbp]
 	call	??C?$shared_ptr@VCell@@@std@@QEBAPEAVCell@@XZ ; std::shared_ptr<Cell>::operator->
 	mov	rcx, QWORD PTR tv65[rbp]
-	vmovsd	xmm0, QWORD PTR [rcx+272]
-	vaddsd	xmm0, xmm0, QWORD PTR [rax+272]
+	vmovsd	xmm0, QWORD PTR [rcx+288]
+	vaddsd	xmm0, xmm0, QWORD PTR [rax+288]
 	vmovsd	QWORD PTR rad_sum$[rbp], xmm0
 
 ; 169  : 	double rad_sumSq = rad_sum*rad_sum;
@@ -3278,12 +3274,12 @@ $LN2@operator:
 
 	mov	rcx, QWORD PTR me$[rbp]
 	call	??C?$shared_ptr@VCell@@@std@@QEBAPEAVCell@@XZ ; std::shared_ptr<Cell>::operator->
-	vmovsd	xmm0, QWORD PTR [rax+304]
+	vmovsd	xmm0, QWORD PTR [rax+328]
 	vcomisd	xmm0, QWORD PTR __real@4008000000000000
 	jbe	SHORT $LN5@operator
 	mov	rcx, QWORD PTR oppo$[rbp]
 	call	??C?$shared_ptr@VCell@@@std@@QEBAPEAVCell@@XZ ; std::shared_ptr<Cell>::operator->
-	vmovsd	xmm0, QWORD PTR [rax+304]
+	vmovsd	xmm0, QWORD PTR [rax+328]
 	vcomisd	xmm0, QWORD PTR __real@4008000000000000
 	jbe	SHORT $LN5@operator
 	vmovsd	xmm0, QWORD PTR __real@4008000000000000
@@ -3313,7 +3309,7 @@ $LN1@operator:
 ??Rsupra_others_coef@@QEAANAEBV?$shared_ptr@VCell@@@std@@0NNN@Z ENDP ; supra_others_coef::operator()
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\cell.cpp
+; File c:\users\airp\source\repos\epi\epi3\epi3\cell.cpp
 ;	COMDAT ??Rder_der_coef@@QEAANAEBV?$shared_ptr@VCell@@@std@@0NNN@Z
 _TEXT	SEGMENT
 rad_sum$ = 0
@@ -3356,8 +3352,8 @@ $LN7:
 	mov	rcx, QWORD PTR oppo$[rbp]
 	call	??C?$shared_ptr@VCell@@@std@@QEBAPEAVCell@@XZ ; std::shared_ptr<Cell>::operator->
 	mov	rcx, QWORD PTR tv65[rbp]
-	vmovsd	xmm0, QWORD PTR [rcx+272]
-	vaddsd	xmm0, xmm0, QWORD PTR [rax+272]
+	vmovsd	xmm0, QWORD PTR [rcx+288]
+	vaddsd	xmm0, xmm0, QWORD PTR [rax+288]
 	vmovsd	QWORD PTR rad_sum$[rbp], xmm0
 
 ; 144  : 	double rad_sum_d = rad_sum - delta_R;
@@ -3492,7 +3488,7 @@ $LN1@operator:
 ??Rder_der_coef@@QEAANAEBV?$shared_ptr@VCell@@@std@@0NNN@Z ENDP ; der_der_coef::operator()
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\cell.cpp
+; File c:\users\airp\source\repos\epi\epi3\epi3\cell.cpp
 ;	COMDAT ??Rcommon_common_coef@@QEAANAEBV?$shared_ptr@VCell@@@std@@0NNN@Z
 _TEXT	SEGMENT
 distSq$ = 0
@@ -3534,8 +3530,8 @@ $LN3:
 	mov	rcx, QWORD PTR oppo$[rbp]
 	call	??C?$shared_ptr@VCell@@@std@@QEBAPEAVCell@@XZ ; std::shared_ptr<Cell>::operator->
 	mov	rcx, QWORD PTR tv69[rbp]
-	vmovsd	xmm0, QWORD PTR [rcx+272]
-	vaddsd	xmm0, xmm0, QWORD PTR [rax+272]
+	vmovsd	xmm0, QWORD PTR [rcx+288]
+	vaddsd	xmm0, xmm0, QWORD PTR [rax+288]
 	vdivsd	xmm0, xmm0, QWORD PTR distSq$[rbp]
 	vmovsd	QWORD PTR LJ1Sq$[rbp], xmm0
 
@@ -3563,7 +3559,7 @@ $LN3:
 ??Rcommon_common_coef@@QEAANAEBV?$shared_ptr@VCell@@@std@@0NNN@Z ENDP ; common_common_coef::operator()
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\cell.cpp
+; File c:\users\airp\source\repos\epi\epi3\epi3\cell.cpp
 ;	COMDAT ??Rnull_coef@@QEAANAEBV?$shared_ptr@VCell@@@std@@0NNN@Z
 _TEXT	SEGMENT
 this$ = 80
@@ -3597,7 +3593,7 @@ $LN3:
 ??Rnull_coef@@QEAANAEBV?$shared_ptr@VCell@@@std@@0NNN@Z ENDP ; null_coef::operator()
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\cell.cpp
+; File c:\users\airp\source\repos\epi\epi3\epi3\cell.cpp
 ;	COMDAT ??Rmemb_memb_coef@@QEAANAEBV?$shared_ptr@VCell@@@std@@0NNN@Z
 _TEXT	SEGMENT
 distSq$ = 0
@@ -3649,8 +3645,8 @@ $LN7:
 	mov	rcx, QWORD PTR oppo$[rbp]
 	call	??C?$shared_ptr@VCell@@@std@@QEBAPEAVCell@@XZ ; std::shared_ptr<Cell>::operator->
 	mov	rcx, QWORD PTR tv69[rbp]
-	vmovsd	xmm0, QWORD PTR [rcx+272]
-	vaddsd	xmm0, xmm0, QWORD PTR [rax+272]
+	vmovsd	xmm0, QWORD PTR [rcx+288]
+	vaddsd	xmm0, xmm0, QWORD PTR [rax+288]
 	vmovsd	QWORD PTR rad_sum$[rbp], xmm0
 
 ; 107  : 	double rad_sumSq = rad_sum*rad_sum;
@@ -3791,7 +3787,7 @@ $LN1@operator:
 ??Rmemb_memb_coef@@QEAANAEBV?$shared_ptr@VCell@@@std@@0NNN@Z ENDP ; memb_memb_coef::operator()
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\cell.cpp
+; File c:\users\airp\source\repos\epi\epi3\epi3\cell.cpp
 ;	COMDAT ?interac_wall@@YAXAEAV?$shared_ptr@VCell@@@std@@@Z
 _TEXT	SEGMENT
 distlj$ = 0
@@ -3817,7 +3813,7 @@ $LN3:
 
 	mov	rcx, QWORD PTR me$[rbp]
 	call	??C?$shared_ptr@VCell@@@std@@QEBAPEAVCell@@XZ ; std::shared_ptr<Cell>::operator->
-	vmovsd	xmm0, QWORD PTR [rax+264]
+	vmovsd	xmm0, QWORD PTR [rax+280]
 	vmovsd	QWORD PTR zz$[rbp], xmm0
 
 ; 54   : 	distlj = 2 * zz;
@@ -3832,7 +3828,7 @@ $LN3:
 	mov	rcx, QWORD PTR me$[rbp]
 	call	??C?$shared_ptr@VCell@@@std@@QEBAPEAVCell@@XZ ; std::shared_ptr<Cell>::operator->
 	vmovsd	xmm0, QWORD PTR __real@4000000000000000
-	vmulsd	xmm0, xmm0, QWORD PTR [rax+272]
+	vmulsd	xmm0, xmm0, QWORD PTR [rax+288]
 	vdivsd	xmm0, xmm0, QWORD PTR distlj$[rbp]
 	vmovsd	QWORD PTR LJ1$[rbp], xmm0
 
@@ -3892,7 +3888,7 @@ $LN3:
 ?interac_wall@@YAXAEAV?$shared_ptr@VCell@@@std@@@Z ENDP	; interac_wall
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\cell.cpp
+; File c:\users\airp\source\repos\epi\epi3\epi3\cell.cpp
 ;	COMDAT ?div_direction@Cell@@AEAAXAEBUCellData@@0PEAN11@Z
 _TEXT	SEGMENT
 rand_theta$ = 8
@@ -4877,7 +4873,7 @@ $LN3:
 ??0?$_Ptr_base@VCell@@@std@@QEAA@XZ ENDP		; std::_Ptr_base<Cell>::_Ptr_base<Cell>
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\funcs.h
+; File c:\users\airp\source\repos\epi\epi3\epi3\funcs.h
 ;	COMDAT ?adhesion@@YANNNN@Z
 _TEXT	SEGMENT
 LJ2_m1$ = 0
@@ -4887,7 +4883,7 @@ rad_sum$ = 104
 spring_const$ = 112
 ?adhesion@@YANNNN@Z PROC				; adhesion, COMDAT
 
-; 51   : {
+; 72   : {
 
 $LN5:
 	vmovsd	QWORD PTR [rsp+24], xmm2
@@ -4897,16 +4893,16 @@ $LN5:
 	sub	rsp, 80					; 00000050H
 	mov	rbp, rsp
 
-; 52   : 	double LJ2_m1;
-; 53   : 
-; 54   : 	LJ2_m1 = distlj / rad_sum -1;
+; 73   : 	double LJ2_m1;
+; 74   : 
+; 75   : 	LJ2_m1 = distlj / rad_sum -1;
 
 	vmovsd	xmm0, QWORD PTR distlj$[rbp]
 	vdivsd	xmm0, xmm0, QWORD PTR rad_sum$[rbp]
 	vsubsd	xmm0, xmm0, QWORD PTR __real@3ff0000000000000
 	vmovsd	QWORD PTR LJ2_m1$[rbp], xmm0
 
-; 55   : 	return (LJ2_m1+1 > LJ_THRESH ?
+; 76   : 	return (LJ2_m1+1 > LJ_THRESH ?
 
 	vmovsd	xmm0, QWORD PTR LJ2_m1$[rbp]
 	vaddsd	xmm0, xmm0, QWORD PTR __real@3ff0000000000000
@@ -4930,10 +4926,10 @@ $LN3@adhesion:
 $LN4@adhesion:
 	vmovsd	xmm0, QWORD PTR tv76[rbp]
 
-; 56   : 		0.0 :
-; 57   : 		-(spring_const / distlj)
-; 58   : 		* LJ2_m1*(1 - LJ2_m1*LJ2_m1 / ((LJ_THRESH - 1.0)*(LJ_THRESH - 1.0))));
-; 59   : }
+; 77   : 		0.0 :
+; 78   : 		-(spring_const / distlj)
+; 79   : 		* LJ2_m1*(1 - LJ2_m1*LJ2_m1 / ((LJ_THRESH - 1.0)*(LJ_THRESH - 1.0))));
+; 80   : }
 
 	lea	rsp, QWORD PTR [rbp+80]
 	pop	rbp
@@ -4941,7 +4937,7 @@ $LN4@adhesion:
 ?adhesion@@YANNNN@Z ENDP				; adhesion
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\funcs.h
+; File c:\users\airp\source\repos\epi\epi3\epi3\funcs.h
 ;	COMDAT ?dist3Sq@@YANNNNNNN@Z
 _TEXT	SEGMENT
 diffx$ = 0
@@ -4956,7 +4952,7 @@ y2$ = 144
 z2$ = 152
 ?dist3Sq@@YANNNNNNN@Z PROC				; dist3Sq, COMDAT
 
-; 44   : 	const double x2, const double y2, const double z2) {
+; 65   : 	const double x2, const double y2, const double z2) {
 
 $LN3:
 	vmovsd	QWORD PTR [rsp+32], xmm3
@@ -4967,21 +4963,21 @@ $LN3:
 	sub	rsp, 128				; 00000080H
 	lea	rbp, QWORD PTR [rsp+32]
 
-; 45   : 	double diffx = perio_diff_x(x1, x2);
+; 66   : 	double diffx = perio_diff_x(x1, x2);
 
 	vmovsd	xmm1, QWORD PTR x2$[rbp]
 	vmovsd	xmm0, QWORD PTR x1$[rbp]
 	call	?perio_diff_x@@YANNN@Z			; perio_diff_x
 	vmovsd	QWORD PTR diffx$[rbp], xmm0
 
-; 46   : 	double diffy = perio_diff_y(y1, y2);
+; 67   : 	double diffy = perio_diff_y(y1, y2);
 
 	vmovsd	xmm1, QWORD PTR y2$[rbp]
 	vmovsd	xmm0, QWORD PTR y1$[rbp]
 	call	?perio_diff_y@@YANNN@Z			; perio_diff_y
 	vmovsd	QWORD PTR diffy$[rbp], xmm0
 
-; 47   : 	return normSq(perio_diff_x(x1, x2), perio_diff_y(y1, y2), z1 - z2);
+; 68   : 	return normSq(perio_diff_x(x1, x2), perio_diff_y(y1, y2), z1 - z2);
 
 	vmovsd	xmm0, QWORD PTR z1$[rbp]
 	vsubsd	xmm0, xmm0, QWORD PTR z2$[rbp]
@@ -4998,7 +4994,7 @@ $LN3:
 	vmovsd	xmm1, QWORD PTR tv73[rbp]
 	call	?normSq@@YANNNN@Z			; normSq
 
-; 48   : }
+; 69   : }
 
 	lea	rsp, QWORD PTR [rbp+96]
 	pop	rbp
@@ -5006,7 +5002,7 @@ $LN3:
 ?dist3Sq@@YANNNNNNN@Z ENDP				; dist3Sq
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\funcs.h
+; File c:\users\airp\source\repos\epi\epi3\epi3\funcs.h
 ;	COMDAT ?normSq@@YANNNN@Z
 _TEXT	SEGMENT
 x1$ = 80
@@ -5014,7 +5010,7 @@ x2$ = 88
 x3$ = 96
 ?normSq@@YANNNN@Z PROC					; normSq, COMDAT
 
-; 40   : inline double normSq(const double x1, const double x2, const double x3) {
+; 61   : inline double normSq(const double x1, const double x2, const double x3) {
 
 $LN3:
 	vmovsd	QWORD PTR [rsp+24], xmm2
@@ -5024,7 +5020,7 @@ $LN3:
 	sub	rsp, 64					; 00000040H
 	mov	rbp, rsp
 
-; 41   : 	return x1*x1 + x2*x2 + x3*x3;
+; 62   : 	return x1*x1 + x2*x2 + x3*x3;
 
 	vmovsd	xmm0, QWORD PTR x1$[rbp]
 	vmulsd	xmm0, xmm0, QWORD PTR x1$[rbp]
@@ -5035,7 +5031,7 @@ $LN3:
 	vmulsd	xmm1, xmm1, QWORD PTR x3$[rbp]
 	vaddsd	xmm0, xmm0, xmm1
 
-; 42   : }
+; 63   : }
 
 	lea	rsp, QWORD PTR [rbp+64]
 	pop	rbp
@@ -5043,64 +5039,77 @@ $LN3:
 ?normSq@@YANNNN@Z ENDP					; normSq
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\funcs.h
+; File c:\users\airp\source\repos\epi\epi3\epi3\funcs.h
 ;	COMDAT ?perio_diff_y@@YANNN@Z
 _TEXT	SEGMENT
 diff$ = 0
-tv68 = 72
 x1$ = 96
 x2$ = 104
 ?perio_diff_y@@YANNN@Z PROC				; perio_diff_y, COMDAT
 
-; 32   : {
+; 46   : {
 
 $LN7:
 	vmovsd	QWORD PTR [rsp+16], xmm1
 	vmovsd	QWORD PTR [rsp+8], xmm0
 	push	rbp
-	sub	rsp, 80					; 00000050H
-	mov	rbp, rsp
+	sub	rsp, 112				; 00000070H
+	lea	rbp, QWORD PTR [rsp+32]
 
-; 33   : 	double diff = x1 - x2;
+; 47   : 	double diff = x1 - x2;
 
 	vmovsd	xmm0, QWORD PTR x1$[rbp]
 	vsubsd	xmm0, xmm0, QWORD PTR x2$[rbp]
 	vmovsd	QWORD PTR diff$[rbp], xmm0
 
-; 34   : 	if (diff*diff < 0.25*LY*LY) return diff;
+; 48   : 	if (fabs(diff) < 0.5*LY) {
 
 	vmovsd	xmm0, QWORD PTR diff$[rbp]
-	vmulsd	xmm0, xmm0, QWORD PTR diff$[rbp]
-	vmovsd	xmm1, QWORD PTR __real@4083880000000000
+	call	fabs
+	vmovsd	xmm1, QWORD PTR __real@4039000000000000
 	vcomisd	xmm1, xmm0
 	jbe	SHORT $LN2@perio_diff
+
+; 49   : 		return diff;
+
 	vmovsd	xmm0, QWORD PTR diff$[rbp]
 	jmp	SHORT $LN1@perio_diff
 
-; 35   : 	else {
+; 50   : 	}
+; 51   : 	else {
 
 	jmp	SHORT $LN3@perio_diff
 $LN2@perio_diff:
 
-; 36   : 		return diff + (x1 > x2 ? -LY : LY);
+; 52   : 		if (x1 > x2) {
 
 	vmovsd	xmm0, QWORD PTR x1$[rbp]
 	vcomisd	xmm0, QWORD PTR x2$[rbp]
-	jbe	SHORT $LN5@perio_diff
-	vmovsd	xmm0, QWORD PTR __real@c049000000000000
-	vmovsd	QWORD PTR tv68[rbp], xmm0
-	jmp	SHORT $LN6@perio_diff
-$LN5@perio_diff:
-	vmovsd	xmm0, QWORD PTR __real@4049000000000000
-	vmovsd	QWORD PTR tv68[rbp], xmm0
-$LN6@perio_diff:
+	jbe	SHORT $LN4@perio_diff
+
+; 53   : 			return diff - LY;
+
 	vmovsd	xmm0, QWORD PTR diff$[rbp]
-	vaddsd	xmm0, xmm0, QWORD PTR tv68[rbp]
+	vsubsd	xmm0, xmm0, QWORD PTR __real@4049000000000000
+	jmp	SHORT $LN1@perio_diff
+
+; 54   : 		}
+; 55   : 		else {
+
+	jmp	SHORT $LN5@perio_diff
+$LN4@perio_diff:
+
+; 56   : 			return diff + LY;
+
+	vmovsd	xmm0, QWORD PTR diff$[rbp]
+	vaddsd	xmm0, xmm0, QWORD PTR __real@4049000000000000
+$LN5@perio_diff:
 $LN3@perio_diff:
 $LN1@perio_diff:
 
-; 37   : 	}
-; 38   : }
+; 57   : 		}
+; 58   : 	}
+; 59   : }
 
 	lea	rsp, QWORD PTR [rbp+80]
 	pop	rbp
@@ -5108,11 +5117,10 @@ $LN1@perio_diff:
 ?perio_diff_y@@YANNN@Z ENDP				; perio_diff_y
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\funcs.h
+; File c:\users\airp\source\repos\epi\epi3\epi3\funcs.h
 ;	COMDAT ?perio_diff_x@@YANNN@Z
 _TEXT	SEGMENT
 diff$ = 0
-tv68 = 72
 x1$ = 96
 x2$ = 104
 ?perio_diff_x@@YANNN@Z PROC				; perio_diff_x, COMDAT
@@ -5123,8 +5131,8 @@ $LN7:
 	vmovsd	QWORD PTR [rsp+16], xmm1
 	vmovsd	QWORD PTR [rsp+8], xmm0
 	push	rbp
-	sub	rsp, 80					; 00000050H
-	mov	rbp, rsp
+	sub	rsp, 112				; 00000070H
+	lea	rbp, QWORD PTR [rsp+32]
 
 ; 24   : 	double diff = x1 - x2;
 
@@ -5132,40 +5140,61 @@ $LN7:
 	vsubsd	xmm0, xmm0, QWORD PTR x2$[rbp]
 	vmovsd	QWORD PTR diff$[rbp], xmm0
 
-; 25   : 	if (diff*diff < 0.25*LX*LX) return diff;
+; 25   : 	if (fabs(diff) < 0.5*LX) {
 
 	vmovsd	xmm0, QWORD PTR diff$[rbp]
-	vmulsd	xmm0, xmm0, QWORD PTR diff$[rbp]
-	vmovsd	xmm1, QWORD PTR __real@4083880000000000
+	call	fabs
+	vmovsd	xmm1, QWORD PTR __real@4039000000000000
 	vcomisd	xmm1, xmm0
 	jbe	SHORT $LN2@perio_diff
+
+; 26   : 		return diff;
+
 	vmovsd	xmm0, QWORD PTR diff$[rbp]
 	jmp	SHORT $LN1@perio_diff
 
-; 26   : 	else {
+; 27   : 	}
+; 28   : 	else {
 
 	jmp	SHORT $LN3@perio_diff
 $LN2@perio_diff:
 
-; 27   : 		return diff + (x1 > x2 ? -LX : LX);
+; 29   : 		if (x1 > x2) {
 
 	vmovsd	xmm0, QWORD PTR x1$[rbp]
 	vcomisd	xmm0, QWORD PTR x2$[rbp]
-	jbe	SHORT $LN5@perio_diff
-	vmovsd	xmm0, QWORD PTR __real@c049000000000000
-	vmovsd	QWORD PTR tv68[rbp], xmm0
-	jmp	SHORT $LN6@perio_diff
-$LN5@perio_diff:
-	vmovsd	xmm0, QWORD PTR __real@4049000000000000
-	vmovsd	QWORD PTR tv68[rbp], xmm0
-$LN6@perio_diff:
+	jbe	SHORT $LN4@perio_diff
+
+; 30   : 			return diff - LX;
+
 	vmovsd	xmm0, QWORD PTR diff$[rbp]
-	vaddsd	xmm0, xmm0, QWORD PTR tv68[rbp]
+	vsubsd	xmm0, xmm0, QWORD PTR __real@4049000000000000
+	jmp	SHORT $LN1@perio_diff
+
+; 31   : 		}
+; 32   : 		else {
+
+	jmp	SHORT $LN5@perio_diff
+$LN4@perio_diff:
+
+; 33   : 			return diff + LX;
+
+	vmovsd	xmm0, QWORD PTR diff$[rbp]
+	vaddsd	xmm0, xmm0, QWORD PTR __real@4049000000000000
+$LN5@perio_diff:
 $LN3@perio_diff:
 $LN1@perio_diff:
 
-; 28   : 	}
-; 29   : }
+; 34   : 		}
+; 35   : 	}
+; 36   : 	//return diff + (fabs(diff) < 0.5*LX?0:(x1 > x2 ? -LX : LX));
+; 37   : 	/*
+; 38   : 	if (diff*diff < 0.25*LX*LX) return diff;
+; 39   : 	else {
+; 40   : 		return diff + (x1 > x2 ? -LX : LX);
+; 41   : 	}
+; 42   : 	*/
+; 43   : }
 
 	lea	rsp, QWORD PTR [rbp+80]
 	pop	rbp
@@ -5173,7 +5202,7 @@ $LN1@perio_diff:
 ?perio_diff_x@@YANNN@Z ENDP				; perio_diff_x
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\funcs.h
+; File c:\users\airp\source\repos\epi\epi3\epi3\funcs.h
 ;	COMDAT ??__Erng_real_dist@@YAXXZ
 text$di	SEGMENT
 ??__Erng_real_dist@@YAXXZ PROC				; `dynamic initializer for 'rng_real_dist'', COMDAT
@@ -5359,7 +5388,7 @@ $LN3:
 ??0?$uniform_real@N@std@@QEAA@NN@Z ENDP			; std::uniform_real<double>::uniform_real<double>
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\funcs.h
+; File c:\users\airp\source\repos\epi\epi3\epi3\funcs.h
 ;	COMDAT ??__Emt@@YAXXZ
 text$di	SEGMENT
 ??__Emt@@YAXXZ PROC					; `dynamic initializer for 'mt'', COMDAT
@@ -5532,7 +5561,7 @@ $LN3:
 ??0?$mersenne_twister@_K$0EA@$0BDI@$0JM@$0BP@$0?EKPNJAKFFGJJOGBH@$0BN@$0BB@$0HBNGHPPPONKGAAAA@$0CF@$0?IBBCAAAAAAAAA@$0CL@@std@@QEAA@_K00@Z ENDP ; std::mersenne_twister<unsigned __int64,64,312,156,31,-5403634167711393303,29,17,8202884508482404352,37,-2270628950310912,43>::mersenne_twister<unsigned __int64,64,312,156,31,-5403634167711393303,29,17,8202884508482404352,37,-2270628950310912,43>
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\const.h
+; File c:\users\airp\source\repos\epi\epi3\epi3\const.h
 ;	COMDAT ??__EANZ@@YAXXZ
 text$di	SEGMENT
 ??__EANZ@@YAXXZ PROC					; `dynamic initializer for 'ANZ'', COMDAT
@@ -5552,7 +5581,7 @@ text$di	SEGMENT
 ??__EANZ@@YAXXZ ENDP					; `dynamic initializer for 'ANZ''
 text$di	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\const.h
+; File c:\users\airp\source\repos\epi\epi3\epi3\const.h
 ;	COMDAT ??__EANY@@YAXXZ
 text$di	SEGMENT
 ??__EANY@@YAXXZ PROC					; `dynamic initializer for 'ANY'', COMDAT
@@ -5573,7 +5602,7 @@ text$di	SEGMENT
 ??__EANY@@YAXXZ ENDP					; `dynamic initializer for 'ANY''
 text$di	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\const.h
+; File c:\users\airp\source\repos\epi\epi3\epi3\const.h
 ;	COMDAT ??__EANX@@YAXXZ
 text$di	SEGMENT
 ??__EANX@@YAXXZ PROC					; `dynamic initializer for 'ANX'', COMDAT
@@ -6147,14 +6176,12 @@ $LN3:
 ?max@?$numeric_limits@N@std@@SANXZ ENDP			; std::numeric_limits<double>::max
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\cell.cpp
+; File c:\users\airp\source\repos\epi\epi3\epi3\cell.cpp
 ;	COMDAT ?__empty_global_delete@@YAXPEAX_K@Z
 _TEXT	SEGMENT
 __formal$ = 80
 __formal$ = 88
 ?__empty_global_delete@@YAXPEAX_K@Z PROC		; __empty_global_delete, COMDAT
-
-; 210  : }
 
 $LN3:
 	mov	QWORD PTR [rsp+16], rdx
@@ -6168,7 +6195,7 @@ $LN3:
 ?__empty_global_delete@@YAXPEAX_K@Z ENDP		; __empty_global_delete
 _TEXT	ENDS
 ; Function compile flags: /Odtp /RTCu /ZI
-; File c:\users\airp\source\repos\epi3\epi3\cell.cpp
+; File c:\users\airp\source\repos\epi\epi3\epi3\cell.cpp
 ;	COMDAT ?__empty_global_delete@@YAXPEAX@Z
 _TEXT	SEGMENT
 __formal$ = 80

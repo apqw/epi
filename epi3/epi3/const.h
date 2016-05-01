@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <array>
 //recursion not allowed
 #define OUTPUTDIR "output"
 #define THREAD_NUM (8)
@@ -11,6 +12,9 @@ using Arr2D = std::vector<std::vector<T>>;
 
 template<typename T>
 using Arr3D = std::vector<std::vector<std::vector<T>>>;
+
+template<typename T, unsigned int X, unsigned int Y, unsigned int Z>
+using RawArr3D = std::array<std::array<std::array<T, Z>, Y>, Z>;
 
 static int SYSTEM = 1;
 static int WHOLE = 1;
@@ -56,7 +60,7 @@ static constexpr int NZ = 200;
 /*
 dx,dy,dz:åvéZóÃàÊÇÃï™äÑïù(L**,N**Ç©ÇÁåvéZÇ≥ÇÍÇÈ)
 */
-static constexpr double dx = LX / NX;
+static constexpr double dx = LX / NX; static constexpr double inv_dx = NX / LX;
 static constexpr double dy = LY / NY;
 static constexpr double dz = LZ / NZ;
 
@@ -121,6 +125,54 @@ static constexpr double p0 = 0;
 static constexpr double w0 = 0.99;
 static constexpr double a0 = 0;
 static constexpr double B0 = 0;
+
+static constexpr double Rad = 1.4;
+static constexpr int irx = (int)(Rad*NX / LX);
+static constexpr int iry = (int)(Rad*NY / LY);
+static constexpr int irz = (int)(Rad*NZ / LZ);
+
+static constexpr double FAC_MAP = 2.0;
+static constexpr double Kpp = 0.3;
+static constexpr double dp = 0.9;
+static constexpr double kf = 8.1;
+static constexpr double mu0 = 0.567;
+static constexpr double mu1 = 0.1;
+static constexpr double kmu = 0.05;
+static constexpr double para_b = 0.1;
+static constexpr double para_bb = 0.89;
+static constexpr double para_k1 = 0.7;
+static constexpr double gamma = 2.0;
+static constexpr double kg = 0.1;
+static constexpr double beta_zero = 0.02;
+static constexpr double CA_OUT = 1.0;
+static constexpr double beta = CA_OUT*beta_zero;
+static constexpr double kbc = 1.0;
+static constexpr double Hb = 0.01;
+static constexpr double Cout = 0.4;
+static constexpr double para_k2 = 0.7;
+static constexpr double thpri = 1.0;
+static constexpr double thgra = 0.2;
+static constexpr double delta_th = 1.0;
+static constexpr double kpa = 4.0;
+static constexpr double Kgra = kpa;
+static constexpr double Kpri = 6.0;
+static constexpr double delta_K = 1.0;
+static constexpr double H0 = 0.5;
+static constexpr double ca2p_du = 0.03;
+static constexpr double iage_kitei = 0;
+static constexpr double delta_I = 1.5;
+static constexpr double wd = 0.1;
+static constexpr double Da = 1;
+static constexpr double STIM11 = 0.002;
+static constexpr double Kaa = 0.5;
+static constexpr double AIR_STIM = 0.1;
+static constexpr double SW_THRESH = 20;
+static constexpr double DB = 0.0009;
+static constexpr double DUR_ALIVE = 0.5;
+static constexpr double DUR_DEAD = 2.0;
+static constexpr double kb = 0.03;
+static constexpr double T_TURNOVER = 0.0;
+static constexpr int NUM_SC_INIT = 1;
 
 #define KEY_DERMAL_CHANGE 1
 #define STOCHASTIC 1
