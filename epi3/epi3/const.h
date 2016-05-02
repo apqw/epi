@@ -16,6 +16,22 @@ using Arr3D = std::vector<std::vector<std::vector<T>>>;
 template<typename T, unsigned int X, unsigned int Y, unsigned int Z>
 using RawArr3D = std::array<std::array<std::array<T, Z>, Y>, Z>;
 
+
+
+
+template<typename T>
+Arr1D<T> InitArr1D(int Z,T v) {
+	return Arr1D<T>(Z, v);
+}
+template<typename T>
+Arr2D<T> InitArr2D(int Y, int Z,T v) {
+	return Arr2D<T>(Y, InitArr1D<T>(Z,v));
+}
+template<typename T>
+Arr3D<T> InitArr3D(int X, int Y, int Z,T v) {
+	return Arr3D<T>(X, InitArr2D<T>(Y, Z,v));
+}
+
 static int SYSTEM = 1;
 static int WHOLE = 1;
 static int BASAL = 0;

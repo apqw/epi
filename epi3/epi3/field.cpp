@@ -959,12 +959,25 @@ public:
 		for (k = xmin; k <= xmax; k++) {
 			//imx = k;
 			mx = k * dx;
-			ipx = k + (k < 0 ? NX : k >= NX ? -NX : 0);
+
+			ipx = k;
+
+		
+			if (k < 0) {
+				ipx += NX;
+			}else if (k >= NY) {
+				ipx -= NX;
+			}
 
 			for (l = ymin; l <= ymax; l++) {
 				//imy = l;
 				my = l * dy;
-				ipy = l + (l < 0 ? NY : l >= NY ? -NY : 0);
+				ipy = l;
+				if (l < 0) {
+					ipy += NY;
+				}else if (l >= NY) {
+					ipy -= NY;
+				}
 
 				for (m = zmin; m <= zmax; m++) {
 					//ipz = imz = iz + m;

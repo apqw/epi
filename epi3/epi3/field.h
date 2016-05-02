@@ -60,7 +60,7 @@ private:
 	void connect_cell();
 	void set_cell_lattice();
 	double get_z_max();
-	
+
 	/*
 		Cell dynamics
 	*/
@@ -162,54 +162,55 @@ public:
 	Arr2D<CellPtr> pending_born_cell;
 	Arr3D<CellPtr*> cell_map;
 	Arr3D<double> cell_map2;
-	
+
 	int dead_count; //not disa
 	double zzmax;
-	int c_step=0;
-	bool is_sc_forced=false;
+	int c_step = 0;
+	bool is_sc_forced = false;
 	int num_sc = 0;
-	
+
 	Field()
 	{
 		dead_count = 0;
-		a_cell = Arr2D<CellPtr>(STATE_NUM, Arr1D<CellPtr>(0,nullptr));
-		ATP = Arr3D<double>(NX+1, Arr2D<double>(NY + 1, Arr1D<double>(NZ + 1, a0)));
-		old_ATP = Arr3D<double>(NX + 1, Arr2D<double>(NY + 1, Arr1D<double>(NZ + 1, a0)));
-		ext_stim = Arr3D<double>(NX + 1, Arr2D<double>(NY + 1, Arr1D<double>(NZ + 1, B0)));
-		old_ext_stim = Arr3D<double>(NX + 1, Arr2D<double>(NY + 1, Arr1D<double>(NZ + 1, B0)));
-		air_stim = Arr3D<double>(NX + 1, Arr2D<double>(NY + 1, Arr1D<double>(NZ + 1, 0)));
+		a_cell = InitArr2D<CellPtr>(STATE_NUM, 0,nullptr); //Arr2D<CellPtr>(STATE_NUM, Arr1D<CellPtr>(0, nullptr));
+		ATP = InitArr3D<double>(NX + 1, NY + 1, NZ + 1,a0);//Arr3D<double>(NX + 1, Arr2D<double>(NY + 1, Arr1D<double>(NZ + 1, a0)));
+		old_ATP = InitArr3D<double>(NX + 1, NY + 1, NZ + 1, a0);
+		ext_stim = InitArr3D<double>(NX + 1, NY + 1, NZ + 1, B0);
+		old_ext_stim = InitArr3D<double>(NX + 1, NY + 1, NZ + 1, B0);
+		air_stim = InitArr3D<double>(NX + 1, NY + 1, NZ + 1, 0);
 		//ca2p_inert = Arr2D<double>(MAX_CELL_NUM + 1, Arr1D<double>(MAX_CELL_NUM + 1, 0));
-		cell_by_id = Arr1D<CellPtr>(MAX_CELL_NUM+1, nullptr);
+		cell_by_id = Arr1D<CellPtr>(MAX_CELL_NUM + 1, nullptr);
 		paired_cell_lower_id = Arr1D<CellPtr>(0);
-		pending_born_cell = Arr2D<CellPtr>(STATE_NUM, Arr1D<CellPtr>(0));
+		pending_born_cell = InitArr2D<CellPtr>(STATE_NUM, 0, nullptr);
 
-		cell_grid =
+		cell_grid = InitArr3D<Arr2D<CellPtr>>(ANX, ANY, ANZ, InitArr2D<CellPtr>(STATE_NUM, 0, nullptr));
+		/*
 			Arr3D<Arr2D<CellPtr>>(ANX,
 				Arr2D<Arr2D<CellPtr>>(ANY,
 					Arr1D<Arr2D<CellPtr>>(ANZ,
-						Arr2D<CellPtr>(STATE_NUM, Arr1D<CellPtr>(0)))));
-		cell_grid_count = Arr3D<int>(ANX, Arr2D<int>(ANY, Arr1D<int>(ANZ, 0)));
-			th_out_conn_cell = std::vector<Arr2D<CellPtr>>(THREAD_NUM,Arr2D<CellPtr>(STATE_NUM, Arr1D<CellPtr>(0, nullptr)));
+						Arr2D<CellPtr>(STATE_NUM, Arr1D<CellPtr>(0)))));*/
+		cell_grid_count = InitArr3D<int>(ANX, ANY, ANZ, 0);//Arr3D<int>(ANX, Arr2D<int>(ANY, Arr1D<int>(ANZ, 0)));
+		th_out_conn_cell = InitArr3D<CellPtr>(THREAD_NUM, STATE_NUM, 0, nullptr);// std::vector<Arr2D<CellPtr>>(THREAD_NUM, Arr2D<CellPtr>(STATE_NUM, Arr1D<CellPtr>(0, nullptr)));
 
-			//do not change
-		cell_map = Arr3D<CellPtr*>(NX + 1, Arr2D<CellPtr*>(NY + 1, Arr1D<CellPtr*>(NZ + 1, nullptr)));
-		cell_map2 = Arr3D<double>(NX + 1, Arr2D<double>(NY + 1, Arr1D<double>(NZ + 1, 0)));
-		age_map = Arr3D<double>(NX + 1, Arr2D<double>(NY + 1, Arr1D<double>(NZ + 1, 0)));
-		cornif_map = Arr3D<int>(NX + 1, Arr2D<int>(NY + 1, Arr1D<int>(NZ + 1, 0)));
+		//do not change
+		cell_map = InitArr3D<CellPtr*>(NX + 1, NY + 1, NZ + 1, nullptr);
+		cell_map2 = InitArr3D<double>(NX + 1, NY + 1, NZ + 1, 0);
+		age_map = InitArr3D<double>(NX + 1, NY + 1, NZ + 1, 0);
+		cornif_map = InitArr3D<int>(NX + 1, NY + 1, NZ + 1, 0);
 
 		init_unused_id(unused_id, next_id_idx);
 	}
 
-	void add_future_cell(const CELL_STATE& cstate,const CellData &c_data);
+	void add_future_cell(const CELL_STATE& cstate, const CellData &c_data);
 	void init_with_file(std::ifstream& data_stream);
 
-	template<class CFunc, CELL_STATE first,CELL_STATE... cst>
+	template<class CFunc, CELL_STATE first, CELL_STATE... cst>
 	void proc_all_state_cell(Arr2D<CellPtr>& cell_set) {
 		auto fobj = CFunc();
 		int _end = cell_set[first].size();
-			for (int i = 0; i < _end; i++) {
-				fobj.operator() < first > (cell_set[first][i], this);
-			}
+		for (int i = 0; i < _end; i++) {
+			fobj.operator() < first > (cell_set[first][i], this);
+		}
 		proc_all_state_cell<CFunc, cst...>(cell_set);
 	}
 	template<class CFunc>
@@ -228,7 +229,7 @@ public:
 			th_need_calc[i] = false;
 			 std::thread th([&,i] {
 				connect_cell_grid_ranged(i,
-					&(th_need_calc[i]), 
+					&(th_need_calc[i]),
 					&th_cst, &th_cx, &th_cy, &th_cz, &th_crad, &th_RO_cell,
 					&(th_out_conn_cell[i]), &(th_out_conn_count[i]), &(th_out_touch[i])
 					);
@@ -243,7 +244,7 @@ public:
 		//set_memb_indices();
 
 		for (c_step = 0; c_step < NUM_ITR; c_step++) {
-			std::cout << "LOOP:" << c_step <<" MUSUME:"<< a_cell[MUSUME].size()<< " fix_age:"<< a_cell[FIX][0]->data.ageb<< std::endl;
+			std::cout << "LOOP:" << c_step << " MUSUME:" << a_cell[MUSUME].size() << " fix_age:" << a_cell[FIX][0]->data.ageb << std::endl;
 			cell_dyn();
 			update_all_cells();
 			zzmax = get_z_max();
