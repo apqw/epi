@@ -172,8 +172,8 @@ public:
 	Field()
 	{
 		dead_count = 0;
-		a_cell = InitArr2D<CellPtr>(STATE_NUM, 0,nullptr); //Arr2D<CellPtr>(STATE_NUM, Arr1D<CellPtr>(0, nullptr));
-		ATP = InitArr3D<double>(NX + 1, NY + 1, NZ + 1,a0);//Arr3D<double>(NX + 1, Arr2D<double>(NY + 1, Arr1D<double>(NZ + 1, a0)));
+		a_cell = InitArr2D<CellPtr>(STATE_NUM, 0,nullptr);
+		ATP = InitArr3D<double>(NX + 1, NY + 1, NZ + 1,a0);
 		old_ATP = InitArr3D<double>(NX + 1, NY + 1, NZ + 1, a0);
 		ext_stim = InitArr3D<double>(NX + 1, NY + 1, NZ + 1, B0);
 		old_ext_stim = InitArr3D<double>(NX + 1, NY + 1, NZ + 1, B0);
@@ -184,14 +184,8 @@ public:
 		pending_born_cell = InitArr2D<CellPtr>(STATE_NUM, 0, nullptr);
 
 		cell_grid = InitArr3D<Arr2D<CellPtr>>(ANX, ANY, ANZ, InitArr2D<CellPtr>(STATE_NUM, 0, nullptr));
-		/*
-			Arr3D<Arr2D<CellPtr>>(ANX,
-				Arr2D<Arr2D<CellPtr>>(ANY,
-					Arr1D<Arr2D<CellPtr>>(ANZ,
-						Arr2D<CellPtr>(STATE_NUM, Arr1D<CellPtr>(0)))));*/
 		cell_grid_count = InitArr3D<int>(ANX, ANY, ANZ, 0);//Arr3D<int>(ANX, Arr2D<int>(ANY, Arr1D<int>(ANZ, 0)));
-		th_out_conn_cell = InitArr3D<CellPtr>(THREAD_NUM, STATE_NUM, 0, nullptr);// std::vector<Arr2D<CellPtr>>(THREAD_NUM, Arr2D<CellPtr>(STATE_NUM, Arr1D<CellPtr>(0, nullptr)));
-
+		th_out_conn_cell = InitArr3D<CellPtr>(THREAD_NUM, STATE_NUM, 0, nullptr);
 		//do not change
 		cell_map = InitArr3D<CellPtr*>(NX + 1, NY + 1, NZ + 1, nullptr);
 		cell_map2 = InitArr3D<double>(NX + 1, NY + 1, NZ + 1, 0);
