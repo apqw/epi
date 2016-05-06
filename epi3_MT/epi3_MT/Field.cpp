@@ -35,12 +35,13 @@ void Field::cell_state_renew() {
 	cells.other_foreach([&](CellPtr& c, int i) {
 		switch (c->state())
 		{
+        case MUSUME:
+            c->MUSUME_state_renew();
+            break;
 		case FIX:
 			c->FIX_state_renew();
 			break;
-		case MUSUME:
-			c->MUSUME_state_renew();
-			break;
+
 		case DEAD:case AIR:
 			c->DEAD_AIR_state_renew();
 			break;
@@ -84,7 +85,7 @@ void Field::cell_pos_periodic_fix() {
 
 void Field::connect_cells() {
 	using namespace cont;
-	static RawArr3D<std::atomic<int>,ANX,ANY,ANZ> aindx = { 0 };
+    static RawArr3D<std::atomic<int>,ANX,ANY,ANZ> aindx = { };
 	static RawArr3D<RawArr1D<Cell*, N3>, ANX, ANY, ANZ> area = { nullptr };
 	static bool mflg = false;
 
@@ -197,9 +198,9 @@ void Field::cell_dynamics() {
 	cells.all_cell_update();
 
 	cells.other_foreach([](CellPtr& c, int i) {
-		if (c->pair != nullptr) {
+        if (c->pair != nullptr&&c>c->pair) {
 			c->pair_disperse();
-			c->update();
+
 		}
 	});
 
@@ -211,7 +212,7 @@ void Field::cell_dynamics() {
 void Field::main_loop()
 {
 	for (int i = 0; i < cont::NUM_ITR; i++) {
-		printf("loop:%d\n", i);
+        if(i%100==0)printf("loop:%d\n", i);
 		cell_dynamics();
 		//add lattice calc
 		setup_map();
@@ -350,7 +351,7 @@ void Field::init_with_file(std::ifstream& dstrm) {
 	int nder = 0;
 	while (!dstrm.eof()) {
 		std::getline(dstrm, line);
-		sscanf_s(line.c_str(), "%*d %d %lf %lf %lf %*f %lf %lf %lf %*f %d %lf %lf %d %lf %d %d",
+        sscanf(line.c_str(), "%*d %d %lf %lf %lf %*f %lf %lf %lf %*f %d %lf %lf %d %lf %d %d",
 			&state, &rad, &ageb, &agek, &x, &y, &z, &div_times, &ex_fat, &fat, &touch, &spr_len, &pair_cell_id, &stem_orig_id);
 		if (state == BLANK)break; //owari
 		if (SYSTEM == BASAL && (state == ALIVE || state == DEAD || state == AIR)) {

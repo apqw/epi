@@ -9,6 +9,7 @@
 #define MALIG_NUM (0)
 #define OUTPUTDIR "output"
 
+
 template<typename T>
 using Arr1D = std::vector<T>;
 

@@ -110,7 +110,7 @@ Vec3<double> div_direction(Cell* me, Cell* dermis) {
 	double rand_theta, rand_phi, cr1, sr1, cr2, sr2;
 	Vec3<double> randv = { 0,0,0 };
 	Vec3<double> out = { 0,0,0 };
-	double randnx, randny, randnz,sumSq;
+    double sumSq;
 	do {
 		rand_theta = M_PI*genrand_real();
 		cr1 = cos(rand_theta);

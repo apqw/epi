@@ -289,8 +289,11 @@ void Cell::pair_interact() {
 	if (pair!=nullptr&&this > pair.get()) {
 		double dist = sqrt(cellDistSq(this, pair.get()));
 		double force = cont::Kspring_division*(dist - spring_nat_len());
-		auto dum = cont::DT_Cell*force*p_diff_v3(pos, pair->pos) / dist;
-		pos += dum;
+        auto dum = (cont::DT_Cell*force)*p_diff_v3(pos, pair->pos)/dist;
+        printf("pair interact\n");
+        printf("cx:%lf,cy:%lf,cz:%lf\n",pos[0](),pos[1](),pos[2]());
+        printf("diffx:%lf,diffy:%lf,diffz:%lf\n",dum[0](),dum[1](),dum[2]());
+        pos += dum;
 		pair->pos -= dum;
 	}
 }
@@ -347,8 +350,9 @@ bool Cell::divide_try()
 	//FIX divs infinitely
 	assert(dermis != nullptr);
 	auto divdir = div_direction(this, dermis);
-	pos += (0.5*delta_L)*divdir;
-	pair->pos-= (0.5*delta_L)*divdir;
+    pos += divdir*(0.5*delta_L);
+    pair->pos-= divdir*(0.5*delta_L);
+
 
 
 	return true;
@@ -372,7 +376,13 @@ double Cell::agek_const() {
 void Cell::FIX_state_renew() {
 	assert(state() == FIX);
 	set_dermis();
-	assert(dermis != nullptr);
+    if(dermis==nullptr){
+        printf("err\n");
+        printf("x:%lf,y:%lf,z:%lf\n",pos[0](),pos[1](),pos[2]());
+        printf("connected_num:%d\n",connected_cell.count());
+        assert(dermis != nullptr);
+    }
+
 
 	//if (state() == MUSUME&&rest_div_times <= 0)return false;
 	if (ageb() >= div_age_thresh()*(1.0 - cont::stoch_div_time_ratio)) {

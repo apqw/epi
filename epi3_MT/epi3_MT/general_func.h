@@ -25,7 +25,8 @@ template<class Func, typename T>
 class __arr_func<T, Func, 0> {
 public:
 	static void map(T& arr) {
-		static_assert(false, "DEPTH should be >0\n");
+//		static_assert(false, "DEPTH should be >0\n");
+        assert(!"DEPTH should be >0\n");
 	}
 };
 

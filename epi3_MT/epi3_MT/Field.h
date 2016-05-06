@@ -8,7 +8,6 @@ class Field
 {
 private:
 
-
 	const int _MAX_CELL_NUM = 30000;
 
 	CellMan cells;
@@ -36,6 +35,7 @@ public:
 		cornif_map(Arr3D<int>(cont::NX + 1, Arr2D<int>(cont::NY + 1, Arr1D<int>(cont::NZ + 1, 0))))
 		{
 	}
+
 
 	void init_with_file(std::ifstream& dstrm);
 	void cell_dynamics();

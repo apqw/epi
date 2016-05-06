@@ -41,7 +41,7 @@ struct Vec {
 	}
 	Vec():value(std::vector<T>(N)) {}
 	template<typename L>
-	void foreach(L& lambda) {
+    void foreach(const L& lambda) {
 		//std::for_each(value.begin(), value.end(), lambda); //gives const args
 		for (auto it = value.begin(); it != value.end(); ++it) {
 			lambda(*it);
@@ -247,16 +247,21 @@ struct Vec<T, 3> {
 	}
 	Vec() :value(std::vector<T>(3)) {}
 	template<typename L>
-	void foreach(L& lambda) {
+    void foreach(const L& lambda) {
 		//std::for_each(value.begin(), value.end(), lambda); //gives const args
 		lambda(value[0]);
 		lambda(value[1]);
 		lambda(value[2]);
 	}
 
-	T& operator[](const std::size_t i) {
+    const T& operator[](const std::size_t i)const {
 		return value[i];
 	}
+
+    T& operator[](const std::size_t i) {
+        return value[i];
+    }
+
 
 	Vec operator* (const Vec& v)const {
 		return Vec<T, 3>({ value[0] * v.value[0], value[1] * v.value[1],value[2] * v.value[2] });
@@ -450,10 +455,10 @@ public:
 };
 
 template<typename T>
-struct DV :lazy_update<T>{
+struct DV :public lazy_update<T>{
 
 public:
-	DV(T init) :lazy_update<T>(init) {};
+    DV(T init) :lazy_update<T>(init) {}
 
 
 	
@@ -467,11 +472,11 @@ public:
 	DV<T>& operator=(const T& v) = delete;
 
 	void copy_from(const DV<T>& v) {
-		value = v.value;
-		next = v.next;
+        this->value = v.value;
+        this->next = v.next;
 	}
 	DV operator-() {
-		return DV<T>(-value);
+        return DV<T>(-this->value);
 	}
 	friend DV<T> operator* (const DV<T>& c, const DV<T>& v) {
 		return DV<T>(c()*v());
@@ -514,74 +519,75 @@ public:
 	*/
 
 	DV<T>& operator+=(const T& c) {
-		auto expected = next.load(std::memory_order_relaxed);
+        auto expected = this->next.load(std::memory_order_relaxed);
 		while (
-			!next.compare_exchange_weak(expected, expected + c));
+            !this->next.compare_exchange_weak(expected, expected + c));
 		return *this;
 	}
 
 	DV<T>& operator+=(const DV<T>& c) {
-		auto expected = next.load(std::memory_order_relaxed);
+        auto expected = this->next.load(std::memory_order_relaxed);
 		while (
-			!next.compare_exchange_weak(expected, expected + c()));
+            !this->next.compare_exchange_weak(expected, expected + c()));
 		return *this;
 	}
 
 	DV<T>& operator-=(const T& c) {
-		auto expected = next.load(std::memory_order_relaxed);
+        auto expected = this->next.load(std::memory_order_relaxed);
 		while (
-			!next.compare_exchange_weak(expected, expected - c));
+            !this->next.compare_exchange_weak(expected, expected - c));
 		return *this;
 	}
 
 	DV<T>& operator-=(const DV<T>& c) {
 		//assert(!"operator -= is not allowed.");
-		auto expected = next.load(std::memory_order_relaxed);
+        auto expected = this->next.load(std::memory_order_relaxed);
 		while (
-			!next.compare_exchange_weak(expected, expected - c()));
+            !this->next.compare_exchange_weak(expected, expected - c()));
 		return *this;
 	}
 
 
 	DV<T>& operator*=(const T& c) {
-		auto expected = next.load(std::memory_order_relaxed);
+        auto expected = this->next.load(std::memory_order_relaxed);
 		while (
-			!next.compare_exchange_weak(expected, expected * c));
+            !this->next.compare_exchange_weak(expected, expected * c));
 		return *this;
 	}
 
 	DV<T>& operator*=(const DV<T>& c) {
 		//assert(!"operator *= is not allowed.");
-		auto expected = next.load(std::memory_order_relaxed);
+        auto expected = this->next.load(std::memory_order_relaxed);
 		while (
-			!next.compare_exchange_weak(expected, expected * c()));
+            !this->next.compare_exchange_weak(expected, expected * c()));
 		return *this;
 	}
 
 	DV<T>& operator/=(const T& c) {
-		auto expected = next.load(std::memory_order_relaxed);
+        auto expected = this->next.load(std::memory_order_relaxed);
 		while (
-			!next.compare_exchange_weak(expected, expected / c));
+            !this->next.compare_exchange_weak(expected, expected / c));
 		return *this;
 	}
 
 	DV<T>& operator/=(const DV<T>& c) {
 		//assert(!"operator /= is not allowed.");
-		auto expected = next.load(std::memory_order_relaxed);
+        auto expected = this->next.load(std::memory_order_relaxed);
 		while (
-			!next.compare_exchange_weak(expected, expected / c()));
+            !this->next.compare_exchange_weak(expected, expected / c()));
 		return *this;
 	}
 
 	void force_set_next_value(const T& v) {
-		next = v;
+        this->next = v;
 	}
 };
 
 template<typename T>
 struct CAS {
 	std::atomic<T> v;
-	CAS(T _v) :v(_v) {}
+    CAS(T _v) :v(_v) {}
+    CAS(CAS&& _v):v(_v.v.load()){}
 	CAS& operator=(T c) {
 		auto expected = v.load(std::memory_order_relaxed);
 		while (

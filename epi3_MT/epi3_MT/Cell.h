@@ -47,7 +47,7 @@ public:
 	}
 	*/
 	template<class L>
-	void foreach(L& lmbd) {
+    void foreach(const L& lmbd) {
 		for (int i = 0; i < _count; i++) {
 			lmbd(cell[i]);
 		}
@@ -228,14 +228,14 @@ public:
 	}
 
 
-	CellMan() {
+    CellMan():nmemb_is_set(false),nder_is_set(false) {
 		cell.reserve(cont::DEFAULT_MAX_CELL_NUM);
 	};
 
 	void add_direct(CellPtr& made_ptr) {
 		cell.push_back(made_ptr);
 	}
-	void add_queue(CellPtr& made_ptr) {
+    void add_queue(const CellPtr& made_ptr) {
 		add_cell.push_back(made_ptr);
 	}
 
@@ -247,17 +247,19 @@ public:
 		return cell;
 	}
 
+
+
 	/*
 	remove instantly
 	*/
 	template<class L>
-	void remove_if(L& pred) {
+    void remove_if(const L& pred) {
 		auto it = std::remove_if(cell.begin(), cell.end(), pred);
 		cell.erase(it, cell.end());
 	}
 
 	template<class L>
-	void remove_if_queue(L& pred) {
+    void remove_if_queue(const L& pred) {
 		size_t sz = cell.size();
 		for (int i = 0; i < sz; ++i) {
 			if (pred(cell[i], i)) {
@@ -267,7 +269,7 @@ public:
 	}
 
 	template<class L>
-	void foreach(L& lmbd) {
+    void foreach(const L& lmbd) {
 		size_t sz = cell.size();
 		
 		for (int i = 0; i < sz; ++i) {
@@ -278,7 +280,7 @@ public:
 	}
 
 	template<class L>
-	void foreach_parallel(L& lmbd) {
+    void foreach_parallel(const L& lmbd) {
 		size_t sz = cell.size();
 		tbb::parallel_for(tbb::blocked_range<int>(0, sz), [&](const tbb::blocked_range< int >& range) {
 			for (int i = range.begin(); i != range.end(); ++i) {
@@ -295,7 +297,7 @@ public:
 
 
 	template<class L>
-	void memb_foreach(L& lmbd) {
+    void memb_foreach(const L& lmbd) {
 		assert(nmemb_is_set);
 
 		
@@ -306,7 +308,7 @@ public:
 	}
 
 	template<class L>
-	void memb_foreach_parallel(L& lmbd) {
+    void memb_foreach_parallel(const L& lmbd) {
 		assert(nmemb_is_set);
 
 		tbb::parallel_for(tbb::blocked_range<int>(0, memb_num), [&](const tbb::blocked_range< int >& range) {
@@ -322,7 +324,7 @@ public:
 	}
 
 	template<class L>
-	void der_foreach(L& lmbd) {
+    void der_foreach(const L& lmbd) {
 		assert(nder_is_set);
 		for (int i = memb_num + 1; i < memb_num + der_num; ++i) {
 			lmbd(cell[i], i);
@@ -330,7 +332,7 @@ public:
 	}
 
 	template<class L>
-	void other_foreach(L& lmbd) {
+    void other_foreach(const L& lmbd) {
 		assert(nmemb_is_set);
 		assert(nder_is_set);
 		size_t sz = cell.size();
@@ -340,7 +342,7 @@ public:
 	}
 
 	void all_cell_update() {
-		foreach_parallel([](CellPtr& c, int i) {
+        foreach_parallel([](CellPtr& c, int i) {
 			c->update();
 		});
 	}

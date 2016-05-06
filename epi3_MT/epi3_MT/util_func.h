@@ -40,7 +40,7 @@ double adhesion(Cell* c1, Cell* c2, double sprconst);
 bool paired_with_fix(Cell* c1);
 
 template<typename T,unsigned N>
-T vec_sum(Vec<T, N>& v) {
+T vec_sum(const Vec<T, N>& v) {
 	T tmp = v[0];
 	for (int i = 1; i < N; i++) {
 		tmp += v[i];
@@ -48,7 +48,7 @@ T vec_sum(Vec<T, N>& v) {
 	return tmp;
 }
 template<typename T>
-Vec3<T> cross(Vec3<T> v1,Vec3<T> v2) {
+Vec3<T> cross(const Vec3<T>& v1,const Vec3<T>& v2) {
 	return Vec3<T>(
 	{ 
 		v1[1] * v2[2] - v1[2] * v2[1],

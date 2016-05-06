@@ -4,6 +4,7 @@
 #ifdef _WIN32
 #include <Windows.h>
 #else
+#include "util_func.h"
 void OutputDebugString(const char* str) {
 	std::cout << "No input specified." << std::endl;
 }
@@ -12,6 +13,7 @@ void OutputDebugString(const char* str) {
 #include "codetest.h"
 #include "fsys.h"
 int main(int argc, char *argv[]) {
+   // system("pause");
 	Vec3Test();
 	arr_map_test();
 	cell_test();
@@ -41,7 +43,7 @@ int main(int argc, char *argv[]) {
 
 	auto fld = std::make_unique<Field>();
 	fld->init_with_file(data);
-
+genrand_init();
 	fld->main_loop();
 	system("pause");
 }

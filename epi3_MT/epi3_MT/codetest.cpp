@@ -133,11 +133,11 @@ void list_man_test() {
 void CAS_test() {
 	CAS<double> a = 0.0;
 	double a2 = 0.0;
-	std::atomic<double> a3 = 0.0;
+    std::atomic<double> a3 (0.0);
 	DV<double> ap = 0.0;
 	constexpr int loop = 81818812;
 	printf("CAS testing...\n");
-#pragma omp parallel for
+//#pragma omp parallel for
 	for (int i = 0; i < loop; i++) {
 		a += 1.0;
 		a2 += 1.0;
@@ -146,7 +146,7 @@ void CAS_test() {
 	}
 	assert(a == (double)loop);
 	ap.update();
-	printf("omp normal add:%lf CAS add:%lf atm add:%lf dv add:%lf\n", a2,a.v.load(std::memory_order_relaxed),a3,(double)ap);
+    printf("omp normal add:%lf CAS add:%lf atm add:%lf dv add:%lf\n", a2,a.v.load(std::memory_order_relaxed),a3.load(),(double)ap);
 }
 
 void init_test(std::ifstream & strm)
