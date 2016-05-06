@@ -291,6 +291,7 @@ void Cell::pair_interact() {
 		double force = cont::Kspring_division*(dist - spring_nat_len());
         auto dum = (cont::DT_Cell*force)*p_diff_v3(pos, pair->pos)/dist;
         printf("pair interact\n");
+		printf("addr:%d\n", this);
         printf("cx:%lf,cy:%lf,cz:%lf\n",pos[0](),pos[1](),pos[2]());
         printf("diffx:%lf,diffy:%lf,diffz:%lf\n",dum[0](),dum[1](),dum[2]());
         pos += dum;
@@ -408,6 +409,11 @@ void Cell::set_as_pair_gen() {
 
 bool Cell::has_new_pair() {
 	return pair_generated;
+}
+
+void Cell::set_as_no_more_new_pair()
+{
+	pair_generated = false;
 }
 
 void Cell::MUSUME_state_renew() {

@@ -147,6 +147,7 @@ public:
 
 	bool should_deleted();
 	bool has_new_pair();
+	void set_as_no_more_new_pair();
 
 	void pair_disperse();
 	void set_lattice();

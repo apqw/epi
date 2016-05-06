@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include "Field.h"
 #include <string>
 #include <cassert>
@@ -57,6 +59,7 @@ void Field::cell_state_renew() {
 			printf("new pair detected\n");
 			cells.add_queue(c->pair);
 			c->pair->pair = c;
+			c->set_as_no_more_new_pair();
 		}
 	
 	});
@@ -395,7 +398,7 @@ void Field::init_with_file(std::ifstream& dstrm) {
 			v0, //ex_inert
             agek,
             #ifdef AGE_DBG
-                    ageb,
+                    5,
             #else
                     ageb,
             #endif

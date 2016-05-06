@@ -8,7 +8,7 @@
 #define BASAL (1)
 #define MALIG_NUM (0)
 #define OUTPUTDIR "output"
-
+#define AGE_DBG
 
 template<typename T>
 using Arr1D = std::vector<T>;

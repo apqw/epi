@@ -1,14 +1,11 @@
-#define AGE_DBG
+
+
 #include <memory>
 #include <iostream>
-#ifdef _WIN32
-#include <Windows.h>
-#else
 #include "util_func.h"
 void OutputDebugString(const char* str) {
 	std::cout << "No input specified." << std::endl;
 }
-#endif
 
 #include "codetest.h"
 #include "fsys.h"
