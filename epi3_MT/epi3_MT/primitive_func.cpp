@@ -37,3 +37,8 @@ double _adhe(double distlj, double rad_sum, double spring_const)
 double min0(double u) {
 	return u > 0 ? u : 0;
 }
+
+double fB(double age, double B, bool cornif) {
+	using namespace cont;
+	return (cornif&&age > THRESH_DEAD - DUR_ALIVE&&age <= THRESH_DEAD + DUR_DEAD ? 1 : 0) - kb*B;
+}

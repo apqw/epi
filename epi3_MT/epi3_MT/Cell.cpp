@@ -268,6 +268,36 @@ Vec3<double> MEMB_bend_data::memb_bend_force_sqr() {
 	auto& dnl = memb_l->mbd.dn;
 	auto& dmb = memb_b->mbd.dm;
 	
+	double x = cont::KBEND*(
+		-(1.0 - ipn)*(nvr[0] - ipn*nv[0]) / dn
+		+ (1.0 - ipnl)*((nv[0] - ipnl*nvl[0]) / dnl - (nvl[0] - ipnl*nv[0]) / dn)
+		+ (1.0 - ipnll)*(nvll[0] - ipnll*nvl[0]) / dnl
+
+		- (1.0 - ipm)*(mvu[0] - ipm*mv[0]) / dm
+		+ (1.0 - ipmb)*((mv[0] - ipmb*mvb[0]) / dmb - (mvb[0] - ipmb*mv[0]) / dm)
+		+ (1.0 - ipmbb)*(mvbb[0] - ipmbb*mvb[0]) / dmb);
+
+	double y = cont::KBEND*(
+		-(1.0 - ipn)*(nvr[1] - ipn*nv[1]) / dn
+		+ (1.0 - ipnl)*((nv[1] - ipnl*nvl[1]) / dnl - (nvl[1] - ipnl*nv[1]) / dn)
+		+ (1.0 - ipnll)*(nvll[1] - ipnll*nvl[1]) / dnl
+
+		- (1.0 - ipm)*(mvu[1] - ipm*mv[1]) / dm
+		+ (1.0 - ipmb)*((mv[1] - ipmb*mvb[1]) / dmb - (mvb[1] - ipmb*mv[1]) / dm)
+		+ (1.0 - ipmbb)*(mvbb[1] - ipmbb*mvb[1]) / dmb);
+
+	double z = cont::KBEND*(
+		-(1.0 - ipn)*(nvr[2] - ipn*nv[2]) / dn
+		+ (1.0 - ipnl)*((nv[2] - ipnl*nvl[2]) / dnl - (nvl[2] - ipnl*nv[2]) / dn)
+		+ (1.0 - ipnll)*(nvll[2] - ipnll*nvl[2]) / dnl
+
+		- (1.0 - ipm)*(mvu[2] - ipm*mv[2]) / dm
+		+ (1.0 - ipmb)*((mv[2] - ipmb*mvb[2]) / dmb - (mvb[2] - ipmb*mv[2]) / dm)
+		+ (1.0 - ipmbb)*(mvbb[2] - ipmbb*mvb[2]) / dmb);
+
+	return Vec3<double>({ x,y,z });
+	
+	/*
 	return cont::KBEND*(
 		-(1.0 - ipn)*(nvr - ipn*nv) / dn
 		+ (1.0 - ipnl)*( (nv - ipnl*nvl) / dnl - (nvl - ipnl*nv) / dn)
@@ -276,7 +306,7 @@ Vec3<double> MEMB_bend_data::memb_bend_force_sqr() {
 		- (1.0 - ipm)*(mvu - ipm*mv) / dm
 		+ (1.0 - ipmb)*((mv - ipmb*mvb) / dmb - (mvb - ipmb*mv) / dm)
 		+ (1.0 - ipmbb)*(mvbb - ipmbb*mvb) / dmb);
-	
+	*/
 }
 /*
 	do memb_bend_calc1() and memb_bend_calc2() before doing this
@@ -290,10 +320,12 @@ void Cell::pair_interact() {
 		double dist = sqrt(cellDistSq(this, pair.get()));
 		double force = cont::Kspring_division*(dist - spring_nat_len());
         auto dum = (cont::DT_Cell*force)*p_diff_v3(pos, pair->pos)/dist;
+		/*
         printf("pair interact\n");
 		printf("addr:%d\n", this);
         printf("cx:%lf,cy:%lf,cz:%lf\n",pos[0](),pos[1](),pos[2]());
         printf("diffx:%lf,diffy:%lf,diffz:%lf\n",dum[0](),dum[1](),dum[2]());
+		*/
         pos += dum;
 		pair->pos -= dum;
 	}

@@ -9,3 +9,5 @@ double _ljmain_der_far(double r1, double r2, double dist);
 double _adhe(double distlj, double rad_sum, double spring_const);
 
 double min0(double u);
+
+double fB(double age, double B, bool cornif_flg);

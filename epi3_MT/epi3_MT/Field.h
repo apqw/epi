@@ -16,12 +16,13 @@ private:
 	Arr3D<Cell*> cell_map;
 	Arr3D<int> cell_map2;
 	Arr3D<int> air_stim_flg;
-	Arr3D<double> age_map;
-	Arr3D<int> cornif_map;
 	void interact_cell();
 	void cell_state_renew();
 	void cell_pos_periodic_fix();
 	void connect_cells();
+	void set_cell_lattice();
+	double calc_zzmax();
+	double zzmax=0;
 public:
 	Field(
 		int __MAX_CELL_NUM=30000
@@ -30,9 +31,7 @@ public:
 		ext_stim(Arr3D<DV<double>>(cont::NX+1, Arr2D<DV<double>>(cont::NY+1, Arr1D<DV<double>>(cont::NZ+1, cont::ext_stim_init)))),
 		cell_map(Arr3D<Cell*>(cont::NX + 1, Arr2D<Cell*>(cont::NY + 1, Arr1D<Cell*>(cont::NZ + 1, nullptr)))),
 		cell_map2(Arr3D<int>(cont::NX + 1, Arr2D<int>(cont::NY + 1, Arr1D<int>(cont::NZ + 1, 0)))),
-		air_stim_flg(Arr3D<int>(cont::NX + 1, Arr2D<int>(cont::NY + 1, Arr1D<int>(cont::NZ + 1, 0)))),
-		age_map(Arr3D<double>(cont::NX + 1, Arr2D<double>(cont::NY + 1, Arr1D<double>(cont::NZ + 1, 0)))),
-		cornif_map(Arr3D<int>(cont::NX + 1, Arr2D<int>(cont::NY + 1, Arr1D<int>(cont::NZ + 1, 0))))
+		air_stim_flg(Arr3D<int>(cont::NX + 1, Arr2D<int>(cont::NY + 1, Arr1D<int>(cont::NZ + 1, 0))))
 		{
 	}
 
@@ -42,6 +41,8 @@ public:
 	void main_loop();
 	void setup_map();
 	void calc_b();
+	void b_update();
+
 	
 	//~Field();
 };

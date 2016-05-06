@@ -177,6 +177,25 @@ void Field::connect_cells() {
 	});
 }
 
+void Field::set_cell_lattice()
+{
+	cells.foreach_parallel([](CellPtr& c, int i) {
+		c->set_lattice();
+	});
+}
+
+double Field::calc_zzmax()
+{
+	double zmax = 0;
+	cells.other_foreach([&zmax](CellPtr& c, int i) {
+		auto& st = c->state();
+		if (st == DEAD || st == ALIVE || st == MUSUME || st == FIX) {
+			if (zmax < c->pos[2]())zmax = c->pos[2]();
+		}
+	});
+	return zmax;
+}
+
 void Field::cell_dynamics() {
 	cells.memb_foreach_parallel([](CellPtr& memb, int i) {
 		memb->memb_bend_calc1();
@@ -214,8 +233,11 @@ void Field::main_loop()
 	for (int i = 0; i < cont::NUM_ITR; i++) {
         if(i%100==0)printf("loop:%d\n", i);
 		cell_dynamics();
-		//add lattice calc
+		zzmax = calc_zzmax();
+		set_cell_lattice();
 		setup_map();
+		calc_b();
+		b_update();
 	}
 }
 
@@ -228,8 +250,6 @@ void Field::setup_map()
 		for (int i = range.begin(); i != range.end(); ++i) {
 			for (int j = 0; j <= NY; j++) {
 				for (int k = 0; k <= NZ; k++) {
-					age_map[i][j][k] = 0;
-					cornif_map[i][j][k] = 0;
 					air_stim_flg[i][j][k] = 0;
 					cell_map[i][j][k] = nullptr;
 					cell_map2[i][j][k] = 0;
@@ -317,11 +337,6 @@ void Field::setup_map()
 							if (c->state() == AIR) {
 								air_stim_flg[ipx][ipy][ipz] = 1;
 							}
-
-							if (c->state() == ALIVE&&c->state() == DEAD) {
-								age_map[ipx][ipy][ipz] = c->agek(); //Ç±Ç±ÇÕìØéûÇ…èëÇ´Ç±ÇﬁÇ∆äÎåØ use CAS
-								cornif_map[ipx][ipy][ipz] = 1;
-							}
 							
 						}
 					}
@@ -334,7 +349,78 @@ void Field::setup_map()
 }
 
 void Field::calc_b() {
+	using namespace cont;
+	int iz_bound = (int)((zzmax + FAC_MAP*R_max) / dz);
 
+	tbb::parallel_for(tbb::blocked_range<int>(0, NX ), [&](const tbb::blocked_range< int >& range) {
+		for (int j = range.begin(); j != range.end(); ++j) {
+			int prev_x = j - 1;
+			int next_x = j + 1;
+			if (prev_x < 0) {
+				prev_x += NX;
+			}
+			if (next_x >= NX) {
+				next_x -= NX;
+			}
+			for (int k = 0; k < NY; k++) {
+				int prev_y = k - 1;
+				int next_y = k + 1;
+				if (prev_y < 0) {
+					prev_y += NY;
+				}
+				if (next_y >= NY) {
+					next_y -= NY;
+				}
+				for (int l = 0; l < iz_bound; l++) {
+					int prev_z = 0, next_z = 0;
+					if (l == 0) {
+						prev_z = 1;
+					}
+					else {
+						prev_z = l - 1;
+					}
+					if (l == NZ) {
+						next_z = NZ - 1;
+					}
+					else {
+						next_z = l + 1;
+					}
+					double dum_age = 0;
+					bool flg_cornified = false;
+					if (cell_map[j][k][l]!=nullptr) {
+						if (cell_map[j][k][l] ->state()== ALIVE || cell_map[j][k][l]->state() == DEAD) {
+							dum_age = cell_map[j][k][l]->agek();
+							flg_cornified = true;
+						}
+					}
+					ext_stim[j][k][l]+=DT_Ca*(DB * (cell_map2[prev_x][k][l] * (ext_stim[prev_x][k][l]() - ext_stim[j][k][l]())
+						+ cell_map2[j][prev_y][l] * (ext_stim[j][prev_y][l]() - ext_stim[j][k][l]())
+						+ cell_map2[j][k][prev_z] * (ext_stim[j][k][prev_z]() - ext_stim[j][k][l]())
+						+ cell_map2[next_x][k][l] * (-ext_stim[j][k][l]() + ext_stim[next_x][k][l]())
+						+ cell_map2[j][next_y][l] * (-ext_stim[j][k][l]() + ext_stim[j][next_y][l]())
+						+ cell_map2[j][k][next_z] * (-ext_stim[j][k][l]() + ext_stim[j][k][next_z]())) / (dz * dz)
+						+ fB(dum_age, ext_stim[j][k][l]() ,flg_cornified));
+
+
+				}
+			}
+		}
+	});
+	for (int l = 0; l <= iz_bound; l++) {
+		for (int j = 0; j < NX; j++) ext_stim[j][NY][l].force_set_next_value(ext_stim[j][0][l]());
+		for (int k = 0; k <= NY; k++) ext_stim[NX][k][l].force_set_next_value(ext_stim[0][k][l]());
+	}
+}
+
+void Field::b_update()
+{
+	for (auto& x : ext_stim) {
+		for (auto& y : x) {
+			for (auto& z : y) {
+				z.update();
+			}
+		}
+	}
 }
 
 void Field::init_with_file(std::ifstream& dstrm) {
