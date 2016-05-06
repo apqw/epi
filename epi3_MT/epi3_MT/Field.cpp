@@ -88,7 +88,6 @@ void Field::connect_cells() {
     static RawArr3D<std::atomic<int>,ANX,ANY,ANZ> aindx = { };
 	static RawArr3D<RawArr1D<Cell*, N3>, ANX, ANY, ANZ> area = { nullptr };
 	static bool mflg = false;
-
 	for (int i = 0; i < ANX; i++) {
 		for (int j = 0; j < ANY; j++) {
 			for (int k = 0; k < ANZ; k++) {
@@ -109,7 +108,6 @@ void Field::connect_cells() {
 		assert(aindx[aix][aiy][aiz] < N3);
 
 	});
-
 	cells.foreach_parallel([&](CellPtr& c, int i) {
 			c->connected_cell.set_count(c->state()==MEMB?4:0);
 			int anx = (int)(c->pos[0]() / AREA_GRID);
@@ -174,7 +172,6 @@ void Field::connect_cells() {
 			}
 
 	});
-
 }
 
 void Field::cell_dynamics() {
@@ -396,11 +393,16 @@ void Field::init_with_file(std::ifstream& dstrm) {
 			u0, //ca2pavg (initial value unused)
 			p0, //IP3
 			v0, //ex_inert
-			agek, ageb,
+            agek,
+            #ifdef AGE_DBG
+                    ageb,
+            #else
+                    ageb,
+            #endif
 			ex_fat, fat,//ex_fat in_fat
 			spr_len,
 			0,//spring force (unused)
-			state == FIX ? agki_max_fix :
+            state == FIX ? agki_max_fix :
 			state == MUSUME ?
 			agki_max : 0,//div thresh
 			0,//poisson??

@@ -32,7 +32,7 @@ double Cell::c_al_air_de_to_al_air_de_fix_mu::operator()(Cell* me, Cell* oppo) {
 }
 
 double Cell::c_fix_mu_to_fix_mu::operator()(Cell* me, Cell* oppo) {
-	if (me->pair == nullptr) {
+    if (me->pair != nullptr) {
 		return 0;
 	}
 	else {

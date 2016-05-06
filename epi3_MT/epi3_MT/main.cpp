@@ -1,4 +1,4 @@
-
+#define AGE_DBG
 #include <memory>
 #include <iostream>
 #ifdef _WIN32
