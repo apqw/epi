@@ -216,8 +216,9 @@ public:
 		/*
 			some init
 		*/
-		//is_sc_forced = true;
+		is_sc_forced = true;
 		genrand_init();
+		dead_count = SW_THRESH - 1;
 		/*
 		for (int i = 0; i <= 4; i++) {
 			th_need_calc[i] = false;

@@ -425,6 +425,7 @@ void Field::state_renew() {
 	//if(i*DT > T_TURNOVER && flg_forced_sc) { ...... in 21-der.c‚Ì•”•ª
 
 	if (c_step*DT_Cell > T_TURNOVER && is_sc_forced) {
+		printf("sc forced\n");
 		for (auto &calive : a_cell[ALIVE]) {
 			if (zzmax - calive->old_data.z < 8 * R_max && !calive->state_changed) {
 				calive->data.agek = calive->data.agek>THRESH_DEAD ? calive->data.agek : THRESH_DEAD;
@@ -1053,8 +1054,8 @@ public:
 		c->data.ex_inert = c->old_data.ex_inert;
 		c->data.IP3 = c->old_data.IP3;
 		c->old_data.ca2p_avg =c->data.ca2p_avg= 0;
-		Field* fld = const_cast<Field*>(field);
-		fld->ATP = fld->old_ATP;
+		//Field* fld = const_cast<Field*>(field);
+		//fld->ATP = fld->old_ATP;
 
 	}
 };
@@ -1131,7 +1132,7 @@ public:
 			auto&oppo = c->old_data.connected_cell[ALIVE][i];
 			c->data.gj[ALIVE][i] += DT_Ca*fw(fabs(oppo->old_data.ca2p - c->old_data.ca2p), c->old_data.gj[ALIVE][i]);
 		}
-		c->data.ca2p += DT_Ca*c->data.ca2p_diff;
+		c->data.ca2p = c->old_data.ca2p+ DT_Ca*c->data.ca2p_diff;
 		c->data.ca2p_avg += c->data.ca2p;
 
 	}
@@ -1166,6 +1167,7 @@ public:
 void Field::ca_dyn() {
 	//air stim is set when map set
 	proc_all_state_cell<ca_dyn_init_current,ALIVE,DEAD,FIX,MUSUME,AIR>(a_cell);
+	ATP = old_ATP;
 	
 	int iz_bound = (int)((zzmax + FAC_MAP*R_max) / dz);
 	int prev_x, prev_y, prev_z, next_x, next_y, next_z;
@@ -1232,8 +1234,9 @@ void Field::ca_dyn() {
 		
 	
 	}
-	
+	printf("AVG:%lf\n", a_cell[FIX][0]->data.ca2p_avg);
 	proc_all_state_cell<ca_result_setter, ALIVE, DEAD, FIX, MUSUME, AIR>(a_cell);
+	printf("AVG d:%lf\n", a_cell[FIX][0]->data.ca2p_avg);
 	old_ATP = ATP;
 }
 

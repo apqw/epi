@@ -103,6 +103,7 @@ struct CellData {
 		IP3 = ot.IP3;
 		ex_inert = ot.ex_inert;
 		connected_cell = ot.connected_cell;//copied
+		connected_count = oi.connected_count;
 		//ca2p_inert = ot.ca2p_inert;
 		//div_pair_cell = ot.div_pair_cell;
 		return *this;

@@ -1,0 +1,62 @@
+#pragma once
+#include "define.h"
+#include "component.h"
+#include "primitive_func.h"
+#include <cmath>
+#include <random>
+class Cell;
+
+static bool rng_initalized = false;
+static std::mt19937_64 mt;
+static std::uniform_real_distribution<double> rng_real_dist(0.0, 1.0);
+
+void genrand_init();
+double genrand_real();
+
+double p_diff_sc_x(double v1, double v2);
+
+double p_diff_sc_y(double v1, double v2);
+
+Vec3<DV<double>> p_diff_v3(Vec3<DV<double>> V1, Vec3<DV<double>> V2);
+
+double normSqV3(Vec3<DV<double>> V1);
+
+double distSqV3(Vec3<DV<double>> V1, Vec3<DV<double>> V2);
+
+double cellDistSq(Cell* c1, Cell *c2);
+
+bool is_near(Cell* c1, Cell* c2);
+
+bool is_near_delta(Cell* c1, Cell* c2, double delta);
+
+double ljmain(Cell* c1, Cell* c2);
+
+double ljmain_der_near(Cell* c1, Cell* c2);
+
+double ljmain_der_far(Cell* c1, Cell* c2);
+
+double adhesion(Cell* c1, Cell* c2, double sprconst);
+
+bool paired_with_fix(Cell* c1);
+
+template<typename T,unsigned N>
+T vec_sum(Vec<T, N>& v) {
+	T tmp = v[0];
+	for (int i = 1; i < N; i++) {
+		tmp += v[i];
+	}
+	return tmp;
+}
+template<typename T>
+Vec3<T> cross(Vec3<T> v1,Vec3<T> v2) {
+	return Vec3<T>(
+	{ 
+		v1[1] * v2[2] - v1[2] * v2[1],
+		v1[2] * v2[0] - v1[0] * v2[2],
+		v1[0] * v2[1] - v1[1] * v2[0] 
+	});
+
+}
+
+Vec3<double> calc_dermis_normal(Cell* me, Cell* dermis);
+Vec3<double> div_direction(Cell* me, Cell* dermis);
