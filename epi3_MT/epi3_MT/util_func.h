@@ -60,3 +60,13 @@ Vec3<T> cross(const Vec3<T>& v1,const Vec3<T>& v2) {
 
 Vec3<double> calc_dermis_normal(Cell* me, Cell* dermis);
 Vec3<double> div_direction(Cell* me, Cell* dermis);
+
+inline CELL_STATE_MASK get_state_mask(CELL_STATE state) {
+	return (CELL_STATE_MASK)(1u << (unsigned int)state);
+}
+
+inline double grid_avg8(const Arr3D<DV<double>>& grd,int ix,int iy,int iz) {
+	return 0.125*(grd[ix][iy][iz]() + grd[ix + 1][iy][iz]() + grd[ix][iy + 1][iz]()
+		+ grd[ix][iy][iz + 1]() + grd[ix + 1][iy + 1][iz]() + grd[ix + 1][iy][iz + 1]()
+		+ grd[ix][iy + 1][iz + 1]() + grd[ix + 1][iy + 1][iz + 1]());
+}

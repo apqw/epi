@@ -4,6 +4,7 @@
 #include "define.h"
 #include "component.h"
 #include "util_func.h"
+#include <unordered_map>
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
 
@@ -40,18 +41,21 @@ public:
 	int count()const {
 		return _count;
 	}
-	/*
-	Cell* operator[](std::size_t i) {
-	assert(i < _count);
-	return cell[i];
-	}
-	*/
 	template<class L>
     void foreach(const L& lmbd) {
 		for (int i = 0; i < _count; i++) {
 			lmbd(cell[i]);
 		}
 	}
+
+	bool exist(Cell *const  c) {
+		for (int i = 0; i < _count; ++i) {
+			if (cell[i] == c)return true;
+		}
+		return false;
+	}
+
+	
 
 };
 
@@ -172,7 +176,8 @@ public:
 	DV<bool> is_malignant = 0;
 	DV<bool> is_touch = 0;
 	Vec3<int> lat;
-
+	std::unordered_map<Cell*,DV<double>> gj;
+	double diffu = 0; //tmp
 	
 	
 	
@@ -277,23 +282,16 @@ public:
 			lmbd(cell[i], i);
 		}
 		
-		//std::for_each(cell.begin(), cell.end(), lmbd);
 	}
 
 	template<class L>
     void foreach_parallel(const L& lmbd) {
 		size_t sz = cell.size();
-		tbb::parallel_for(tbb::blocked_range<int>(0, sz), [&](const tbb::blocked_range< int >& range) {
-			for (int i = range.begin(); i != range.end(); ++i) {
+		tbb::parallel_for(tbb::blocked_range<size_t>(0, sz), [&](const tbb::blocked_range< size_t >& range) {
+			for (size_t i = range.begin(); i != range.end(); ++i) {
 				lmbd(cell[i], i);
 			}
 		});
-		/*
-		for (int i = 0; i < sz; ++i) {
-		lmbd(cell[i], i);
-		}
-		*/
-		//std::for_each(cell.begin(), cell.end(), lmbd);
 	}
 
 
@@ -317,11 +315,6 @@ public:
 				lmbd(cell[i], i);
 			}
 		});
-		/*
-		for (int i = 0; i < memb_num; ++i) {
-			lmbd(cell[i], i);
-		}
-		*/
 	}
 
 	template<class L>
@@ -342,8 +335,20 @@ public:
 		}
 	}
 
+	template<class L>
+	void other_foreach_parallel(const L& lmbd) {
+		assert(nmemb_is_set);
+		assert(nder_is_set);
+		size_t sz = cell.size();
+		tbb::parallel_for(tbb::blocked_range<int>(memb_num + der_num + 1, sz), [&](const tbb::blocked_range< int >& range) {
+			for (int i = range.begin(); i != range.end(); ++i) {
+				lmbd(cell[i], i);
+			}
+		});
+	}
+
 	void all_cell_update() {
-        foreach_parallel([](CellPtr& c, int i) {
+        foreach_parallel([](CellPtr& c, size_t i) {
 			c->update();
 		});
 	}

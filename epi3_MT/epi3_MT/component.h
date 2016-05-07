@@ -114,17 +114,6 @@ struct Vec {
 		return *this / (Vec)v;
 	}
 
-	/*
-	template<typename U>
-	friend bool operator== (const U& c, const Vec& v) {
-		return ((Vec)c).value == v.value;
-	}
-	
-	template<typename U>
-	bool operator== (const U& v)const {
-		return value == ((Vec)v).value;//std::array compares elements
-	}
-	*/
 	bool operator== (const Vec& v)const {
 		return value == v.value;//std::array compares elements
 	}
@@ -225,27 +214,27 @@ struct Vec {
 
 template<typename T>
 struct Vec<T, 3> {
-	std::vector<T> value;
+	T value[3];
 
-	Vec(const Vec<T, 3>& v) :value(v.value) {}
+	Vec(const Vec<T, 3>& v) :value{v[0],v[1],v[2]} {}
 
-	Vec(const std::vector<T>& v) :value(v) {}
+	Vec(const std::vector<T>& v) :value{ v[0],v[1],v[2] } {}
 	Vec(const std::array<T, 3>& v) :value{ v[0],v[1],v[2] }{}
 	Vec(const T v[3]):value{v[0],v[1],v[2]}{}
 
-	Vec(const std::initializer_list<T>& v) :value(v) {
+	Vec(const std::initializer_list<T>& v) :value{ (*v.begin()),(*(v.begin()+1)),(*(v.begin()+2)) } {
 	}
 
 	explicit Vec(const T& _v) :value(std::vector<T>(3, _v)) {}
 
 	template<typename U>
 	Vec(const Vec<U, 3>& _v) {
-		value.resize(3);
+//		value.resize(3);
 		value[0] = (T)(_v.value[0]);
 		value[1] = (T)(_v.value[1]);
 		value[2] = (T)(_v.value[2]);
 	}
-	Vec() :value(std::vector<T>(3)) {}
+	Vec() {}
 	template<typename L>
     void foreach(const L& lambda) {
 		//std::for_each(value.begin(), value.end(), lambda); //gives const args
@@ -319,13 +308,6 @@ struct Vec<T, 3> {
 	bool operator== (const std::array<U, 3>& v)const {
 		return value[0] == (T)v[0] && value[1] == (T)v[1] && value[2] == (T)v[2];
 	}
-	/*
-	template<typename U>
-	bool operator== (const U& v)const {
-		return value[0] == (T)v && value[1] == (T)v &&value[2] == (T)v;
-	}
-
-	*/
 
 	template<typename U>
 	bool operator== (const std::vector<U>& v)const {
@@ -333,7 +315,7 @@ struct Vec<T, 3> {
 	}
 
 	bool operator== (const Vec& v)const {
-		return value == v.value;//std::array compares elements
+		return value[0] == v.value[0]&&value[1]==v.value[1]&&value[2]==v.value[2];//std::array compares elements
 	}
 
 	Vec operator-()const {
@@ -344,7 +326,9 @@ struct Vec<T, 3> {
 
 	Vec<T, 3>& operator=(const Vec<T, 3>& ot) {
 		//self check?
-		value = ot.value;
+		value[0] = ot.value[0];
+		value[1] = ot.value[1];
+		value[2] = ot.value[2];
 		return *this;
 	}
 
@@ -512,11 +496,6 @@ public:
 	friend bool operator>= (const DV<T>& c, const DV<T>& v) {
 		return c() >= v();
 	}
-	/*
-	void add_diff(const T& v) {
-	next += v;
-	}
-	*/
 
 	DV<T>& operator+=(const T& c) {
         auto expected = this->next.load(std::memory_order_relaxed);
@@ -580,6 +559,10 @@ public:
 
 	void force_set_next_value(const T& v) {
         this->next = v;
+	}
+
+	const T& get_next_value()const {
+		return this->next;
 	}
 };
 

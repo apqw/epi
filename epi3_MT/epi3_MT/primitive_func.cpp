@@ -42,3 +42,24 @@ double fB(double age, double B, bool cornif) {
 	using namespace cont;
 	return (cornif&&age > THRESH_DEAD - DUR_ALIVE&&age <= THRESH_DEAD + DUR_DEAD ? 1 : 0) - kb*B;
 }
+
+double fu(double u, double v, double p, double B)
+{
+	//  static double result_debug=0.0;
+	using namespace cont;
+	return kf * (mu0 + mu1 * p / (p + kmu)) * (para_b + para_bb * u / (para_k1 + u)) * v
+		- gamma * u / (kg + u) + beta + kbc * B*B * Cout / (Hb + B*B);
+
+}
+
+double fw(double diff, double w)
+{
+	using namespace cont;
+	return (1. - w) + (-1. + tanh((wd - diff) / 0.1)) / 2.; //epsw0 == 0.1 //done
+																 //-1. <-????
+}
+
+double fa(double diffu, double A) {
+	using namespace cont;
+	return STIM11*(diffu > 0 ? diffu : 0) - A*Kaa;
+}

@@ -6,7 +6,7 @@
 #include <iostream>
 void Field::interact_cell() {
 
-		cells.foreach_parallel([](CellPtr& c, int i) {
+		cells.foreach_parallel([](CellPtr& c, size_t i) {
 			switch (c->state()) {
 			case MEMB:
 				
@@ -53,6 +53,7 @@ void Field::cell_state_renew() {
 			break;
 		}
 		if (c->should_deleted()) {
+			printf("remove detected\n");
 			cells.remove_queue(i);
 		}
 		if (c->has_new_pair()) {
@@ -69,19 +70,19 @@ void Field::cell_state_renew() {
 */
 void Field::cell_pos_periodic_fix() {
 	using namespace cont;
-	cells.foreach_parallel([](CellPtr& c, int i) {
+	cells.foreach_parallel([](CellPtr& c, size_t i) {
 		if (c->pos[0] > LX) {
-			c->pos[0].force_set_next_value(c->pos[0]() - LX);
+			c->pos[0].force_set_next_value(c->pos[0].get_next_value() - LX);
 		}
 		else if (c->pos[0] < 0) {
-			c->pos[0].force_set_next_value(c->pos[0]() + LX);
+			c->pos[0].force_set_next_value(c->pos[0].get_next_value() + LX);
 		}
 
 		if (c->pos[1] > LY) {
-			c->pos[1].force_set_next_value(c->pos[1]() - LY);
+			c->pos[1].force_set_next_value(c->pos[1].get_next_value() - LY);
 		}
 		else if (c->pos[1] < 0) {
-			c->pos[1].force_set_next_value(c->pos[1]() + LY);
+			c->pos[1].force_set_next_value(c->pos[1].get_next_value() + LY);
 		}
 	});
 }
@@ -98,20 +99,26 @@ void Field::connect_cells() {
 			}
 		}
 	}
-	cells.foreach_parallel([&](CellPtr& c, int i) {
+	cells.foreach_parallel([&](CellPtr& c, size_t i) {
 		int aix, aiy, aiz;
 		aix = (int)((0.5*LX - p_diff_sc_x(0.5*LX, c->pos[0]())) / AREA_GRID);
 		aiy = (int)((0.5*LY - p_diff_sc_y(0.5*LY, c->pos[1]())) / AREA_GRID);
 		aiz = (int)(min0(c->pos[2]()) / AREA_GRID);
 
-		assert(!(aix >= ANX || aiy >= ANY || aiz >= ANZ || aix < 0 || aiy < 0 || aiz < 0));
+		//assert();
+		if ((aix >= ANX || aiy >= ANY || aiz >= ANZ || aix < 0 || aiy < 0 || aiz < 0)) {
+			printf("err\n");
+			printf("cx:%lf cy:%lf cz:%lf\n",c->pos[0](), c->pos[1](), c->pos[2]());
+			printf("aix:%d aiy:%d aiz:%d\n", aix, aiy, aiz);
+			assert(false);
+		}
 		int atm = aindx[aix][aiy][aiz]++;
 		area[aix][aiy][aiz][atm] = c.get();
 		
 		assert(aindx[aix][aiy][aiz] < N3);
 
 	});
-	cells.foreach_parallel([&](CellPtr& c, int i) {
+	cells.foreach_parallel([&](CellPtr& c, size_t i) {
 			c->connected_cell.set_count(c->state()==MEMB?4:0);
 			int anx = (int)(c->pos[0]() / AREA_GRID);
 			int any = (int)(c->pos[1]() / AREA_GRID);
@@ -175,11 +182,31 @@ void Field::connect_cells() {
 			}
 
 	});
+	cells.foreach_parallel([&](CellPtr& c, size_t i) {
+
+		//delete unconnected cell value
+		for (auto it = c->gj.begin(); it != c->gj.end();) {
+			if (!c->connected_cell.exist(it->first)) {
+				it = c->gj.erase(it);
+			}
+			else {
+				++it;
+			}
+		}
+
+		//set newly connected cell value
+		c->connected_cell.foreach([&](Cell* cptr) {
+			if (c->gj.count(cptr)==0) {
+				c->gj.emplace(cptr, w0);
+			}
+		});
+	
+	});
 }
 
 void Field::set_cell_lattice()
 {
-	cells.foreach_parallel([](CellPtr& c, int i) {
+	cells.foreach_parallel([](CellPtr& c, size_t i) {
 		c->set_lattice();
 	});
 }
@@ -238,6 +265,13 @@ void Field::main_loop()
 		setup_map();
 		calc_b();
 		b_update();
+		if (i % 10000 == 0) {
+			printf("calc ca...\n");
+			calc_ca();
+			ATP_update();
+			cells.all_cell_update();
+			printf("end.\n");
+		}
 	}
 }
 
@@ -257,18 +291,18 @@ void Field::setup_map()
 			}
 		}
 	});
-	cells.foreach_parallel([&](CellPtr& c, int i) {
+	cells.foreach_parallel([&](CellPtr& c, size_t i) {
 		
 		auto& cv = c->pos;
 		//double crad = c->old_data.radius;
 		auto& clat = c->lat;
-		int  k, l, m, ipx, ipy, ipz, imx, imy;
+		int  k, l, m, ipx, ipy, ipz;
 		double mx, my, mz;
 
-		int _irx = 2 * irx;
-		int _iry = 2 * iry;
-		int _irz = 2 * irz;
-		double diffx, diffy, diffz, distSq;
+		constexpr int _irx = 2 * irx;
+		constexpr int _iry = 2 * iry;
+		constexpr int _irz = 2 * irz;
+		double diffx,diffxSq, diffy, diffz, distSq;
 		double crad = FAC_MAP*c->radius();
 		double cradSq = crad*crad;
 		double normal_radSq = c->radius()*c->radius();
@@ -278,6 +312,41 @@ void Field::setup_map()
 		int z_u = clat[2] + _irz;
 		int zmin = z_b >= 1 ? z_b : 1;
 		int zmax = z_u < NZ ? z_u : NZ - 1;
+
+		double a_diffySq[_iry * 2 + 1];
+		double a_diffzSq[_irz * 2 + 1];
+		int a_ipy[_iry * 2 + 1];
+		int yc = 0; int zc = 0;
+		for (l = ymin; l <= ymax; l++) {
+			my = l * dy;
+			ipy = l;
+			if (l < 0) {
+				ipy += NY;
+			}
+			else if (l >= NY) {
+				ipy -= NY;
+			}
+			a_ipy[yc] = ipy;
+			diffy = my - cv[1]();
+			if (fabs(diffy) >= 0.5*LY) {
+				if (diffy > 0) {
+					diffy -= LY;
+				}
+				else {
+					diffy += LY;
+				}
+			}
+			a_diffySq[yc] = diffy*diffy;
+			yc++;
+		}
+
+		for (m = zmin; m <= zmax; m++) {
+			mz = m * dz;
+			diffz = mz - cv[2]();
+			a_diffzSq[zc] = diffz*diffz;
+			zc++;
+		}
+		yc = 0; zc = 0;
 		for (k = xmin; k <= xmax; k++) {
 			//imx = k;
 			mx = k * dx;
@@ -292,55 +361,33 @@ void Field::setup_map()
 				ipx -= NX;
 			}
 
-			for (l = ymin; l <= ymax; l++) {
-				//imy = l;
-				my = l * dy;
-				ipy = l;
-				if (l < 0) {
-					ipy += NY;
+			diffx = mx - cv[0]();
+			if (fabs(diffx) >= 0.5*LX) {
+				if (diffx > 0) {
+					diffx -= LX;
 				}
-				else if (l >= NY) {
-					ipy -= NY;
+				else {
+					diffx += LX;
 				}
+			}
+			diffxSq = diffx*diffx;
+			for (yc=0,l = ymin; l <= ymax; l++,yc++) {
+				ipy = a_ipy[yc];
 
-				for (m = zmin; m <= zmax; m++) {
+				
+				for (zc=0,m = zmin; m <= zmax; m++,zc++) {
 					//ipz = imz = iz + m;
 					ipz = m;
-					mz = m * dz;
-					diffx = mx , cv[0]();
-					diffy = my - cv[1]();
-					diffz = mz - cv[2]();
-
-					if (fabs(diffx) >= 0.5*LX) {
-						if (diffx > 0) {
-							diffx -= LX;
-						}
-						else {
-							diffx += LX;
-						}
-					}
-
-					if (fabs(diffy) >= 0.5*LY) {
-						if (diffy > 0) {
-							diffy -= LY;
-						}
-						else {
-							diffy += LY;
-						}
-					}
-
-					distSq = diffx*diffx + diffy*diffy + diffz*diffz;
-					if (distSq < cradSq) {
+					if ((distSq = diffxSq + a_diffySq[yc] + a_diffzSq[zc]) < cradSq) {
 						cell_map2[ipx][ipy][ipz] = 1;
+
 						if (distSq < normal_radSq) {
 							cell_map[ipx][ipy][ipz] = c.get();
-							if (c->state() == AIR) {
-								air_stim_flg[ipx][ipy][ipz] = 1;
-							}
+							air_stim_flg[ipx][ipy][ipz] = (c->state() == AIR);
+							
 							
 						}
 					}
-					//field->cell_map2[ipx][ipy][ipz] = is_within_cell(mx, my, mz, cx, cy, cz, crad);
 				}
 			}
 		}
@@ -388,7 +435,7 @@ void Field::calc_b() {
 					double dum_age = 0;
 					bool flg_cornified = false;
 					if (cell_map[j][k][l]!=nullptr) {
-						if (cell_map[j][k][l] ->state()== ALIVE || cell_map[j][k][l]->state() == DEAD) {
+						if (get_state_mask(cell_map[j][k][l] ->state())&(ALIVE_M|DEAD_M)) {
 							dum_age = cell_map[j][k][l]->agek();
 							flg_cornified = true;
 						}
@@ -407,14 +454,158 @@ void Field::calc_b() {
 		}
 	});
 	for (int l = 0; l <= iz_bound; l++) {
-		for (int j = 0; j < NX; j++) ext_stim[j][NY][l].force_set_next_value(ext_stim[j][0][l]());
-		for (int k = 0; k <= NY; k++) ext_stim[NX][k][l].force_set_next_value(ext_stim[0][k][l]());
+		for (int j = 0; j < NX; j++) ext_stim[j][NY][l].force_set_next_value(ext_stim[j][0][l].get_next_value());
+		for (int k = 0; k <= NY; k++) ext_stim[NX][k][l].force_set_next_value(ext_stim[0][k][l].get_next_value());
 	}
 }
 
 void Field::b_update()
 {
 	for (auto& x : ext_stim) {
+		for (auto& y : x) {
+			for (auto& z : y) {
+				z.update();
+			}
+		}
+	}
+}
+double th(CELL_STATE state, double age) {
+	assert(get_state_mask(state)&(ALIVE_M | FIX_M | MUSUME_M));
+	using namespace cont;
+	if (state == ALIVE) {
+		return thgra + ((thpri - thgra)*0.5) * (1.0 + tanh((THRESH_SP - age) / delta_th));
+	}
+	else if(get_state_mask(state)&( FIX_M | MUSUME_M)) {
+		return thpri;
+	}
+	return 0;
+}
+void Field::calc_ca()
+{
+	cells.other_foreach([](CellPtr& c, int i) {
+		if (get_state_mask(c->state())&(ALIVE_M|FIX_M|MUSUME_M)) {
+			c->ca2p_avg.force_set_next_value(0);
+		}
+	});
+	using namespace cont;
+	int iz_bound = (int)((zzmax + FAC_MAP*R_max) / dz);
+	for (int cstp = 0; cstp <Ca_ITR; cstp++) {
+
+		cells.other_foreach_parallel([&iz_bound,this](CellPtr& c, int i) {
+			if (c->state() == DEAD) {
+				
+				int count = 0;
+				double tmp = 0;
+				c->connected_cell.foreach([&count,&c,&tmp](Cell* conn) {
+					if (conn->state() == ALIVE) {
+						tmp += conn->IP3();
+						count++;
+					}
+				});
+				tmp = DT_Ca*(dp*(tmp-count*c->IP3())-Kpp*c->IP3());
+				c->IP3 += tmp;
+			}
+			else if (get_state_mask(c->state())&(ALIVE_M | FIX_M | MUSUME_M)) {
+				int ix = c->lat[0]; int iy = c->lat[1]; int iz = c->lat[2];
+
+				assert(iz < iz_bound);
+
+				double tmp_a = grid_avg8(ATP, ix, iy, iz);
+				double tmp_B = grid_avg8(ext_stim, ix, iy, iz);
+
+				c->diffu = fu(c->ca2p(), c->ex_inert(), c->IP3(), tmp_B);
+				double _th = thpri;
+				double _Kpa = Kpri;
+				double IAGv = iage_kitei;
+				if (c->state()==ALIVE){
+					//ALIVE
+					_th = thgra + ((thpri - thgra)*0.5) * (1.0 + tanh((THRESH_SP - c->agek()) / delta_th));
+					_Kpa = Kgra + ((Kpri - Kgra)*0.5) * (1.0 + tanh((THRESH_SP - c->agek()) / delta_K));
+					IAGv= 0.5*(1.0 + tanh((c->agek() - THRESH_SP) / delta_I));
+				}
+				c->ex_inert += DT_Ca*((para_k2*para_k2 / (para_k2*para_k2 + c->ca2p()*c->ca2p()) - c->ex_inert()) / _th);
+				c->IP3 += DT_Ca*(_Kpa*tmp_a / (H0 + tmp_a) - Kpp*c->IP3());
+				double tmp_diffu = 0;
+				double tmp_IP3 = 0;
+				c->connected_cell.foreach([&c,&tmp_diffu,&tmp_IP3,IAGv](Cell* conn) {
+					if (get_state_mask(conn->state())&(ALIVE_M | DEAD_M | FIX_M | MUSUME_M)) {
+						tmp_diffu += c->gj.at(conn)()*(conn->ca2p() - c->ca2p());
+						tmp_IP3 += c->gj.at(conn)()*(conn->IP3() - c->IP3());
+						if (conn->state() == ALIVE) {
+							c->gj.at(conn) += DT_Ca*fw(fabs(conn->ca2p() - c->ca2p()), c->gj.at(conn)());
+						}
+					}
+				});
+				c->diffu+=ca2p_du*IAGv*tmp_diffu;
+				c->IP3+= DT_Ca*dp*IAGv*tmp_IP3;
+				c->ca2p += DT_Ca*c->diffu;
+				c->ca2p_avg += c->ca2p()+ DT_Ca*c->diffu;
+			}
+		});
+
+		tbb::parallel_for(tbb::blocked_range<int>(0, NX), [&](const tbb::blocked_range< int >& range) {
+			for (int j = range.begin(); j!= range.end(); ++j) {
+				int prev_x = j - 1;
+				if (prev_x < 0) {
+					prev_x += NX;
+				}
+				int next_x = j + 1;
+				if (next_x >= NX) {
+					next_x -= NX;
+				}
+				for (int k = 0; k < NY; k++) {
+					int prev_y = k - 1;
+					if (prev_y < 0) {
+						prev_y += NY;
+					}
+					int next_y = k + 1;
+					if (next_y >= NY) {
+						next_y -= NY;
+					}
+					for (int l = 0; l < iz_bound; l++) {
+						int prev_z = l - 1;
+						if (l == 0)prev_z = 1;
+						int next_z = l + 1;
+						if (l == NZ)next_z = NZ - 1;
+						double 	tmp = 0;
+						if (cell_map[j][k][l] != nullptr) {
+							if (get_state_mask(cell_map[j][k][l]->state())&(ALIVE_M | FIX_M | MUSUME_M)) {
+								tmp = cell_map[j][k][l]->diffu;
+							}
+						}
+						cell_map[j][k][l] != nullptr ? cell_map[j][k][l]->diffu : 0.0;
+						ATP[j][k][l]
+							+= DT_Ca*(Da * (cell_map2[prev_x][k][l] * (ATP[prev_x][k][l] - ATP[j][k][l])
+								+ cell_map2[next_x][k][l] * (ATP[next_x][k][l] - ATP[j][k][l])
+								+ cell_map2[j][prev_y][l] * (ATP[j][prev_y][l] - ATP[j][k][l])
+								+ cell_map2[j][next_y][l] * (ATP[j][next_y][l] - ATP[j][k][l])
+								+ cell_map2[j][k][prev_z] * (ATP[j][k][prev_z] - ATP[j][k][l])
+								+ cell_map2[j][k][next_z] * (ATP[j][k][next_z] - ATP[j][k][l])) / (dx*dx)
+								+ fa(tmp, ATP[j][k][l]()));
+						ATP[j][k][l] += DT_Ca*air_stim_flg[j][k][l] * AIR_STIM;
+					}
+				}
+			}
+		});
+		for (int l = 0; l <= iz_bound; l++) {
+			for (int j = 0; j < NX; j++) ATP[j][NY][l].force_set_next_value(ATP[j][0][l].get_next_value());
+			for (int k = 0; k <= NY; k++) ATP[NX][k][l].force_set_next_value(ATP[0][k][l].get_next_value());
+		}
+	}
+	cells.other_foreach_parallel([](CellPtr& c, int i) {
+		if (get_state_mask(c->state())&(ALIVE_M | FIX_M | MUSUME_M)) {
+			c->ca2p_avg /= Ca_ITR;
+		}
+		else {
+			c->ca2p_avg.force_set_next_value(0);
+			c->ca2p.force_set_next_value(0);
+		}
+	});
+}
+
+void Field::ATP_update()
+{
+	for (auto& x : ATP) {
 		for (auto& y : x) {
 			for (auto& z : y) {
 				z.update();
@@ -493,7 +684,12 @@ void Field::init_with_file(std::ifstream& dstrm) {
 			0,//spring force (unused)
             state == FIX ? agki_max_fix :
 			state == MUSUME ?
-			agki_max : 0,//div thresh
+#ifdef AGE_DBG
+			agki_max*0.01 :
+#else
+		agki_max:
+#endif
+			0,//div thresh
 			0,//poisson??
 			div_times,//rest div times
 			stem_orig_id<MALIG_NUM,//malignant
@@ -534,7 +730,7 @@ void Field::init_with_file(std::ifstream& dstrm) {
 	cells.set_memb_num(nmemb);
 	using namespace cont;
 	//memb indices init
-	int j, jj, kk;
+	int  jj, kk;
 	auto& raw_cells = cells._raw_cell_set();
 	printf("setting memb initial connection...\n");
 	for (int j = 0; j < nmemb; j++) {

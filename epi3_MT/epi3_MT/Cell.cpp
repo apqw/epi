@@ -24,7 +24,7 @@ double Cell::c_al_air_de_to_al_air_de_fix_mu::operator()(Cell* me, Cell* oppo) {
 	}
 	else {
 		double spf = cont::K_DESMOSOME;
-		if (me->agek > cont::THRESH_SP && me->agek > cont::THRESH_SP) {
+		if (me->agek > cont::THRESH_SP && oppo->agek > cont::THRESH_SP) {
 			spf = cont::K_TOTAL;
 		}
 		return adhesion(me, oppo,spf);
@@ -326,8 +326,10 @@ void Cell::pair_interact() {
         printf("cx:%lf,cy:%lf,cz:%lf\n",pos[0](),pos[1](),pos[2]());
         printf("diffx:%lf,diffy:%lf,diffz:%lf\n",dum[0](),dum[1](),dum[2]());
 		*/
-        pos += dum;
-		pair->pos -= dum;
+		//•„†‹t‚É‚È‚Á‚Ä‚½
+		//‚Î‚Ë‚Ì—Í‚ÌŒü‚«l‚¦‚ë
+        pos -= dum;
+		pair->pos += dum;
 	}
 }
 
@@ -451,6 +453,11 @@ void Cell::set_as_no_more_new_pair()
 void Cell::MUSUME_state_renew() {
 	assert(state() == MUSUME);
 	set_dermis();
+#ifdef  UNPAIR_DBG
+	dermis = nullptr;
+#endif //  UNPAIR_DBG
+
+	
 	if (dermis == nullptr && pair == nullptr) {
 		if (SYSTEM == WHOLE) {
 			state = ALIVE;

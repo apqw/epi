@@ -63,7 +63,11 @@ double normSqV3(Vec3<DV<double>> V1) {
 }
 
 double distSqV3(Vec3<DV<double>> V1, Vec3<DV<double>> V2) {
-	return normSqV3(p_diff_v3(V1, V2));
+	double diffx = p_diff_sc_x(V1[0](), V2[0]());
+	double diffy = p_diff_sc_y(V1[1](), V2[1]());
+	double diffz = V1[2]() - V2[2]();
+
+	return diffx*diffx + diffy*diffy + diffz*diffz;
 }
 
 double cellDistSq(Cell* c1, Cell *c2) {

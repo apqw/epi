@@ -9,7 +9,7 @@
 #define MALIG_NUM (0)
 #define OUTPUTDIR "output"
 //#define AGE_DBG
-
+//#define UNPAIR_DBG
 template<typename T>
 using Arr1D = std::vector<T>;
 
@@ -66,7 +66,7 @@ enum CELL_STATE {
 	
 };
 */
-enum CELL_STATE {
+enum CELL_STATE:unsigned int {
 	ALIVE = 0,
 	DEAD = 1,
 	DISA = 2,
@@ -77,6 +77,19 @@ enum CELL_STATE {
 	MUSUME = 7,
 	AIR = 8,
 	MEMB = 9
+};
+
+enum CELL_STATE_MASK:unsigned int {
+	ALIVE_M = 1u<<0,
+	DEAD_M = 1u << 1,
+	DISA_M = 1u << 2,
+	UNUSED_M = 1u << 3, //
+	FIX_M = 1u << 4,
+	BLANK_M = 1u << 5,
+	DER_M = 1u << 6,
+	MUSUME_M = 1u << 7,
+	AIR_M = 1u << 8,
+	MEMB_M = 1u << 9
 };
 /*
 inline CELL_STATE_NUM conv_state_num(CELL_STATE state) {
@@ -135,7 +148,7 @@ namespace cont {
 	static constexpr double R_der = 1.4;
 	static constexpr double R_memb = 1.0;
 	static constexpr double delta_L = 0.01*R_max;
-	static constexpr double eps_L = 0.14;
+
 	static constexpr double delta_R = 0.4*R_der;
 	static constexpr double para_ljp2 = 0.005;
 	static constexpr double Kspring_division = 5.0;
@@ -160,7 +173,14 @@ namespace cont {
 	static constexpr double ubar = 0.25;
 	static constexpr double delta_lipid = 0.05;
 	static constexpr double lipid = 0.032;
+
+#ifdef UNPAIR_DBG
+	static constexpr double eps_L = 1;
 	static constexpr double unpair_dist_coef = 0.9;
+#else
+	static constexpr double eps_L = 0.14;
+	static constexpr double unpair_dist_coef = 0.9;
+#endif
 	static constexpr double AREA_GRID_ORIGINAL = 2.0;
 	static constexpr double AREA_GRID = AREA_GRID_ORIGINAL + 1e-7;
 	static constexpr int ANX = (int)((double)LX / AREA_GRID_ORIGINAL + 0.5);

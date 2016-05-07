@@ -42,6 +42,8 @@ public:
 	void setup_map();
 	void calc_b();
 	void b_update();
+	void calc_ca();
+	void ATP_update();
 
 	
 	//~Field();
