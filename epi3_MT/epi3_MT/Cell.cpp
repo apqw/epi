@@ -32,15 +32,23 @@ double Cell::c_al_air_de_to_al_air_de_fix_mu::operator()(Cell* me, Cell* oppo) {
 }
 
 double Cell::c_fix_mu_to_fix_mu::operator()(Cell* me, Cell* oppo) {
-    if (me->pair != nullptr) {
+    if (me->pair.get() == oppo) {
 		return 0;
 	}
 	else {
 		if (is_near(me, oppo)) {
-			return ljmain(me, oppo);
+			double tmp = ljmain(me, oppo);
+			if (fabs(tmp) > 100) {
+				printf("warn: c_fix_mu_to_fix_mu ljm too strong: ljm=%lf\n", tmp);
+			}
+			return tmp;
 		}
 		else {
-			return adhesion(me, oppo, cont::K_DESMOSOME);
+			double tmp = adhesion(me, oppo, cont::K_DESMOSOME);
+			if (fabs(tmp) > 100) {
+				printf("warn: c_fix_mu_to_fix_mu adhe too strong: adhe=%lf\n", tmp);
+			}
+			return tmp;
 		}
 	}
 }
@@ -109,6 +117,7 @@ double Cell::c_other::operator()(Cell* me, Cell* oppo) {
 	return ljmain(me, oppo);
 }
 
+/*
 void Cell::wall_interact::operator()(Cell* me) {
 	double distlj = 2.0*me->pos[2]();
 	double LJ6 = me->radius() / me->pos[2]();
@@ -116,6 +125,16 @@ void Cell::wall_interact::operator()(Cell* me) {
 	LJ6 = LJ6*LJ6*LJ6;
 	double ljm = 4.0*cont::eps_m*LJ6*(LJ6 - 1.0) / (distlj*distlj);
 	me->pos[2] += cont::DT_Cell* ljm*2.0*me->pos[2]();
+}
+*/
+
+void Cell::wall_interact() {
+	double distlj = 2.0*pos[2]();
+	double LJ6 = radius() / pos[2]();
+	LJ6 = LJ6*LJ6;
+	LJ6 = LJ6*LJ6*LJ6;
+	double ljm = 4.0*cont::eps_m*LJ6*(LJ6 - 1.0) / (distlj*distlj);
+	pos[2] += cont::DT_Cell* ljm*2.0*pos[2]();
 }
 
 void Cell::DER_interact() {
@@ -334,14 +353,14 @@ void Cell::pair_interact() {
 }
 
 void Cell::set_dermis() {
-	double d1 = cont::LX;
-	double distance=0;
+	double d1Sq = cont::LX*cont::LX;
+	double distanceSq=0;
 	dermis = nullptr;
 	connected_cell.foreach([&](Cell* cptr) {
 		if (cptr->state() == MEMB) {
-			distance = cellDistSq(this, cptr);
-			if (distance < d1) {
-				d1 = distance;
+			distanceSq = cellDistSq(this, cptr);
+			if (distanceSq < d1Sq) {//2æ‚É‚È‚Á‚Ä‚È‚©‚Á‚½
+				d1Sq = distanceSq;
 				dermis = cptr;
 			}
 		}
@@ -411,6 +430,9 @@ double Cell::agek_const() {
 void Cell::FIX_state_renew() {
 	assert(state() == FIX);
 	set_dermis();
+	if (pos[2]() > 10) {
+		printf("warn: too high z value of FIX. z=%lf\n",pos[2]());
+	}
     if(dermis==nullptr){
         printf("err\n");
         printf("x:%lf,y:%lf,z:%lf\n",pos[0](),pos[1](),pos[2]());

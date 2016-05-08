@@ -19,34 +19,18 @@ double genrand_real() {
 double p_diff_sc_x(double v1, double v2) {
 	using namespace cont;
 	double diff = v1 - v2;
-	if (fabs(diff) < 0.5*LX) {
-		return diff;
-	}
-	else {
-		if (v1 > v2) {
-			return diff - LX;
-		}
-		else {
-			return diff + LX;
-		}
-	}
+	if (diff > 0.5*LX)return diff - LX;
+	if (diff <= -0.5*LX)return diff + LX;
+	return diff;
 
 }
 
 double p_diff_sc_y(double v1, double v2) {
 	using namespace cont;
 	double diff = v1 - v2;
-	if (fabs(diff) < 0.5*LY) {
-		return diff;
-	}
-	else {
-		if (v1 > v2) {
-			return diff - LY;
-		}
-		else {
-			return diff + LY;
-		}
-	}
+	if (diff > 0.5*LY)return diff - LY;
+	if (diff <= -0.5*LY)return diff + LY;
+	return diff;
 
 }
 

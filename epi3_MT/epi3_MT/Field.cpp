@@ -9,10 +9,15 @@ void Field::interact_cell() {
 		cells.foreach_parallel([](CellPtr& c, size_t i) {
 			switch (c->state()) {
 			case MEMB:
-				
+				if (c->pos[2]() < c->radius()) {
+					c->wall_interact();
+				}
 				c->MEMB_interact();
 				break;
 			case DER:
+				if (c->pos[2]() < c->radius()) {
+					c->wall_interact();
+				}
 				c->DER_interact();
 				break;
 			case ALIVE:case AIR:case DEAD:
@@ -71,17 +76,17 @@ void Field::cell_state_renew() {
 void Field::cell_pos_periodic_fix() {
 	using namespace cont;
 	cells.foreach_parallel([](CellPtr& c, size_t i) {
-		if (c->pos[0] > LX) {
+		if (c->pos[0].get_next_value() > LX) {
 			c->pos[0].force_set_next_value(c->pos[0].get_next_value() - LX);
 		}
-		else if (c->pos[0] < 0) {
+		else if (c->pos[0].get_next_value() < 0) {
 			c->pos[0].force_set_next_value(c->pos[0].get_next_value() + LX);
 		}
 
-		if (c->pos[1] > LY) {
+		if (c->pos[1].get_next_value() > LY) {
 			c->pos[1].force_set_next_value(c->pos[1].get_next_value() - LY);
 		}
-		else if (c->pos[1] < 0) {
+		else if (c->pos[1].get_next_value() < 0) {
 			c->pos[1].force_set_next_value(c->pos[1].get_next_value() + LY);
 		}
 	});
@@ -259,6 +264,7 @@ void Field::main_loop()
 {
 	for (int i = 0; i < cont::NUM_ITR; i++) {
         if(i%100==0)printf("loop:%d\n", i);
+		cells.all_cell_update();
 		cell_dynamics();
 		zzmax = calc_zzmax();
 		set_cell_lattice();
@@ -269,7 +275,7 @@ void Field::main_loop()
 			printf("calc ca...\n");
 			calc_ca();
 			ATP_update();
-			cells.all_cell_update();
+			
 			printf("end.\n");
 		}
 	}
@@ -278,10 +284,8 @@ void Field::main_loop()
 void Field::setup_map()
 {
 	using namespace cont;
-	printf("");
-	
-	tbb::parallel_for(tbb::blocked_range<int>(0,NX+1), [&](const tbb::blocked_range< int >& range) {
-		for (int i = range.begin(); i != range.end(); ++i) {
+
+		for (int i = 0; i != NX; ++i) {
 			for (int j = 0; j <= NY; j++) {
 				for (int k = 0; k <= NZ; k++) {
 					air_stim_flg[i][j][k] = 0;
@@ -290,7 +294,7 @@ void Field::setup_map()
 				}
 			}
 		}
-	});
+	
 	cells.foreach_parallel([&](CellPtr& c, size_t i) {
 		
 		auto& cv = c->pos;

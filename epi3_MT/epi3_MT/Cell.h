@@ -76,6 +76,11 @@ private:
 	template<class cf>
 	void _interact(Cell* me, Cell* oppo) {
 		double ljm = cf()(me, oppo);
+		if (fabs(ljm) >= 100) {
+			printf("error too strong interaction: ljm=%lf\n", ljm);
+			assert(fabs(ljm) < 100);
+		}
+		
 		auto dum = (cont::DT_Cell*ljm)*p_diff_v3(me->pos, oppo->pos);
 	
 		me->pos += dum;
@@ -103,12 +108,12 @@ private:
 	struct c_other {
 		double operator()(Cell* me, Cell* oppo);
 	};
-
+	/*
 	struct wall_interact {
 		void operator()(Cell* me);
 	};
 	
-
+	*/
 	double ageb_const();
 	double agek_const();
 	double k_lipid_release();
@@ -127,6 +132,8 @@ public:
 	void MUSUME_interact();
 
 	void MEMB_interact();
+
+	void wall_interact();
 
 	void pair_interact();
 	/*

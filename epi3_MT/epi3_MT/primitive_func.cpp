@@ -27,7 +27,7 @@ double _adhe(double distlj, double rad_sum, double spring_const)
 	using namespace cont;
 	double LJ2_m1;
 
-	LJ2_m1 = distlj / rad_sum - 1;
+	LJ2_m1 =( distlj / rad_sum) - 1;
 	return (LJ2_m1 + 1 > LJ_THRESH ?
 		0.0 :
 		-(spring_const / distlj)
