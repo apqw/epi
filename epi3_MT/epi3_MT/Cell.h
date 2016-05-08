@@ -6,6 +6,7 @@
 #include "util_func.h"
 #include <unordered_map>
 #include <tbb/parallel_for.h>
+#include <tbb/parallel_for_each.h>
 #include <tbb/blocked_range.h>
 
 //class Cell;
@@ -301,6 +302,11 @@ public:
 		});
 	}
 
+	template<class L>
+	void foreach_parallel_native(const L& lmbd) {
+		tbb::parallel_for_each(cell.begin(), cell.end(), lmbd);
+	}
+
 
 	template<class L>
     void memb_foreach(const L& lmbd) {
@@ -325,6 +331,19 @@ public:
 	}
 
 	template<class L>
+	void memb_foreach_parallel_native(const L& lmbd) {
+		assert(nmemb_is_set);
+		tbb::parallel_for_each(cell.begin(), cell.begin() + memb_num, lmbd);
+		/*
+		tbb::parallel_for(tbb::blocked_range<int>(0, memb_num), [&](const tbb::blocked_range< int >& range) {
+			for (int i = range.begin(); i != range.end(); ++i) {
+				lmbd(cell[i], i);
+			}
+		});
+		*/
+	}
+
+	template<class L>
     void der_foreach(const L& lmbd) {
 		assert(nder_is_set);
 		for (int i = memb_num + 1; i < memb_num + der_num; ++i) {
@@ -337,7 +356,7 @@ public:
 		assert(nmemb_is_set);
 		assert(nder_is_set);
 		size_t sz = cell.size();
-		for (int i = memb_num +der_num + 1; i < sz; ++i) {
+		for (int i = memb_num +der_num; i < sz; ++i) {
 			lmbd(cell[i], i);
 		}
 	}
@@ -347,11 +366,18 @@ public:
 		assert(nmemb_is_set);
 		assert(nder_is_set);
 		size_t sz = cell.size();
-		tbb::parallel_for(tbb::blocked_range<int>(memb_num + der_num + 1, sz), [&](const tbb::blocked_range< int >& range) {
+		tbb::parallel_for(tbb::blocked_range<int>(memb_num + der_num , sz), [&](const tbb::blocked_range< int >& range) {
 			for (int i = range.begin(); i != range.end(); ++i) {
 				lmbd(cell[i], i);
 			}
 		});
+	}
+
+	template<class L>
+	void other_foreach_parallel_native(const L& lmbd) {
+		assert(nmemb_is_set);
+		assert(nder_is_set);
+		tbb::parallel_for_each(cell.begin() + memb_num + der_num, cell.end(), lmbd);
 	}
 
 	void all_cell_update() {

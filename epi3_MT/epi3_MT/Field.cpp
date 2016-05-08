@@ -6,7 +6,8 @@
 #include <iostream>
 void Field::interact_cell() {
 
-		cells.foreach_parallel([](CellPtr& c, size_t i) {
+	
+	cells.foreach_parallel_native([](CellPtr& c) {
 			switch (c->state()) {
 			case MEMB:
 				if (c->pos[2]() < c->radius()) {
@@ -75,7 +76,7 @@ void Field::cell_state_renew() {
 */
 void Field::cell_pos_periodic_fix() {
 	using namespace cont;
-	cells.foreach_parallel([](CellPtr& c, size_t i) {
+	cells.foreach_parallel_native([](CellPtr& c) {
 		if (c->pos[0].get_next_value() > LX) {
 			c->pos[0].force_set_next_value(c->pos[0].get_next_value() - LX);
 		}
@@ -104,7 +105,7 @@ void Field::connect_cells() {
 			}
 		}
 	}
-	cells.foreach_parallel([&](CellPtr& c, size_t i) {
+	cells.foreach_parallel_native([&](CellPtr& c) {
 		int aix, aiy, aiz;
 		aix = (int)((0.5*LX - p_diff_sc_x(0.5*LX, c->pos[0]())) / AREA_GRID);
 		aiy = (int)((0.5*LY - p_diff_sc_y(0.5*LY, c->pos[1]())) / AREA_GRID);
@@ -123,7 +124,7 @@ void Field::connect_cells() {
 		assert(aindx[aix][aiy][aiz] < N3);
 
 	});
-	cells.foreach_parallel([&](CellPtr& c, size_t i) {
+	cells.foreach_parallel_native([&](CellPtr& c) {
 			c->connected_cell.set_count(c->state()==MEMB?4:0);
 			int anx = (int)(c->pos[0]() / AREA_GRID);
 			int any = (int)(c->pos[1]() / AREA_GRID);
@@ -187,7 +188,7 @@ void Field::connect_cells() {
 			}
 
 	});
-	cells.foreach_parallel([&](CellPtr& c, size_t i) {
+	cells.foreach_parallel_native([&](CellPtr& c) {
 
 		//delete unconnected cell value
 		for (auto it = c->gj.begin(); it != c->gj.end();) {
@@ -211,7 +212,7 @@ void Field::connect_cells() {
 
 void Field::set_cell_lattice()
 {
-	cells.foreach_parallel([](CellPtr& c, size_t i) {
+	cells.foreach_parallel_native([](CellPtr& c) {
 		c->set_lattice();
 	});
 }
@@ -229,15 +230,15 @@ double Field::calc_zzmax()
 }
 
 void Field::cell_dynamics() {
-	cells.memb_foreach_parallel([](CellPtr& memb, int i) {
+	cells.memb_foreach_parallel_native([](CellPtr& memb) {
 		memb->memb_bend_calc1();
 	});
 
-	cells.memb_foreach_parallel([](CellPtr& memb, int i) {
+	cells.memb_foreach_parallel_native([](CellPtr& memb) {
 		memb->memb_bend_calc2();
 	});
 
-	cells.memb_foreach_parallel([](CellPtr& memb, int i) {
+	cells.memb_foreach_parallel_native([](CellPtr& memb) {
 		memb->memb_bend_interact();
 	});
 
@@ -274,7 +275,6 @@ void Field::main_loop()
 		if (i % 10000 == 0) {
 			printf("calc ca...\n");
 			calc_ca();
-			ATP_update();
 			
 			printf("end.\n");
 		}
@@ -295,7 +295,7 @@ void Field::setup_map()
 			}
 		}
 	
-	cells.foreach_parallel([&](CellPtr& c, size_t i) {
+	cells.foreach_parallel_native([&](CellPtr& c) {
 		
 		auto& cv = c->pos;
 		//double crad = c->old_data.radius;
@@ -495,7 +495,7 @@ void Field::calc_ca()
 	int iz_bound = (int)((zzmax + FAC_MAP*R_max) / dz);
 	for (int cstp = 0; cstp <Ca_ITR; cstp++) {
 
-		cells.other_foreach_parallel([&iz_bound,this](CellPtr& c, int i) {
+		cells.other_foreach_parallel_native([&iz_bound,this](CellPtr& c) {
 			if (c->state() == DEAD) {
 				
 				int count = 0;
@@ -595,8 +595,18 @@ void Field::calc_ca()
 			for (int j = 0; j < NX; j++) ATP[j][NY][l].force_set_next_value(ATP[j][0][l].get_next_value());
 			for (int k = 0; k <= NY; k++) ATP[NX][k][l].force_set_next_value(ATP[0][k][l].get_next_value());
 		}
+		cells.other_foreach_parallel_native([&iz_bound](CellPtr& c) {
+			c->ca2p.update();
+			c->ex_inert.update();
+			c->IP3.update();
+			c->diffu = 0;
+			for (auto& gjv : c->gj) {
+				gjv.second.update();
+			}
+		});
+		ATP_update();
 	}
-	cells.other_foreach_parallel([](CellPtr& c, int i) {
+	cells.other_foreach_parallel_native([](CellPtr& c) {
 		if (get_state_mask(c->state())&(ALIVE_M | FIX_M | MUSUME_M)) {
 			c->ca2p_avg /= Ca_ITR;
 		}
@@ -695,7 +705,7 @@ void Field::init_with_file(std::ifstream& dstrm) {
 #endif
 			0,//div thresh
 			0,//poisson??
-			div_times,//rest div times
+			state==FIX?div_max:0,//rest div times
 			stem_orig_id<MALIG_NUM,//malignant
 			touch == 1//touch
 			);

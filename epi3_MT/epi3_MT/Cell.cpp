@@ -138,6 +138,7 @@ void Cell::wall_interact() {
 }
 
 void Cell::DER_interact() {
+	assert(state() == DER);
 	connected_cell.foreach([&](Cell* conn) {
 		switch (conn->state())
 		{
@@ -152,26 +153,27 @@ void Cell::DER_interact() {
 }
 
 void Cell::AL_AIR_DE_interact() {
+	assert(get_state_mask(state())&(ALIVE_M | AIR_M | DEAD_M));
 	connected_cell.foreach([&](Cell* conn) {
 		switch (conn->state())
 		{
 		case ALIVE:case AIR:case DEAD:
 			if (this>conn)_interact<c_al_air_de_to_al_air_de_fix_mu>(this, conn);
 			break;
-		case FIX:case MUSUME:
-			_interact<c_al_air_de_to_al_air_de_fix_mu>(this, conn);
-			break;
 		case DER:
 			break;
 		default:
-			_interact<c_other>(this, conn);
+			_interact<c_al_air_de_to_al_air_de_fix_mu>(this, conn);
 			break;
 		}
 	});
 }
 
 void Cell::FIX_interact() {
+	assert(state() == FIX);
+	set_dermis();
 	connected_cell.foreach([&](Cell* conn) {
+		
 		switch (conn->state())
 		{
 		case FIX:
@@ -181,7 +183,7 @@ void Cell::FIX_interact() {
 			_interact<c_fix_mu_to_fix_mu>(this, conn);
 			break;
 		case MEMB:
-			set_dermis();
+			
 			if (dermis == conn) {
 				_interact<c_fix_to_memb>(this, conn);
 			}
@@ -197,6 +199,8 @@ void Cell::FIX_interact() {
 }
 
 void Cell::MUSUME_interact() {
+	assert(state() == MUSUME);
+	set_dermis();
 	connected_cell.foreach([&](Cell* conn) {
 		switch (conn->state())
 		{
@@ -204,9 +208,9 @@ void Cell::MUSUME_interact() {
 			if (this>conn)_interact<c_fix_mu_to_fix_mu>(this, conn);
 			break;
 		case MEMB:
-			set_dermis();
+			
 			if (dermis == conn) {
-				_interact<c_fix_to_memb>(this, conn);
+				_interact<c_mu_to_memb>(this, conn); //fix_to_memb‚É‚È‚Á‚Ä‚½
 			}
 			else {
 				_interact<c_other>(this, conn);
@@ -219,6 +223,7 @@ void Cell::MUSUME_interact() {
 }
 
 void Cell::MEMB_interact() {
+	assert(state() == MEMB);
 	connected_cell.foreach([&](Cell* conn) {
 		switch (conn->state())
 		{
