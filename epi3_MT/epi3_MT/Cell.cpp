@@ -24,7 +24,7 @@ double Cell::c_al_air_de_to_al_air_de_fix_mu::operator()(Cell* me, Cell* oppo) {
 	}
 	else {
 		double spf = cont::K_DESMOSOME;
-		if (me->agek > cont::THRESH_SP && oppo->agek > cont::THRESH_SP) {
+		if (me->agek() > cont::THRESH_SP && oppo->agek() > cont::THRESH_SP) {
 			spf = cont::K_TOTAL;
 		}
 		return adhesion(me, oppo,spf);
@@ -436,7 +436,7 @@ void Cell::FIX_state_renew() {
 	assert(state() == FIX);
 	set_dermis();
 	if (pos[2]() > 10) {
-		printf("warn: too high z value of FIX. z=%lf\n",pos[2]());
+		//printf("warn: too high z value of FIX. z=%lf\n",pos[2]());
 	}
     if(dermis==nullptr){
         printf("err\n");
@@ -487,6 +487,7 @@ void Cell::MUSUME_state_renew() {
 	
 	if (dermis == nullptr && pair == nullptr) {
 		if (SYSTEM == WHOLE) {
+			printf("ALIVE detected\n");
 			state = ALIVE;
 		}
 		else if (SYSTEM == BASAL) {

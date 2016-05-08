@@ -163,8 +163,8 @@ void Field::connect_cells() {
 
 						for (int m = 0; m < aindx[aix][aiy][aiz]; m++) {
 							Cell* o = area[aix][aiy][aiz][m];
-							if (c.get() <= o||(c->state()==MEMB && o->state()==MEMB))continue;
-							//avoid double counting?
+							if (c.get() == o||(c->state()==MEMB && o->state()==MEMB))continue;
+						
 							//diffv = c->pos - o->pos;
 							diffx = p_diff_sc_x(c->pos[0]() , o->pos[0]());
 							diffy = p_diff_sc_y(c->pos[1](), o->pos[1]());
@@ -178,7 +178,6 @@ void Field::connect_cells() {
 							if (diffx*diffx + diffy*diffy + diffz*diffz <= LJ_THRESH*LJ_THRESH*rad_sum*rad_sum) {
 								//printf("connecting... %d \n", c->connected_cell.count()+1);
 								c->connected_cell.add(o);
-								o->connected_cell.add(c.get());
 								assert(c->connected_cell.count() < N2);
 							}
 							
