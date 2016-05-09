@@ -18,6 +18,7 @@ double Cell::c_der_to_der::operator()(Cell* me, Cell* oppo) {
 	}
 }
 
+
 double Cell::c_al_air_de_to_al_air_de_fix_mu::operator()(Cell* me, Cell* oppo) {
 	if (is_near(me, oppo)) {
 		return ljmain(me, oppo);

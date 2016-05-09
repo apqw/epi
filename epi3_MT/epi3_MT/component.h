@@ -561,7 +561,8 @@ public:
         this->next = v;
 	}
 
-	const T& get_next_value()const {
+
+    const T get_next_value()const {
 		return this->next;
 	}
 };

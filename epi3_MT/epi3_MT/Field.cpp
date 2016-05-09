@@ -4,6 +4,9 @@
 #include <string>
 #include <cassert>
 #include <iostream>
+#include <tbb/task.h>
+#include <tbb/task_group.h>
+#include <chrono>
 void Field::interact_cell() {
 
 	
@@ -77,35 +80,41 @@ void Field::cell_state_renew() {
 void Field::cell_pos_periodic_fix() {
 	using namespace cont;
 	cells.foreach_parallel_native([](CellPtr& c) {
+
 		if (c->pos[0].get_next_value() > LX) {
+
 			c->pos[0].force_set_next_value(c->pos[0].get_next_value() - LX);
 		}
 		else if (c->pos[0].get_next_value() < 0) {
+
 			c->pos[0].force_set_next_value(c->pos[0].get_next_value() + LX);
 		}
 
 		if (c->pos[1].get_next_value() > LY) {
+
 			c->pos[1].force_set_next_value(c->pos[1].get_next_value() - LY);
 		}
 		else if (c->pos[1].get_next_value() < 0) {
+
 			c->pos[1].force_set_next_value(c->pos[1].get_next_value() + LY);
 		}
+
 	});
 }
 
 void Field::connect_cells() {
 	using namespace cont;
-    static RawArr3D<std::atomic<int>,ANX,ANY,ANZ> aindx = { };
-	static RawArr3D<RawArr1D<Cell*, N3>, ANX, ANY, ANZ> area = { nullptr };
-	static bool mflg = false;
+    static std::atomic<int> aindx[ANX][ANY][ANZ]={};//RawArr3D<std::atomic<int>,ANX,ANY,ANZ> aindx = { };
+    static Cell* area[ANX][ANY][ANZ][N3]={nullptr};//RawArr3D<RawArr1D<Cell*, N3>, ANX, ANY, ANZ> area = { nullptr };
+    //static bool mflg = false;
 	for (int i = 0; i < ANX; i++) {
 		for (int j = 0; j < ANY; j++) {
 			for (int k = 0; k < ANZ; k++) {
-				aindx[i][j][k] = 0;
+                aindx[i][j][k] = 0;
 			}
 		}
 	}
-	cells.foreach_parallel_native([&](CellPtr& c) {
+    cells.foreach_parallel_native([&](CellPtr& c) {
 		int aix, aiy, aiz;
 		aix = (int)((0.5*LX - p_diff_sc_x(0.5*LX, c->pos[0]())) / AREA_GRID);
 		aiy = (int)((0.5*LY - p_diff_sc_y(0.5*LY, c->pos[1]())) / AREA_GRID);
@@ -117,11 +126,11 @@ void Field::connect_cells() {
 			printf("cx:%lf cy:%lf cz:%lf\n",c->pos[0](), c->pos[1](), c->pos[2]());
 			printf("aix:%d aiy:%d aiz:%d\n", aix, aiy, aiz);
 			assert(false);
-		}
-		int atm = aindx[aix][aiy][aiz]++;
-		area[aix][aiy][aiz][atm] = c.get();
+        }
+        int atm = aindx[aix][aiy][aiz]++;
+        area[aix][aiy][aiz][atm] = c.get();
 		
-		assert(aindx[aix][aiy][aiz] < N3);
+        assert(aindx[aix][aiy][aiz] < N3);
 
 	});
 	cells.foreach_parallel_native([&](CellPtr& c) {
@@ -129,11 +138,32 @@ void Field::connect_cells() {
 			int anx = (int)(c->pos[0]() / AREA_GRID);
 			int any = (int)(c->pos[1]() / AREA_GRID);
 			int anz = (int)(c->pos[2]() / AREA_GRID);
-			
+
 			assert(!(anx >= ANX || any >= ANY || anz >= ANZ || anx < 0 || any < 0 || anz < 0));
-			Vec3<double> diffv;
+            //Vec3<double> diffv;
 			double rad_sum; double diffx, diffy, diffz;
-			int ii = 2, aix, aiy, aiz;
+            const int ii = 2;int aix, aiy, aiz;
+            int yidx[2*ii+1],zidx[2*ii+1];int yc=0,zc=0;
+            for (int k = any - ii; k <= any + ii; k++,yc++){
+                aiy = k;
+                if (k < 0) {
+                    aiy += ANY;
+                }
+                else if (k >= ANY) {
+                    aiy -= ANY;
+                }
+                yidx[yc]=aiy;
+            }
+            for (int l = anz - ii; l <= anz + ii; l++,zc++) {
+                aiz= l;
+                if (l < 0) {
+                    aiz += ANZ;
+                }
+                else if (l >= ANZ) {
+                    aiz -= ANZ;
+                }
+                zidx[zc]=aiz;
+            }
 			for (int j = anx - ii; j <= anx + ii; j++) {
 				aix = j;
 				if (j < 0) {
@@ -143,28 +173,15 @@ void Field::connect_cells() {
 					aix -= ANX;
 				}
 
-				for (int k = any - ii; k <= any + ii; k++) {
-					aiy = k;
-					if (k < 0) {
-						aiy += ANY;
-					}
-					else if (k >= ANY) {
-						aiy -= ANY;
-					}
-
-					for (int l = anz - ii; l <= anz + ii; l++) {
-						aiz= l;
-						if (l < 0) {
-							aiz += ANZ;
-						}
-						else if (l >= ANZ) {
-							aiz -= ANZ;
-						}
-
-						for (int m = 0; m < aindx[aix][aiy][aiz]; m++) {
+                for (int k = 0; k <2*ii+1; k++) {
+                    aiy=yidx[k];
+                    for (int l = 0;l<2*ii+1; l++) {
+                        aiz=zidx[l];
+                        int sz=aindx[aix][aiy][aiz];
+                        for (int m = 0; m < sz; ++m) {
 							Cell* o = area[aix][aiy][aiz][m];
-							if (c.get() == o||(c->state()==MEMB && o->state()==MEMB))continue;
-						
+                            if (c.get() == o||((1u<<(c->state()))&(1u<<(o->state()))&MEMB_M))continue;
+
 							//diffv = c->pos - o->pos;
 							diffx = p_diff_sc_x(c->pos[0]() , o->pos[0]());
 							diffy = p_diff_sc_y(c->pos[1](), o->pos[1]());
@@ -221,7 +238,7 @@ double Field::calc_zzmax()
 	double zmax = 0;
 	cells.other_foreach([&zmax](CellPtr& c, int i) {
 		auto& st = c->state();
-		if (st == DEAD || st == ALIVE || st == MUSUME || st == FIX) {
+        if (get_state_mask(st)&( DEAD_M | ALIVE_M | MUSUME_M |FIX_M)) {
 			if (zmax < c->pos[2]())zmax = c->pos[2]();
 		}
 	});
@@ -229,19 +246,26 @@ double Field::calc_zzmax()
 }
 
 void Field::cell_dynamics() {
-	cells.memb_foreach_parallel_native([](CellPtr& memb) {
+    tbb::task_group t;
+    t.run([&]{
+
+
+    cells.memb_foreach_parallel_native([](CellPtr& memb) {
 		memb->memb_bend_calc1();
 	});
 
-	cells.memb_foreach_parallel_native([](CellPtr& memb) {
+    cells.memb_foreach_parallel_native([](CellPtr& memb) {
 		memb->memb_bend_calc2();
 	});
 
-	cells.memb_foreach_parallel_native([](CellPtr& memb) {
+    cells.memb_foreach_parallel_native([](CellPtr& memb) {
 		memb->memb_bend_interact();
 	});
-
-	interact_cell();
+ });
+    t.run([&]{
+        interact_cell();
+    });
+t.wait();
 	cells.all_cell_update();
 
 	cell_state_renew();
@@ -262,19 +286,30 @@ void Field::cell_dynamics() {
 
 void Field::main_loop()
 {
+    auto start=std::chrono::system_clock::now();
 	for (int i = 0; i < cont::NUM_ITR; i++) {
-        if(i%100==0)printf("loop:%d\n", i);
-		cells.all_cell_update();
+        if(i%100==0){
+            auto dur=std::chrono::system_clock::now()-start;
+            printf("loop:%d elapsed[sec]:%lf\n", i,0.001*std::chrono::duration_cast<std::chrono::milliseconds>(dur).count());
+        }
+
 		cell_dynamics();
-		zzmax = calc_zzmax();
-		set_cell_lattice();
-		setup_map();
+        tbb::task_group t;
+        t.run([&]{
+            zzmax = calc_zzmax();
+        });
+        t.run([&]{
+            setup_map();
+        });
+        t.wait();
+        //set_cell_lattice();
+        //setup_map(); //lattice set
 		calc_b();
 		b_update();
 		if (i % 10000 == 0) {
 			printf("calc ca...\n");
-			calc_ca();
-			
+            calc_ca();
+            cells.all_cell_update();
 			printf("end.\n");
 		}
 	}
@@ -298,6 +333,7 @@ void Field::setup_map()
 		
 		auto& cv = c->pos;
 		//double crad = c->old_data.radius;
+        c->set_lattice();
 		auto& clat = c->lat;
 		int  k, l, m, ipx, ipy, ipz;
 		double mx, my, mz;
@@ -401,40 +437,36 @@ void Field::setup_map()
 void Field::calc_b() {
 	using namespace cont;
 	int iz_bound = (int)((zzmax + FAC_MAP*R_max) / dz);
+    int a_prev_z[iz_bound],a_next_z[iz_bound];
 
+
+    for (int l = 0; l < iz_bound; l++) {
+        int prev_z = 0, next_z = 0;
+        if (l == 0) {
+            prev_z = 1;
+        }
+        else {
+            prev_z = l - 1;
+        }
+        if (l == NZ) {
+            next_z = NZ - 1;
+        }
+        else {
+            next_z = l + 1;
+        }
+        a_prev_z[l]=prev_z;
+        a_next_z[l]=next_z;
+    }
 	tbb::parallel_for(tbb::blocked_range<int>(0, NX ), [&](const tbb::blocked_range< int >& range) {
+
 		for (int j = range.begin(); j != range.end(); ++j) {
-			int prev_x = j - 1;
-			int next_x = j + 1;
-			if (prev_x < 0) {
-				prev_x += NX;
-			}
-			if (next_x >= NX) {
-				next_x -= NX;
-			}
+            int prev_x = per_x_prev_idx[j];
+            int next_x = per_x_next_idx[j];
 			for (int k = 0; k < NY; k++) {
-				int prev_y = k - 1;
-				int next_y = k + 1;
-				if (prev_y < 0) {
-					prev_y += NY;
-				}
-				if (next_y >= NY) {
-					next_y -= NY;
-				}
+                int prev_y = per_y_prev_idx[k];
+                int next_y = per_y_next_idx[k];
 				for (int l = 0; l < iz_bound; l++) {
-					int prev_z = 0, next_z = 0;
-					if (l == 0) {
-						prev_z = 1;
-					}
-					else {
-						prev_z = l - 1;
-					}
-					if (l == NZ) {
-						next_z = NZ - 1;
-					}
-					else {
-						next_z = l + 1;
-					}
+                    int prev_z = a_prev_z[l], next_z = a_next_z[l];
 					double dum_age = 0;
 					bool flg_cornified = false;
 					if (cell_map[j][k][l]!=nullptr) {

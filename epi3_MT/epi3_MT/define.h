@@ -13,6 +13,7 @@
 template<typename T>
 using Arr1D = std::vector<T>;
 
+
 template<typename T>
 using Arr2D = std::vector<Arr1D<T>>;
 

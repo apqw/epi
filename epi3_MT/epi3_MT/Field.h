@@ -23,6 +23,7 @@ private:
 	void set_cell_lattice();
 	double calc_zzmax();
 	double zzmax=0;
+    int per_x_next_idx[cont::NX],per_x_prev_idx[cont::NX],per_y_next_idx[cont::NY],per_y_prev_idx[cont::NY];
 public:
 	Field(
 		int __MAX_CELL_NUM=30000
@@ -33,6 +34,32 @@ public:
 		cell_map2(Arr3D<int>(cont::NX + 1, Arr2D<int>(cont::NY + 1, Arr1D<int>(cont::NZ + 1, 0)))),
 		air_stim_flg(Arr3D<int>(cont::NX + 1, Arr2D<int>(cont::NY + 1, Arr1D<int>(cont::NZ + 1, 0))))
 		{
+using namespace cont;
+        for(int k=0;k<NY;k++){
+            int prev_y = k - 1;
+            int next_y = k + 1;
+            if (prev_y < 0) {
+                prev_y += NY;
+            }
+            if (next_y >= NY) {
+                next_y -= NY;
+            }
+            per_y_prev_idx[k]=prev_y;
+            per_y_next_idx[k]=next_y;
+        }
+
+        for(int k=0;k<NX;k++){
+            int prev_x= k - 1;
+            int next_x = k + 1;
+            if (prev_x < 0) {
+                prev_x += NX;
+            }
+            if (next_x >= NX) {
+                next_x -= NX;
+            }
+            per_x_prev_idx[k]=prev_x;
+            per_x_next_idx[k]=next_x;
+        }
 	}
 
 

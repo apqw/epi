@@ -1,4 +1,5 @@
 #include "primitive_func.h"
+#include <cmath>
 double _ljmain(double r1, double r2, double distSq) {
 	double rad_sum = r1 + r2;
 	double LJ6 = rad_sum*rad_sum / distSq;
@@ -46,9 +47,10 @@ double fB(double age, double B, bool cornif) {
 double fu(double u, double v, double p, double B)
 {
 	//  static double result_debug=0.0;
-	using namespace cont;
+    using namespace cont;
+    constexpr double c_gamma=cont::gamma;
 	return kf * (mu0 + mu1 * p / (p + kmu)) * (para_b + para_bb * u / (para_k1 + u)) * v
-		- gamma * u / (kg + u) + beta + kbc * B*B * Cout / (Hb + B*B);
+        - c_gamma * u / (kg + u) + beta + kbc * B*B * Cout / (Hb + B*B);
 
 }
 
