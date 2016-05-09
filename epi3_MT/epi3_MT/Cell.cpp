@@ -544,18 +544,20 @@ void Cell::ALIVE_state_renew() {
 void Cell::pair_disperse() {
 	using namespace cont;
 	assert(pair != nullptr);
+	assert(pair->pair.get() == this);
 	double rad_sum = radius() + pair->radius();
 	double unpair_th = unpair_dist_coef*rad_sum;
+	double distSq = 0;
 	if (spring_nat_len < 2.0*radius()) {
 		spring_nat_len += DT_Cell*eps_L;
 		pair->spring_nat_len.force_set_next_value(spring_nat_len() + DT_Cell*eps_L);
 	}
-	else if (cellDistSq(this, pair.get())>unpair_th*unpair_th) {
+	else if ((distSq=cellDistSq(this, pair.get()))>unpair_th*unpair_th) {
 		spring_nat_len.force_set_next_value(0);
 		pair->spring_nat_len.force_set_next_value(0);
 		pair->pair = nullptr;
 		pair = nullptr;
-
+		printf("unpaired. distSq:%lf\n",distSq);
 	}
 }
 
