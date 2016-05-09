@@ -24,7 +24,6 @@ private:
 	void set_cell_lattice();
 	double calc_zzmax();
 	double zzmax=0;
-	CellOctree<3> octree;
     int per_x_next_idx[cont::NX],per_x_prev_idx[cont::NX],per_y_next_idx[cont::NY],per_y_prev_idx[cont::NY];
 public:
 	Field(
