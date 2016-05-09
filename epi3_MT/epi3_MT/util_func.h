@@ -70,3 +70,42 @@ inline double grid_avg8(const Arr3D<DV<double>>& grd,int ix,int iy,int iz) {
 		+ grd[ix][iy][iz + 1]() + grd[ix + 1][iy + 1][iz]() + grd[ix + 1][iy][iz + 1]()
 		+ grd[ix][iy + 1][iz + 1]() + grd[ix + 1][iy + 1][iz + 1]());
 }
+
+
+template<class T> constexpr T smax(T a) noexcept {
+	return a;
+}
+
+template<class T> constexpr T smax(T a, T b) noexcept {
+	return a > b ? a : b;
+}
+
+template<class T, class ... Args>
+constexpr T smax(T a, T b, Args ... args) noexcept {
+	return smax(a, smax(b, args...));
+}
+
+template<class T> constexpr T smin(T a) noexcept {
+	return a;
+}
+
+template<class T> constexpr T smin(T a, T b) noexcept {
+	return a > b ? b : a;
+}
+
+template<class T, class ... Args>
+constexpr T smin(T a, T b, Args ... args) noexcept {
+	return smin(a, smin(b, args...));
+}
+
+template<class T>
+constexpr T spow(T base, T exp) noexcept {
+	//static_assert(exp >= 0, "Exponent must not be negative");
+	return exp <= 0 ? 1
+		: exp == 1 ? base
+		: base * spow(base, exp - 1);
+}
+
+uint32_t BitSeparateFor3D(uint32_t n);
+
+uint32_t Get3DMortonOrder(uint32_t, uint32_t, uint32_t);

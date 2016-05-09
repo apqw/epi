@@ -116,3 +116,17 @@ Vec3<double> div_direction(Cell* me, Cell* dermis) {
 	return out / sqrt(sumSq);
 }
 
+uint32_t BitSeparateFor3D(uint32_t n)
+{
+	uint32_t s = n;
+	s = (s | s << 8) & 0x0000f00f;
+	s = (s | s << 4) & 0x000c30c3;
+	s = (s | s << 2) & 0x00249249;
+	return s;
+}
+
+
+uint32_t Get3DMortonOrder(uint32_t x, uint32_t y, uint32_t z)
+{
+	return BitSeparateFor3D(x) | BitSeparateFor3D(y) << 1 | BitSeparateFor3D(z) << 2;
+}

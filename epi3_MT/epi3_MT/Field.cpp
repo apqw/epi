@@ -437,7 +437,8 @@ void Field::setup_map()
 void Field::calc_b() {
 	using namespace cont;
 	int iz_bound = (int)((zzmax + FAC_MAP*R_max) / dz);
-    int a_prev_z[iz_bound],a_next_z[iz_bound];
+	int* a_prev_z = new int[iz_bound];
+	int* a_next_z = new int[iz_bound];
 
 
     for (int l = 0; l < iz_bound; l++) {
@@ -492,6 +493,8 @@ void Field::calc_b() {
 		for (int j = 0; j < NX; j++) ext_stim[j][NY][l].force_set_next_value(ext_stim[j][0][l].get_next_value());
 		for (int k = 0; k <= NY; k++) ext_stim[NX][k][l].force_set_next_value(ext_stim[0][k][l].get_next_value());
 	}
+	delete a_prev_z;
+	delete a_next_z;
 }
 
 void Field::b_update()
