@@ -1,4 +1,10 @@
 #include "codetest.h"
+#include "define.h"
+#include "component.h"
+#include "Cell.h"
+//#include "Field.h"
+#include "primitive_func.h"
+#include "general_func.h"
 #include <cassert>
 
 void Vec3Test()

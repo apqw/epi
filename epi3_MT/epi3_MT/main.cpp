@@ -3,6 +3,7 @@
 #include <memory>
 #include <iostream>
 #include "util_func.h"
+#include "Field.h"
 void OutputDebugString(const char* str) {
 	std::cout << "No input specified." << std::endl;
 }
@@ -40,7 +41,7 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-    auto fld = std::make_unique<Field>(30000,true);
+    Field* fld = new Field(30000,true);
 	fld->init_with_file(data);
 genrand_init();
 	fld->main_loop();

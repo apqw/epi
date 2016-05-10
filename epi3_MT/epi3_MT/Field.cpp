@@ -275,7 +275,11 @@ void Field::cell_dynamics() {
         interact_cell();
     });
 t.wait();
-	cells.all_cell_update();
+cells.foreach_parallel([](CellPtr& c,int i) {
+	c->pos[0].update();
+	c->pos[1].update();
+	c->pos[2].update();
+});
 
 	cell_state_renew();
 	cells.update();
@@ -289,7 +293,12 @@ t.wait();
 	});
 
 	cell_pos_periodic_fix();
-	cells.all_cell_update();
+	cells.foreach_parallel([](CellPtr& c,int i) {
+		c->pos[0].update();
+		c->pos[1].update();
+		c->pos[2].update();
+		c->spring_nat_len.update();
+	});
 	connect_cells();
 }
 
@@ -377,7 +386,7 @@ void Field::main_loop()
         //set_cell_lattice();
         //setup_map(); //lattice set
 		calc_b();
-		b_update();
+		//b_update();
 
         if(i*cont::DT_Ca>cont::T_TURNOVER&&flg_forced_sc){
 flg_forced_sc=false;
@@ -399,17 +408,20 @@ num_sc=cont::NUM_SC_INIT;
 void Field::setup_map()
 {
 	using namespace cont;
-
+	std::memset(cell_map, 0, sizeof(Cell*)*(NX + 1)*(NY + 1)*(NZ + 1));
+	std::memset(cell_map2, 0, sizeof(int)*(NX + 1)*(NY + 1)*(NZ + 1));
+	std::memset(air_stim_flg, 0, sizeof(int)*(NX + 1)*(NY + 1)*(NZ + 1));
+	/*
 		for (int i = 0; i != NX; ++i) {
 			for (int j = 0; j <= NY; j++) {
 				for (int k = 0; k <= NZ; k++) {
 					air_stim_flg[i][j][k] = 0;
-					cell_map[i][j][k] = nullptr;
+					
 					cell_map2[i][j][k] = 0;
 				}
 			}
 		}
-	
+	*/
 	cells.foreach_parallel_native([&](CellPtr& c) {
 		
 		auto& cv = c->pos;
@@ -520,7 +532,7 @@ void Field::calc_b() {
 	int iz_bound = (int)((zzmax + FAC_MAP*R_max) / dz);
 	int* a_prev_z = new int[iz_bound];
 	int* a_next_z = new int[iz_bound];
-
+	memcpy(old_ext_stim, _ext_stim, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
 
     for (int l = 0; l < iz_bound; l++) {
         int prev_z = 0, next_z = 0;
@@ -557,13 +569,13 @@ void Field::calc_b() {
 							flg_cornified = true;
 						}
 					}
-					ext_stim[j][k][l]+=DT_Ca*(DB * (cell_map2[prev_x][k][l] * (ext_stim[prev_x][k][l]() - ext_stim[j][k][l]())
-						+ cell_map2[j][prev_y][l] * (ext_stim[j][prev_y][l]() - ext_stim[j][k][l]())
-						+ cell_map2[j][k][prev_z] * (ext_stim[j][k][prev_z]() - ext_stim[j][k][l]())
-						+ cell_map2[next_x][k][l] * (-ext_stim[j][k][l]() + ext_stim[next_x][k][l]())
-						+ cell_map2[j][next_y][l] * (-ext_stim[j][k][l]() + ext_stim[j][next_y][l]())
-						+ cell_map2[j][k][next_z] * (-ext_stim[j][k][l]() + ext_stim[j][k][next_z]())) / (dz * dz)
-						+ fB(dum_age, ext_stim[j][k][l]() ,flg_cornified));
+					_ext_stim[j][k][l]= old_ext_stim[j][k][l]+DT_Ca*(DB * (cell_map2[prev_x][k][l] * (old_ext_stim[prev_x][k][l] - old_ext_stim[j][k][l])
+						+ cell_map2[j][prev_y][l] * (old_ext_stim[j][prev_y][l] - old_ext_stim[j][k][l])
+						+ cell_map2[j][k][prev_z] * (old_ext_stim[j][k][prev_z] - old_ext_stim[j][k][l])
+						+ cell_map2[next_x][k][l] * (-old_ext_stim[j][k][l] + old_ext_stim[next_x][k][l])
+						+ cell_map2[j][next_y][l] * (-old_ext_stim[j][k][l] + old_ext_stim[j][next_y][l])
+						+ cell_map2[j][k][next_z] * (-old_ext_stim[j][k][l] + old_ext_stim[j][k][next_z])) / (dz * dz)
+						+ fB(dum_age, old_ext_stim[j][k][l] ,flg_cornified));
 
 
 				}
@@ -571,8 +583,8 @@ void Field::calc_b() {
 		}
 	});
 	for (int l = 0; l <= iz_bound; l++) {
-		for (int j = 0; j < NX; j++) ext_stim[j][NY][l].force_set_next_value(ext_stim[j][0][l].get_next_value());
-		for (int k = 0; k <= NY; k++) ext_stim[NX][k][l].force_set_next_value(ext_stim[0][k][l].get_next_value());
+		for (int j = 0; j < NX; j++) _ext_stim[j][NY][l]=_ext_stim[j][0][l];
+		for (int k = 0; k <= NY; k++) _ext_stim[NX][k][l]=_ext_stim[0][k][l];
 	}
 	delete a_prev_z;
 	delete a_next_z;
@@ -580,6 +592,7 @@ void Field::calc_b() {
 
 void Field::b_update()
 {
+	/*
 	for (auto& x : ext_stim) {
 		for (auto& y : x) {
 			for (auto& z : y) {
@@ -587,6 +600,7 @@ void Field::b_update()
 			}
 		}
 	}
+	*/
 }
 double th(CELL_STATE state, double age) {
 	assert(get_state_mask(state)&(ALIVE_M | FIX_M | MUSUME_M));
@@ -608,7 +622,7 @@ void Field::calc_ca()
 	});
 	using namespace cont;
 	int iz_bound = (int)((zzmax + FAC_MAP*R_max) / dz);
-
+	std::memcpy(old_ATP, _ATP, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
     int* a_prev_z = new int[iz_bound];
     int* a_next_z = new int[iz_bound];
     double dummy_diffu=0;
@@ -666,8 +680,8 @@ void Field::calc_ca()
 
 				assert(iz < iz_bound);
 
-				double tmp_a = grid_avg8(ATP, ix, iy, iz);
-				double tmp_B = grid_avg8(ext_stim, ix, iy, iz);
+				double tmp_a = grid_avg8_n(old_ATP, ix, iy, iz);
+				double tmp_B = grid_avg8_n(_ext_stim, ix, iy, iz);
 
 				c->diffu = fu(c->ca2p(), c->ex_inert(), c->IP3(), tmp_B);
 				double _th = thpri;
@@ -709,22 +723,22 @@ void Field::calc_ca()
 					for (int l = 0; l < iz_bound; l++) {
                         int prev_z = a_prev_z[l], next_z = a_next_z[l];
                         double 	tmp = *cell_diffu_map[j][k][l];
-                        double catp=ATP[j][k][l]();
-						ATP[j][k][l]
-                            += DT_Ca*(Da * (cell_map2[prev_x][k][l] * (ATP[prev_x][k][l]() - catp)
-                                + cell_map2[next_x][k][l] * (ATP[next_x][k][l]() - catp)
-                                + cell_map2[j][prev_y][l] * (ATP[j][prev_y][l]() - catp)
-                                + cell_map2[j][next_y][l] * (ATP[j][next_y][l]() - catp)
-                                + cell_map2[j][k][prev_z] * (ATP[j][k][prev_z]() - catp)
-                                + cell_map2[j][k][next_z] * (ATP[j][k][next_z]() - catp)) *inv_dx*inv_dx
+                        double catp=old_ATP[j][k][l];
+						_ATP[j][k][l]
+                            =catp+ DT_Ca*(Da * (cell_map2[prev_x][k][l] * (old_ATP[prev_x][k][l] - catp)
+                                + cell_map2[next_x][k][l] * (old_ATP[next_x][k][l] - catp)
+                                + cell_map2[j][prev_y][l] * (old_ATP[j][prev_y][l] - catp)
+                                + cell_map2[j][next_y][l] * (old_ATP[j][next_y][l] - catp)
+                                + cell_map2[j][k][prev_z] * (old_ATP[j][k][prev_z] - catp)
+                                + cell_map2[j][k][next_z] * (old_ATP[j][k][next_z] - catp)) *inv_dx*inv_dx
                                 + fa(tmp, catp)+air_stim_flg[j][k][l] * AIR_STIM);
 					}
 				}
 			}
 		});
 		for (int l = 0; l <= iz_bound; l++) {
-			for (int j = 0; j < NX; j++) ATP[j][NY][l].force_set_next_value(ATP[j][0][l].get_next_value());
-			for (int k = 0; k <= NY; k++) ATP[NX][k][l].force_set_next_value(ATP[0][k][l].get_next_value());
+			for (int j = 0; j < NX; j++) _ATP[j][NY][l]=_ATP[j][0][l];
+			for (int k = 0; k <= NY; k++) _ATP[NX][k][l] = _ATP[0][k][l];
 		}
 		cells.other_foreach_parallel_native([&iz_bound](CellPtr& c) {
 			c->ca2p.update();
@@ -735,7 +749,7 @@ void Field::calc_ca()
 				gjv.second.update();
 			}
 		});
-		ATP_update();
+		//ATP_update();
 	}
 	cells.other_foreach_parallel_native([](CellPtr& c) {
 		if (get_state_mask(c->state())&(ALIVE_M | FIX_M | MUSUME_M)) {
@@ -750,7 +764,7 @@ void Field::calc_ca()
 }
 
 void Field::ATP_update()
-{
+{/*
     using namespace cont;
     tbb::parallel_for(tbb::blocked_range<int>(0, NX+1), [&](const tbb::blocked_range< int >& range) {
         for (int j = range.begin(); j!= range.end(); ++j) {
@@ -761,6 +775,7 @@ void Field::ATP_update()
             }
         }
     });
+	*/
 /*
 	for (auto& x : ATP) {
 		for (auto& y : x) {

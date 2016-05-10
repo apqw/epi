@@ -246,7 +246,7 @@ namespace cont {
 	static constexpr double STIM11 = 0.002;
 	static constexpr double Kaa = 0.5;
 	static constexpr double AIR_STIM = 0.1;
-	static constexpr double SW_THRESH = 20;
+	static constexpr int SW_THRESH = 20;
 	static constexpr double DB = 0.0009;
 	static constexpr double DUR_ALIVE = 0.5;
 	static constexpr double DUR_DEAD = 2.0;

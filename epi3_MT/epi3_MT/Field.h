@@ -12,12 +12,15 @@ private:
 	const int _MAX_CELL_NUM = 30000;
 
 	CellMan cells;
-	Arr3D<DV<double>> ATP;
-	Arr3D<DV<double>> ext_stim;
-	Arr3D<Cell*> cell_map;
-	Arr3D<int> cell_map2;
-	Arr3D<int> air_stim_flg;
-    Arr3D<double*> cell_diffu_map;
+	double _ATP[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
+	double old_ATP[cont::NX+1][cont::NY+1][cont::NZ+1];
+
+	double _ext_stim[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
+	double old_ext_stim[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
+	Cell* cell_map[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
+	int cell_map2[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
+	int air_stim_flg[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
+    double* cell_diffu_map[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
 	void interact_cell();
 	void cell_state_renew();
 	void cell_pos_periodic_fix();
@@ -34,14 +37,24 @@ public:
         int __MAX_CELL_NUM=30000,
             bool _forced_sc=false
 		):_MAX_CELL_NUM(__MAX_CELL_NUM),
-		ATP(Arr3D<DV<double>>(cont::NX+1, Arr2D<DV<double>>(cont::NY+1, Arr1D<DV<double>>(cont::NZ+1, cont::ATP_init)))),
-		ext_stim(Arr3D<DV<double>>(cont::NX+1, Arr2D<DV<double>>(cont::NY+1, Arr1D<DV<double>>(cont::NZ+1, cont::ext_stim_init)))),
-		cell_map(Arr3D<Cell*>(cont::NX + 1, Arr2D<Cell*>(cont::NY + 1, Arr1D<Cell*>(cont::NZ + 1, nullptr)))),
-		cell_map2(Arr3D<int>(cont::NX + 1, Arr2D<int>(cont::NY + 1, Arr1D<int>(cont::NZ + 1, 0)))),
-        air_stim_flg(Arr3D<int>(cont::NX + 1, Arr2D<int>(cont::NY + 1, Arr1D<int>(cont::NZ + 1, 0)))),
-        cell_diffu_map(Arr3D<double*>(cont::NX + 1, Arr2D<double*>(cont::NY + 1, Arr1D<double*>(cont::NZ + 1, 0)))),flg_forced_sc(_forced_sc)
+		_ATP(),
+		old_ATP(),
+		_ext_stim(),
+		old_ext_stim(),
+		cell_map(),
+		cell_map2(),
+        air_stim_flg(),
+        cell_diffu_map(),flg_forced_sc(_forced_sc)
 		{
 using namespace cont;
+std::memset(_ATP, 0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
+std::memset(old_ATP, 0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
+std::memset(_ext_stim, 0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
+std::memset(old_ext_stim, 0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
+std::memset(cell_map, 0, sizeof(Cell*)*(NX + 1)*(NY + 1)*(NZ + 1));
+std::memset(cell_map2, 0, sizeof(int)*(NX + 1)*(NY + 1)*(NZ + 1));
+std::memset(air_stim_flg, 0, sizeof(int)*(NX + 1)*(NY + 1)*(NZ + 1));
+std::memset(cell_diffu_map, 0, sizeof(double*)*(NX + 1)*(NY + 1)*(NZ + 1));
         for(int k=0;k<NY;k++){
             int prev_y = k - 1;
             int next_y = k + 1;

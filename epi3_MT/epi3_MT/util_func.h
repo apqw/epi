@@ -71,6 +71,12 @@ inline double grid_avg8(const Arr3D<DV<double>>& grd,int ix,int iy,int iz) {
 		+ grd[ix][iy + 1][iz + 1]() + grd[ix + 1][iy + 1][iz + 1]());
 }
 
+inline double grid_avg8_n(const double grd[cont::NX + 1][cont::NY + 1][cont::NZ+1], int ix, int iy, int iz) {
+	return 0.125*(grd[ix][iy][iz] + grd[ix + 1][iy][iz] + grd[ix][iy + 1][iz]
+		+ grd[ix][iy][iz + 1] + grd[ix + 1][iy + 1][iz] + grd[ix + 1][iy][iz + 1]
+		+ grd[ix][iy + 1][iz + 1] + grd[ix + 1][iy + 1][iz + 1]);
+}
+
 
 template<class T> constexpr T smax(T a) noexcept {
 	return a;

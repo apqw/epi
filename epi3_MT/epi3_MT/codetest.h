@@ -1,10 +1,7 @@
 #pragma once
-#include "define.h"
-#include "component.h"
-#include "Cell.h"
-#include "Field.h"
-#include "primitive_func.h"
-#include "general_func.h"
+#include <istream>
+#include <fstream>
+
 
 void Vec3Test();
 void arr_map_test();

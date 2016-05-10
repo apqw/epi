@@ -420,7 +420,7 @@ public:
 	lazy_update(const lazy_update& init) :value(init.value), next(init.next.load()) {}
 	lazy_update(lazy_update&& init) :value(init.value), next(init.next.load()) {}
 	lazy_update(T& init) :value(init), next(init) {}
-	virtual void update() {
+	void update() {
 		value = next.load(std::memory_order_relaxed);
 	};
 
