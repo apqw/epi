@@ -4,9 +4,12 @@
 #include <string>
 #include <cassert>
 #include <iostream>
+#include <istream>
+#include <fstream>
 #include <tbb/task.h>
 #include <tbb/task_group.h>
 #include <chrono>
+#include <sstream>
 void Field::interact_cell() {
 
 	
@@ -57,7 +60,13 @@ void Field::cell_state_renew() {
 			c->DEAD_AIR_state_renew();
 			break;
 		case ALIVE:
+            if(c->agek()>=cont::THRESH_DEAD){
+
+                sw++;
+                printf("sw updated:%d\n",sw);
+            }
 			c->ALIVE_state_renew();
+
 		default:
 			break;
 		}
@@ -187,20 +196,20 @@ void Field::connect_cells() {
 							diffy = p_diff_sc_y(c->pos[1](), o->pos[1]());
 							diffz=c->pos[2]()-o->pos[2]();
 							rad_sum = c->radius() + o->radius();
-							/*
-							if (fabs(tmp - tmp2) > 1) {
-								printf("%lf\n", tmp - tmp2);
-							}
-							*/
+                            /*
+                            if (fabs(tmp - tmp2) > 1) {
+                                printf("%lf\n", tmp - tmp2);
+                            }
+                            */
 							if (diffx*diffx + diffy*diffy + diffz*diffz <= LJ_THRESH*LJ_THRESH*rad_sum*rad_sum) {
 								//printf("connecting... %d \n", c->connected_cell.count()+1);
 								c->connected_cell.add(o);
 								assert(c->connected_cell.count() < N2);
 							}
-							
+
 						}
 					}
-				}
+                }
 			}
 
 	});
@@ -284,13 +293,76 @@ t.wait();
 	connect_cells();
 }
 
+void Field::initialize_sc(){
+    cells.other_foreach([&](CellPtr& c,int i){
+if(c->state()==ALIVE&&zzmax-c->pos[2]()<8*cont::R_max){
+c->agek.force_set_next_value(c->agek()>cont::THRESH_DEAD?c->agek():cont::THRESH_DEAD);
+c->state=AIR;
+c->agek.update();
+c->state.update();
+}
+    });
+}
+void Field::check_localization(){
+    cells.foreach([&](CellPtr& c,int i){
+       bool touch=false;
+       if(c->state()==ALIVE){
+           for(Cell* conn:c->connected_cell._cell()){
+               if(conn->state()==DEAD){
+                   touch=true;
+                   break;
+               }
+           }
+       }
+       c->is_touch.force_set_next_value(touch);
+       c->is_touch.update();
+
+    });
+}
+void Field::output_data(int idx){
+std::ostringstream _fname;
+_fname<< output_dir<<"/"<<idx;
+std::string filename=_fname.str();
+std::ofstream wfile;
+wfile.open(filename,std::ios::out);
+cells.foreach([](CellPtr& c,int i){
+c->__my_index=i;
+});
+cells.foreach([&](CellPtr& c,int i){
+    wfile<<i<<" "
+        <<c->state()<<" "
+       <<c->radius()<<" "
+      <<c->ageb()<<" "
+     <<c->agek()<<" "
+        <<c->ca2p()<<" "
+       <<c->pos[0]()<<" "
+      <<c->pos[1]()<<" "
+     <<c->pos[2]()<<" "
+    <<c->ca2p_avg()<<" "
+       <<c->rest_div_times()<<" "
+      <<c->ex_fat()<<" "
+     <<c->in_fat()<<" "
+    <<(c->is_touch()?1:0)<<" "
+       <<c->spring_nat_len()<<" "
+      <<(c->pair==nullptr?-1:c->pair->__my_index)<<" "
+                                              <<0<<std::endl;
+});
+}
+
 void Field::main_loop()
 {
+    if(flg_forced_sc)printf("sc forced.\n");
     auto start=std::chrono::system_clock::now();
 	for (int i = 0; i < cont::NUM_ITR; i++) {
         if(i%100==0){
             auto dur=std::chrono::system_clock::now()-start;
             printf("loop:%d elapsed[sec]:%lf\n", i,0.001*std::chrono::duration_cast<std::chrono::milliseconds>(dur).count());
+        }
+        if(i%CUT==0){
+
+            printf("logging...\n");
+            output_data(i/CUT);
+            printf("done.\n");
         }
 
 		cell_dynamics();
@@ -306,11 +378,20 @@ void Field::main_loop()
         //setup_map(); //lattice set
 		calc_b();
 		b_update();
-		if (i % 10000 == 0) {
+
+        if(i*cont::DT_Ca>cont::T_TURNOVER&&flg_forced_sc){
+flg_forced_sc=false;
+printf("forced cornif\n");
+initialize_sc();
+num_sc=cont::NUM_SC_INIT;
+        }
+        if (sw>=cont::SW_THRESH || num_sc>0) {
 			printf("calc ca...\n");
             calc_ca();
             cells.all_cell_update();
 			printf("end.\n");
+            if(num_sc>0)num_sc--;
+            sw=0;
 		}
 	}
 }
@@ -527,6 +608,43 @@ void Field::calc_ca()
 	});
 	using namespace cont;
 	int iz_bound = (int)((zzmax + FAC_MAP*R_max) / dz);
+
+    int* a_prev_z = new int[iz_bound];
+    int* a_next_z = new int[iz_bound];
+    double dummy_diffu=0;
+    tbb::parallel_for(tbb::blocked_range<int>(0, NX), [&](const tbb::blocked_range< int >& range) {
+        for (int j = range.begin(); j!= range.end(); ++j) {
+            for (int k = 0; k < NY; k++) {
+                for (int l = 0; l < iz_bound; l++) {
+                    double*	tmp = &dummy_diffu;
+                    if (cell_map[j][k][l] != nullptr) {
+                        if (get_state_mask(cell_map[j][k][l]->state())&(ALIVE_M | FIX_M | MUSUME_M)) {
+                            tmp = &(cell_map[j][k][l]->diffu);
+                        }
+                    }
+                    cell_diffu_map[j][k][l]=tmp;
+                }
+            }
+        }
+    });
+
+    for (int l = 0; l < iz_bound; l++) {
+        int prev_z = 0, next_z = 0;
+        if (l == 0) {
+            prev_z = 1;
+        }
+        else {
+            prev_z = l - 1;
+        }
+        if (l == NZ) {
+            next_z = NZ - 1;
+        }
+        else {
+            next_z = l + 1;
+        }
+        a_prev_z[l]=prev_z;
+        a_next_z[l]=next_z;
+    }
 	for (int cstp = 0; cstp <Ca_ITR; cstp++) {
 
 		cells.other_foreach_parallel_native([&iz_bound,this](CellPtr& c) {
@@ -583,44 +701,23 @@ void Field::calc_ca()
 
 		tbb::parallel_for(tbb::blocked_range<int>(0, NX), [&](const tbb::blocked_range< int >& range) {
 			for (int j = range.begin(); j!= range.end(); ++j) {
-				int prev_x = j - 1;
-				if (prev_x < 0) {
-					prev_x += NX;
-				}
-				int next_x = j + 1;
-				if (next_x >= NX) {
-					next_x -= NX;
-				}
+                int prev_x = per_x_prev_idx[j];
+                int next_x = per_x_next_idx[j];
 				for (int k = 0; k < NY; k++) {
-					int prev_y = k - 1;
-					if (prev_y < 0) {
-						prev_y += NY;
-					}
-					int next_y = k + 1;
-					if (next_y >= NY) {
-						next_y -= NY;
-					}
+                    int prev_y = per_y_prev_idx[k];
+                    int next_y = per_y_next_idx[k];
 					for (int l = 0; l < iz_bound; l++) {
-						int prev_z = l - 1;
-						if (l == 0)prev_z = 1;
-						int next_z = l + 1;
-						if (l == NZ)next_z = NZ - 1;
-						double 	tmp = 0;
-						if (cell_map[j][k][l] != nullptr) {
-							if (get_state_mask(cell_map[j][k][l]->state())&(ALIVE_M | FIX_M | MUSUME_M)) {
-								tmp = cell_map[j][k][l]->diffu;
-							}
-						}
-						cell_map[j][k][l] != nullptr ? cell_map[j][k][l]->diffu : 0.0;
+                        int prev_z = a_prev_z[l], next_z = a_next_z[l];
+                        double 	tmp = *cell_diffu_map[j][k][l];
+                        double catp=ATP[j][k][l]();
 						ATP[j][k][l]
-							+= DT_Ca*(Da * (cell_map2[prev_x][k][l] * (ATP[prev_x][k][l] - ATP[j][k][l])
-								+ cell_map2[next_x][k][l] * (ATP[next_x][k][l] - ATP[j][k][l])
-								+ cell_map2[j][prev_y][l] * (ATP[j][prev_y][l] - ATP[j][k][l])
-								+ cell_map2[j][next_y][l] * (ATP[j][next_y][l] - ATP[j][k][l])
-								+ cell_map2[j][k][prev_z] * (ATP[j][k][prev_z] - ATP[j][k][l])
-								+ cell_map2[j][k][next_z] * (ATP[j][k][next_z] - ATP[j][k][l])) / (dx*dx)
-								+ fa(tmp, ATP[j][k][l]()));
-						ATP[j][k][l] += DT_Ca*air_stim_flg[j][k][l] * AIR_STIM;
+                            += DT_Ca*(Da * (cell_map2[prev_x][k][l] * (ATP[prev_x][k][l]() - catp)
+                                + cell_map2[next_x][k][l] * (ATP[next_x][k][l]() - catp)
+                                + cell_map2[j][prev_y][l] * (ATP[j][prev_y][l]() - catp)
+                                + cell_map2[j][next_y][l] * (ATP[j][next_y][l]() - catp)
+                                + cell_map2[j][k][prev_z] * (ATP[j][k][prev_z]() - catp)
+                                + cell_map2[j][k][next_z] * (ATP[j][k][next_z]() - catp)) *inv_dx*inv_dx
+                                + fa(tmp, catp)+air_stim_flg[j][k][l] * AIR_STIM);
 					}
 				}
 			}
@@ -649,10 +746,22 @@ void Field::calc_ca()
 			c->ca2p.force_set_next_value(0);
 		}
 	});
+    delete a_prev_z;delete a_next_z;
 }
 
 void Field::ATP_update()
 {
+    using namespace cont;
+    tbb::parallel_for(tbb::blocked_range<int>(0, NX+1), [&](const tbb::blocked_range< int >& range) {
+        for (int j = range.begin(); j!= range.end(); ++j) {
+            for (auto& y : ATP[j]) {
+                for (auto& z : y) {
+                    z.update();
+                }
+            }
+        }
+    });
+/*
 	for (auto& x : ATP) {
 		for (auto& y : x) {
 			for (auto& z : y) {
@@ -660,6 +769,7 @@ void Field::ATP_update()
 			}
 		}
 	}
+    */
 }
 
 void Field::init_with_file(std::ifstream& dstrm) {

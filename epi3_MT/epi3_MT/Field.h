@@ -17,6 +17,7 @@ private:
 	Arr3D<Cell*> cell_map;
 	Arr3D<int> cell_map2;
 	Arr3D<int> air_stim_flg;
+    Arr3D<double*> cell_diffu_map;
 	void interact_cell();
 	void cell_state_renew();
 	void cell_pos_periodic_fix();
@@ -25,15 +26,20 @@ private:
 	double calc_zzmax();
 	double zzmax=0;
     int per_x_next_idx[cont::NX],per_x_prev_idx[cont::NX],per_y_next_idx[cont::NY],per_y_prev_idx[cont::NY];
+    int sw=0;
+    int num_sc=0;
+    bool flg_forced_sc=false;
 public:
 	Field(
-		int __MAX_CELL_NUM=30000
+        int __MAX_CELL_NUM=30000,
+            bool _forced_sc=false
 		):_MAX_CELL_NUM(__MAX_CELL_NUM),
 		ATP(Arr3D<DV<double>>(cont::NX+1, Arr2D<DV<double>>(cont::NY+1, Arr1D<DV<double>>(cont::NZ+1, cont::ATP_init)))),
 		ext_stim(Arr3D<DV<double>>(cont::NX+1, Arr2D<DV<double>>(cont::NY+1, Arr1D<DV<double>>(cont::NZ+1, cont::ext_stim_init)))),
 		cell_map(Arr3D<Cell*>(cont::NX + 1, Arr2D<Cell*>(cont::NY + 1, Arr1D<Cell*>(cont::NZ + 1, nullptr)))),
 		cell_map2(Arr3D<int>(cont::NX + 1, Arr2D<int>(cont::NY + 1, Arr1D<int>(cont::NZ + 1, 0)))),
-		air_stim_flg(Arr3D<int>(cont::NX + 1, Arr2D<int>(cont::NY + 1, Arr1D<int>(cont::NZ + 1, 0))))
+        air_stim_flg(Arr3D<int>(cont::NX + 1, Arr2D<int>(cont::NY + 1, Arr1D<int>(cont::NZ + 1, 0)))),
+        cell_diffu_map(Arr3D<double*>(cont::NX + 1, Arr2D<double*>(cont::NY + 1, Arr1D<double*>(cont::NZ + 1, 0)))),flg_forced_sc(_forced_sc)
 		{
 using namespace cont;
         for(int k=0;k<NY;k++){
@@ -72,6 +78,9 @@ using namespace cont;
 	void b_update();
 	void calc_ca();
 	void ATP_update();
+    void initialize_sc();
+    void check_localization();
+    void output_data(int i);
 
 	
 	//~Field();

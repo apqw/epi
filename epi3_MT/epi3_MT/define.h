@@ -8,6 +8,10 @@
 #define BASAL (1)
 #define MALIG_NUM (0)
 #define OUTPUTDIR "output"
+#define CUT (1000)
+#define OUT_ENERGY (100)
+
+static const std::string output_dir=OUTPUTDIR;
 //#define AGE_DBG
 //#define UNPAIR_DBG
 template<typename T>
@@ -130,8 +134,8 @@ namespace cont {
 	dx,dy,dz:åvéZóÃàÊÇÃï™äÑïù(L**,N**Ç©ÇÁåvéZÇ≥ÇÍÇÈ)
 	*/
 	static constexpr double dx = LX / NX; static constexpr double inv_dx = NX / LX;
-	static constexpr double dy = LY / NY;
-	static constexpr double dz = LZ / NZ;
+    static constexpr double dy = LY / NY; static constexpr double inv_dy = NY/LY;
+    static constexpr double dz = LZ / NZ; static constexpr double inv_dz = NZ/LZ;
 
 	static constexpr double dh = 0.5;
 	static constexpr double COMPRESS_FACTOR = 4;
@@ -182,7 +186,7 @@ namespace cont {
 	static constexpr double eps_L = 0.14;
 	static constexpr double unpair_dist_coef = 0.9;
 #endif
-	static constexpr double AREA_GRID_ORIGINAL = 2.0;
+    static constexpr double AREA_GRID_ORIGINAL = 2.0;
 	static constexpr double AREA_GRID = AREA_GRID_ORIGINAL + 1e-7;
 	static constexpr int ANX = (int)((double)LX / AREA_GRID_ORIGINAL + 0.5);
 	static constexpr int ANY = (int)((double)LY / AREA_GRID_ORIGINAL + 0.5);
@@ -247,6 +251,6 @@ namespace cont {
 	static constexpr double DUR_ALIVE = 0.5;
 	static constexpr double DUR_DEAD = 2.0;
 	static constexpr double kb = 0.03;
-	static constexpr double T_TURNOVER = 0.0;
-	static constexpr int NUM_SC_INIT = 1;
+    static constexpr double T_TURNOVER = 6000.0;
+    static constexpr int NUM_SC_INIT = SW_THRESH-1;
 }

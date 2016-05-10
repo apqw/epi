@@ -56,6 +56,9 @@ public:
 		return false;
 	}
 
+    std::array<Cell*, N>& _cell(){
+        return cell;
+    }
 	
 
 };
@@ -182,11 +185,11 @@ public:
 	DV<double> poisson_div_thresh = 0;
 	DV<int> rest_div_times = 0;
 	DV<bool> is_malignant = 0;
-	DV<bool> is_touch = 0;
+    DV<bool> is_touch = 0;
 	Vec3<int> lat;
 	std::unordered_map<Cell*,DV<double>> gj;
 	double diffu = 0; //tmp
-	
+    int __my_index=0;
 	
 	
 	MEMB_bend_data mbd;

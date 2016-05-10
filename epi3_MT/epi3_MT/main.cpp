@@ -11,11 +11,13 @@ void OutputDebugString(const char* str) {
 #include "fsys.h"
 int main(int argc, char *argv[]) {
    // system("pause");
+    /*
 	Vec3Test();
 	arr_map_test();
 	cell_test();
 	conv_state_num_test();
 	cell_man_test();
+    */
 	//CAS_test();
 
 	//static_error_check();
@@ -38,7 +40,7 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	auto fld = std::make_unique<Field>();
+    auto fld = std::make_unique<Field>(30000,true);
 	fld->init_with_file(data);
 genrand_init();
 	fld->main_loop();
