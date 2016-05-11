@@ -536,7 +536,7 @@ void Cell::ALIVE_state_renew() {
 	}
 	else {
 		agek += DT_Cell*agek_const();
-		double tmp = k_lipid_release();
+		double tmp = k_lipid_release()*in_fat();
 		in_fat += DT_Cell*(k_lipid()*(1.0 - in_fat()) - tmp);
 		ex_fat += DT_Cell*tmp;
 	}
