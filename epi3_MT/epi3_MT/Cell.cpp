@@ -378,7 +378,7 @@ bool Cell::divide_try()
 	using namespace cont;
 	if (pair != nullptr)return false;
 
-	double div_gamma = (is_malignant ? accel_div:1)*eps_kb*u0 / (div_age_thresh()*stoch_div_time_ratio);
+    double div_gamma = DT_Cell*(is_malignant ? accel_div:1)*eps_kb*u0 / (div_age_thresh()*stoch_div_time_ratio);
 	if (STOCHASTIC&&genrand_real()>div_gamma) {
 		return false;
 	}

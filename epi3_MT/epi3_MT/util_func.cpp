@@ -12,8 +12,10 @@ void genrand_init() {
 	rng_initalized = true;
 }
 double genrand_real() {
-	assert(rng_initalized);
-	return rng_real_dist(mt);
+    //assert(rng_initalized);
+    //static thread_local std::mt19937_64 mt;
+    //std::uniform_real_distribution<double> distr(0.0,1.0);
+    return rng_real_dist(mt);
 }
 
 double p_diff_sc_x(double v1, double v2) {
