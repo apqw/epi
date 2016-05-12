@@ -8,6 +8,7 @@
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_for_each.h>
 #include <tbb/blocked_range.h>
+#include <chrono>
 
 //class Cell;
 using CellPtr = std::shared_ptr<Cell>;
@@ -124,6 +125,8 @@ private:
 	double k_lipid();
 	bool pending_kill = false;
 	bool pair_generated = false;
+
+	static std::atomic_uint32_t construction_count;
 public:
 
 
@@ -190,6 +193,7 @@ public:
 	std::unordered_map<Cell*,DV<double>> gj;
 	double diffu = 0; //tmp
     int __my_index=0;
+	const uint32_t my_construction_count;
 	
 	
 	MEMB_bend_data mbd;
@@ -213,8 +217,7 @@ public:
 		in_fat(_in_fat), spring_nat_len(_spring_nat_len),
 		spring_force(_spring_force), div_age_thresh(_div_age_thresh),
 		poisson_div_thresh(_poisson_div_thresh), rest_div_times(_rest_div_times),
-		is_malignant(_is_malignant), is_touch(_is_touch) {
-
+		is_malignant(_is_malignant), is_touch(_is_touch),my_construction_count(construction_count++) {
 	}
 
 	void do_interact_w_connected();
@@ -311,6 +314,8 @@ public:
 	}
 
 
+
+
 	template<class L>
     void memb_foreach(const L& lmbd) {
 		assert(nmemb_is_set);
@@ -342,6 +347,19 @@ public:
 			for (int i = range.begin(); i != range.end(); ++i) {
 				lmbd(cell[i], i);
 			}
+		});
+		*/
+	}
+
+	template<class L>
+	void non_memb_foreach_parallel_native(const L& lmbd) {
+		assert(nmemb_is_set);
+		tbb::parallel_for_each(cell.begin()+memb_num, cell.end(), lmbd);
+		/*
+		tbb::parallel_for(tbb::blocked_range<int>(0, memb_num), [&](const tbb::blocked_range< int >& range) {
+		for (int i = range.begin(); i != range.end(); ++i) {
+		lmbd(cell[i], i);
+		}
 		});
 		*/
 	}

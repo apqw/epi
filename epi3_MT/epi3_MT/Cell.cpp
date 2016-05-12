@@ -2,6 +2,8 @@
 #include "util_func.h"
 #include "primitive_func.h"
 
+std::atomic_uint32_t Cell::construction_count = 0;
+
 void Cell::do_interact_w_connected() {
 
 }

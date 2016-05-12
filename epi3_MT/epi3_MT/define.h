@@ -105,6 +105,7 @@ inline CELL_STATE_NUM conv_state_num(CELL_STATE state) {
 }
 */
 namespace cont {
+	
 	static constexpr int THREAD_NUM = 8;
 	static constexpr double ATP_init = 0;
 	static constexpr double ext_stim_init = 0;

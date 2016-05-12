@@ -140,10 +140,10 @@ void Field::connect_cells() {
         area[aix][aiy][aiz][atm] = c.get();
 		
         assert(aindx[aix][aiy][aiz] < N3);
-
+		c->connected_cell.set_count(c->state() == MEMB ? 4 : 0);
 	});
-	cells.foreach_parallel_native([&](CellPtr& c) {
-			c->connected_cell.set_count(c->state()==MEMB?4:0);
+	cells.non_memb_foreach_parallel_native([&](CellPtr& c) {
+			
 			int anx = (int)(c->pos[0]() / AREA_GRID);
 			int any = (int)(c->pos[1]() / AREA_GRID);
 			int anz = (int)(c->pos[2]() / AREA_GRID);
@@ -151,7 +151,7 @@ void Field::connect_cells() {
 			assert(!(anx >= ANX || any >= ANY || anz >= ANZ || anx < 0 || any < 0 || anz < 0));
             //Vec3<double> diffv;
 			double rad_sum; double diffx, diffy, diffz;
-            const int ii = 2;int aix, aiy, aiz;
+            const int ii =2;int aix, aiy, aiz;
             int yidx[2*ii+1],zidx[2*ii+1];int yc=0,zc=0;
             for (int k = any - ii; k <= any + ii; k++,yc++){
                 aiy = k;
@@ -189,7 +189,7 @@ void Field::connect_cells() {
                         int sz=aindx[aix][aiy][aiz];
                         for (int m = 0; m < sz; ++m) {
 							Cell* o = area[aix][aiy][aiz][m];
-                            if (c.get() == o||((1u<<(c->state()))&(1u<<(o->state()))&MEMB_M))continue;
+                            if (c->my_construction_count <= o->my_construction_count)continue;
 
 							//diffv = c->pos - o->pos;
 							diffx = p_diff_sc_x(c->pos[0]() , o->pos[0]());
@@ -204,6 +204,12 @@ void Field::connect_cells() {
 							if (diffx*diffx + diffy*diffy + diffz*diffz <= LJ_THRESH*LJ_THRESH*rad_sum*rad_sum) {
 								//printf("connecting... %d \n", c->connected_cell.count()+1);
 								c->connected_cell.add(o);
+								o->connected_cell.add(c);
+								/*
+								if (o->state() == MEMB) {
+									printf("eusyo");
+								}
+								*/
 								assert(c->connected_cell.count() < N2);
 							}
 
