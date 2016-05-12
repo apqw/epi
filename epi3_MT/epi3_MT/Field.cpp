@@ -388,7 +388,7 @@ void Field::main_loop()
 		calc_b();
 		//b_update();
 
-        if(i*cont::DT_Ca>cont::T_TURNOVER&&flg_forced_sc){
+        if(i*cont::DT_Cell>cont::T_TURNOVER&&flg_forced_sc){
 flg_forced_sc=false;
 printf("forced cornif\n");
 initialize_sc();

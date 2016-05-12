@@ -196,7 +196,7 @@ namespace cont {
 								   //memb seat size NMX*NMY
 	static constexpr int NMX = 100;
 	static constexpr int NMY = 100;
-	static constexpr int NUM_ITR = (int)1e6;
+    static constexpr int NUM_ITR = 2*((int)1e6); //twice
 	static constexpr double KBEND = 0.5;
 
 	static constexpr int Ca_ITR = 1000;
