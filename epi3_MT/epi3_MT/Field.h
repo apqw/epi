@@ -5,6 +5,7 @@
 #include "particle_seacrh.h"
 #include <istream>
 #include <fstream>
+
 class Field
 {
 private:
@@ -18,8 +19,8 @@ private:
 	double _ext_stim[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
 	double old_ext_stim[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
 	Cell* cell_map[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
-	int cell_map2[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
-	int air_stim_flg[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
+	uint_fast8_t cell_map2[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
+	uint_fast8_t air_stim_flg[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
     double* cell_diffu_map[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
 	void interact_cell();
 	void cell_state_renew();
@@ -52,8 +53,8 @@ std::memset(old_ATP, 0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
 std::memset(_ext_stim, 0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
 std::memset(old_ext_stim, 0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
 std::memset(cell_map, 0, sizeof(Cell*)*(NX + 1)*(NY + 1)*(NZ + 1));
-std::memset(cell_map2, 0, sizeof(int)*(NX + 1)*(NY + 1)*(NZ + 1));
-std::memset(air_stim_flg, 0, sizeof(int)*(NX + 1)*(NY + 1)*(NZ + 1));
+std::memset(cell_map2, 0, sizeof(uint_fast8_t)*(NX + 1)*(NY + 1)*(NZ + 1));
+std::memset(air_stim_flg, 0, sizeof(uint_fast8_t)*(NX + 1)*(NY + 1)*(NZ + 1));
 std::memset(cell_diffu_map, 0, sizeof(double*)*(NX + 1)*(NY + 1)*(NZ + 1));
         for(int k=0;k<NY;k++){
             int prev_y = k - 1;
@@ -98,4 +99,5 @@ std::memset(cell_diffu_map, 0, sizeof(double*)*(NX + 1)*(NY + 1)*(NZ + 1));
 	
 	//~Field();
 };
+
 

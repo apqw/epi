@@ -183,12 +183,10 @@ public:
 	DV<double> agek = 0, ageb = 0;
 	DV<double> ex_fat = 0, in_fat = 0;
 	DV<double> spring_nat_len = 0;
-	DV<double> spring_force = 0;
-	DV<double> div_age_thresh = 0;
-	DV<double> poisson_div_thresh = 0;
+	double div_age_thresh = 0;
 	DV<int> rest_div_times = 0;
-	DV<bool> is_malignant = 0;
-    DV<bool> is_touch = 0;
+	bool is_malignant = 0;
+    bool is_touch = 0;
 	Vec3<int> lat;
 	std::unordered_map<Cell*,DV<double>> gj;
 	double diffu = 0; //tmp
@@ -208,15 +206,14 @@ public:
 		DV<double> _ex_inert = 0,
 		DV<double> _agek = 0, DV<double>_ageb = 0,
 		DV<double> _ex_fat = 0, DV<double> _in_fat = 0,
-		DV<double> _spring_nat_len = 0, DV<double> _spring_force = 0,
-		DV<double> _div_age_thresh = 0, DV<double> _poisson_div_thresh = 0,
-		DV<int> _rest_div_times = 0, DV<bool> _is_malignant = false,
-		DV<bool> _is_touch = false) :
+		DV<double> _spring_nat_len = 0,
+		double _div_age_thresh = 0, 
+		DV<int> _rest_div_times = 0, bool _is_malignant = false,
+		bool _is_touch = false) :
 		state(_state), pos(_pos), radius(_radius), ca2p(_ca2p), ca2p_avg(_ca2p_avg),
 		IP3(_IP3), ex_inert(_ex_inert), agek(_agek), ageb(_ageb), ex_fat(_ex_fat),
 		in_fat(_in_fat), spring_nat_len(_spring_nat_len),
-		spring_force(_spring_force), div_age_thresh(_div_age_thresh),
-		poisson_div_thresh(_poisson_div_thresh), rest_div_times(_rest_div_times),
+		div_age_thresh(_div_age_thresh),rest_div_times(_rest_div_times),
 		is_malignant(_is_malignant), is_touch(_is_touch),my_construction_count(construction_count++) {
 	}
 
@@ -225,7 +222,6 @@ public:
 	//Cell();
 	~Cell();
 };
-
 
 
 class CellMan {

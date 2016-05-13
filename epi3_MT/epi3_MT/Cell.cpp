@@ -257,24 +257,22 @@ void Cell::memb_bend_calc2() {
 
 void Cell::update() {
 	state.update();
-	pos.foreach([](auto& v) {v.update(); });
+	pos[0].update();
+	pos[1].update();
+	pos[2].update();
 	radius.update();
-	ca2p.update();
-	ca2p_avg.update();
-	IP3.update();
-	ex_inert.update();
+	//ca2p.update();
+	//ca2p_avg.update();
+	//IP3.update();
+	//ex_inert.update();
 
 	agek.update();
 	ageb.update();
 	ex_fat.update();
 	in_fat.update();
 	spring_nat_len.update();
-	spring_force.update();
-	div_age_thresh.update();
-	poisson_div_thresh.update();
+	//div_age_thresh.update();
 	rest_div_times.update();
-	is_malignant.update();
-	is_touch.update();
 }
 
 Vec3<double> MEMB_bend_data::memb_bend_force_sqr() {
@@ -380,7 +378,7 @@ bool Cell::divide_try()
 	using namespace cont;
 	if (pair != nullptr)return false;
 
-    double div_gamma = DT_Cell*(is_malignant ? accel_div:1)*eps_kb*u0 / (div_age_thresh()*stoch_div_time_ratio);
+    double div_gamma = DT_Cell*(is_malignant ? accel_div:1)*eps_kb*u0 / (div_age_thresh*stoch_div_time_ratio);
 	if (STOCHASTIC&&genrand_real()>div_gamma) {
 		return false;
 	}
@@ -395,9 +393,7 @@ bool Cell::divide_try()
 		0,0,//set ages 0
 		0,0,//set fats 0
 		delta_L,//init
-		spring_force,
 		agki_max, //musume thresh
-		poisson_div_thresh,
 		rest_div_times,
 		is_malignant,
 		is_touch
@@ -450,7 +446,7 @@ void Cell::FIX_state_renew() {
 
 
 	//if (state() == MUSUME&&rest_div_times <= 0)return false;
-	if (ageb() >= div_age_thresh()*(1.0 - cont::stoch_div_time_ratio)) {
+	if (ageb() >= div_age_thresh*(1.0 - cont::stoch_div_time_ratio)) {
 		pair_generated=divide_try();
 	}
 	else {
@@ -500,7 +496,7 @@ void Cell::MUSUME_state_renew() {
 		return;
 	}
 
-	if (rest_div_times>0&&ageb() >= div_age_thresh()*(1.0 - cont::stoch_div_time_ratio)) {
+	if (rest_div_times>0&&ageb() >= div_age_thresh*(1.0 - cont::stoch_div_time_ratio)) {
 		pair_generated = divide_try();
 	}
 	else {

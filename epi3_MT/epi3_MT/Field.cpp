@@ -116,6 +116,10 @@ void Field::connect_cells() {
     static std::atomic<int> aindx[ANX][ANY][ANZ]={};//RawArr3D<std::atomic<int>,ANX,ANY,ANZ> aindx = { };
     static Cell* area[ANX][ANY][ANZ][N3]={nullptr};//RawArr3D<RawArr1D<Cell*, N3>, ANX, ANY, ANZ> area = { nullptr };
     //static bool mflg = false;
+	//warn
+	//impl-dependent-memset
+	std::memset(aindx, 0, sizeof(std::atomic<int>)*ANX*ANY*ANZ);
+	/*
 	for (int i = 0; i < ANX; i++) {
 		for (int j = 0; j < ANY; j++) {
 			for (int k = 0; k < ANZ; k++) {
@@ -123,6 +127,7 @@ void Field::connect_cells() {
 			}
 		}
 	}
+	*/
     cells.foreach_parallel_native([&](CellPtr& c) {
 		int aix, aiy, aiz;
 		aix = (int)((0.5*LX - p_diff_sc_x(0.5*LX, c->pos[0]())) / AREA_GRID);
@@ -329,8 +334,7 @@ void Field::check_localization(){
                }
            }
        }
-       c->is_touch.force_set_next_value(touch);
-       c->is_touch.update();
+	   c->is_touch = touch;
 
     });
 }
@@ -357,7 +361,7 @@ cells.foreach([&](CellPtr& c,int i){
        <<c->rest_div_times()<<" "
       <<c->ex_fat()<<" "
      <<c->in_fat()<<" "
-    <<(c->is_touch()?1:0)<<" "
+    <<(c->is_touch?1:0)<<" "
        <<c->spring_nat_len()<<" "
       <<(c->pair==nullptr?-1:c->pair->__my_index)<<" "
                                               <<0<<std::endl;
@@ -415,8 +419,8 @@ void Field::setup_map()
 {
 	using namespace cont;
 	std::memset(cell_map, 0, sizeof(Cell*)*(NX + 1)*(NY + 1)*(NZ + 1));
-	std::memset(cell_map2, 0, sizeof(int)*(NX + 1)*(NY + 1)*(NZ + 1));
-	std::memset(air_stim_flg, 0, sizeof(int)*(NX + 1)*(NY + 1)*(NZ + 1));
+	std::memset(cell_map2, 0, sizeof(uint_fast8_t)*(NX + 1)*(NY + 1)*(NZ + 1));
+	std::memset(air_stim_flg, 0, sizeof(uint_fast8_t)*(NX + 1)*(NY + 1)*(NZ + 1));
 	/*
 		for (int i = 0; i != NX; ++i) {
 			for (int j = 0; j <= NY; j++) {
@@ -498,7 +502,6 @@ void Field::setup_map()
 			else if (k >= NY) {
 				ipx -= NX;
 			}
-
 			diffx = mx - cv[0]();
 			if (fabs(diffx) >= 0.5*LX) {
 				if (diffx > 0) {
@@ -513,18 +516,20 @@ void Field::setup_map()
 				ipy = a_ipy[yc];
 
 				
-				for (zc=0,m = zmin; m <= zmax; m++,zc++) {
+				for (zc=0,ipz = zmin; ipz <= zmax; ipz++,zc++) {
 					//ipz = imz = iz + m;
-					ipz = m;
+					//ipz = m;
 					if ((distSq = diffxSq + a_diffySq[yc] + a_diffzSq[zc]) < cradSq) {
 						cell_map2[ipx][ipy][ipz] = 1;
 
+						
 						if (distSq < normal_radSq) {
 							cell_map[ipx][ipy][ipz] = c.get();
 							air_stim_flg[ipx][ipy][ipz] = (c->state() == AIR);
 							
 							
 						}
+						
 					}
 				}
 			}
@@ -569,18 +574,20 @@ void Field::calc_b() {
                     int prev_z = a_prev_z[l], next_z = a_next_z[l];
 					double dum_age = 0;
 					bool flg_cornified = false;
+					
 					if (cell_map[j][k][l]!=nullptr) {
 						if (get_state_mask(cell_map[j][k][l] ->state())&(ALIVE_M|DEAD_M)) {
 							dum_age = cell_map[j][k][l]->agek();
 							flg_cornified = true;
 						}
 					}
+
 					_ext_stim[j][k][l]= old_ext_stim[j][k][l]+DT_Ca*(DB * (cell_map2[prev_x][k][l] * (old_ext_stim[prev_x][k][l] - old_ext_stim[j][k][l])
 						+ cell_map2[j][prev_y][l] * (old_ext_stim[j][prev_y][l] - old_ext_stim[j][k][l])
 						+ cell_map2[j][k][prev_z] * (old_ext_stim[j][k][prev_z] - old_ext_stim[j][k][l])
-						+ cell_map2[next_x][k][l] * (-old_ext_stim[j][k][l] + old_ext_stim[next_x][k][l])
-						+ cell_map2[j][next_y][l] * (-old_ext_stim[j][k][l] + old_ext_stim[j][next_y][l])
-						+ cell_map2[j][k][next_z] * (-old_ext_stim[j][k][l] + old_ext_stim[j][k][next_z])) / (dz * dz)
+						+ cell_map2[next_x][k][l] * (old_ext_stim[next_x][k][l] - old_ext_stim[j][k][l])
+						+ cell_map2[j][next_y][l] * (old_ext_stim[j][next_y][l] - old_ext_stim[j][k][l])
+						+ cell_map2[j][k][next_z] * ( old_ext_stim[j][k][next_z] - old_ext_stim[j][k][l])) *inv_dz*inv_dz
 						+ fB(dum_age, old_ext_stim[j][k][l] ,flg_cornified));
 
 
@@ -860,7 +867,6 @@ void Field::init_with_file(std::ifstream& dstrm) {
             #endif
 			ex_fat, fat,//ex_fat in_fat
 			spr_len,
-			0,//spring force (unused)
             state == FIX ? agki_max_fix :
 			state == MUSUME ?
 #ifdef AGE_DBG
@@ -869,7 +875,6 @@ void Field::init_with_file(std::ifstream& dstrm) {
 		agki_max:
 #endif
 			0,//div thresh
-			0,//poisson??
 			state==FIX?div_max:0,//rest div times
 			stem_orig_id<MALIG_NUM,//malignant
 			touch == 1//touch
