@@ -126,7 +126,7 @@ private:
 	bool pending_kill = false;
 	bool pair_generated = false;
 
-	static std::atomic_uint32_t construction_count;
+    static std::atomic<uint32_t> construction_count;
 public:
 
 
