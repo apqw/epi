@@ -407,7 +407,7 @@ num_sc=cont::NUM_SC_INIT;
         if (sw>=cont::SW_THRESH || num_sc>0) {
 			printf("calc ca...\n");
             calc_ca();
-            cells.all_cell_update();
+            //cells.all_cell_update();
 			printf("end.\n");
             if(num_sc>0)num_sc--;
             sw=0;
@@ -772,6 +772,8 @@ void Field::calc_ca()
 			c->ca2p_avg.force_set_next_value(0);
 			c->ca2p.force_set_next_value(0);
 		}
+        c->ca2p_avg.update();
+        c->ca2p.update();
 	});
     delete a_prev_z;delete a_next_z;
 }
