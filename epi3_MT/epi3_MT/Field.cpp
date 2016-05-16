@@ -418,8 +418,19 @@ num_sc=cont::NUM_SC_INIT;
 void Field::setup_map()
 {
 	using namespace cont;
-	std::memset(cell_map, 0, sizeof(Cell*)*(NX + 1)*(NY + 1)*(NZ + 1));
-	std::memset(cell_map2, 0, sizeof(uint_fast8_t)*(NX + 1)*(NY + 1)*(NZ + 1));
+    tbb::parallel_for(tbb::blocked_range<int>(0, NX+1), [&](const tbb::blocked_range< int >& range) {
+        for (int j = range.begin(); j!= range.end(); ++j) {
+            for (int k = 0; k <= NY; k++) {
+
+                for (int l = 0; l <= NZ; l++) {
+cell_map[j][k][l]=0;
+cell_map2[j][k][l]=0;
+                }
+            }
+        }
+    });
+    //std::memset(cell_map, 0, sizeof(Cell*)*(NX + 1)*(NY + 1)*(NZ + 1));
+    //std::memset(cell_map2, 0, sizeof(uint_fast8_t)*(NX + 1)*(NY + 1)*(NZ + 1));
     //std::memset(air_stim_flg, 0, sizeof(uint_fast8_t)*(NX + 1)*(NY + 1)*(NZ + 1));
 	/*
 		for (int i = 0; i != NX; ++i) {
@@ -540,8 +551,17 @@ void Field::calc_b() {
 	int iz_bound = (int)((zzmax + FAC_MAP*R_max) / dz);
 	int* a_prev_z = new int[iz_bound];
 	int* a_next_z = new int[iz_bound];
-	memcpy(old_ext_stim, _ext_stim, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
+    //memcpy(old_ext_stim, _ext_stim, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
+    tbb::parallel_for(tbb::blocked_range<int>(0, NX+1), [&](const tbb::blocked_range< int >& range) {
+        for (int j = range.begin(); j!= range.end(); ++j) {
+            for (int k = 0; k <= NY; k++) {
 
+                for (int l = 0; l <= NZ; l++) {
+old_ext_stim[j][k][l]=_ext_stim[j][k][l];
+                }
+            }
+        }
+    });
     for (int l = 0; l < iz_bound; l++) {
         int prev_z = 0, next_z = 0;
         if (l == 0) {
@@ -632,7 +652,7 @@ void Field::calc_ca()
 	});
 	using namespace cont;
 	int iz_bound = (int)((zzmax + FAC_MAP*R_max) / dz);
-	std::memcpy(old_ATP, _ATP, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
+
     int* a_prev_z = new int[iz_bound];
     int* a_next_z = new int[iz_bound];
     double dummy_diffu=0;
@@ -682,7 +702,7 @@ void Field::calc_ca()
         a_next_z[l]=next_z;
     }
 	for (int cstp = 0; cstp <Ca_ITR; cstp++) {
-
+   // std::memcpy(old_ATP, _ATP, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
 		cells.other_foreach_parallel_native([&iz_bound,this](CellPtr& c) {
 			if (c->state() == DEAD) {
 				
@@ -697,7 +717,9 @@ void Field::calc_ca()
 				tmp = DT_Ca*(dp*(tmp-count*c->IP3())-Kpp*c->IP3());
 				c->IP3 += tmp;
 			}
-			else if (get_state_mask(c->state())&(ALIVE_M | FIX_M | MUSUME_M)) {
+        });
+        cells.other_foreach_parallel_native([&iz_bound,this](CellPtr& c) {
+            if (get_state_mask(c->state())&(ALIVE_M | FIX_M | MUSUME_M)) {
 				int ix = c->lat[0]; int iy = c->lat[1]; int iz = c->lat[2];
 
 				assert(iz < iz_bound);
@@ -762,6 +784,16 @@ void Field::calc_ca()
 			for (int j = 0; j < NX; j++) _ATP[j][NY][l]=_ATP[j][0][l];
 			for (int k = 0; k <= NY; k++) _ATP[NX][k][l] = _ATP[0][k][l];
 		}
+        tbb::parallel_for(tbb::blocked_range<int>(0, NX+1), [&](const tbb::blocked_range< int >& range) {
+            for (int j = range.begin(); j!= range.end(); ++j) {
+                for (int k = 0; k <= NY; k++) {
+
+                    for (int l = 0; l <= NZ; l++) {
+old_ATP[j][k][l]=_ATP[j][k][l];
+                    }
+                }
+            }
+        });
 		cells.other_foreach_parallel_native([&iz_bound](CellPtr& c) {
 			c->ca2p.update();
 			c->ex_inert.update();
