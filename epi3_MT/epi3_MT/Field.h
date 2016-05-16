@@ -13,11 +13,14 @@ private:
 	const int _MAX_CELL_NUM = 30000;
 
 	CellMan cells;
-	double _ATP[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
-	double old_ATP[cont::NX+1][cont::NY+1][cont::NZ+1];
-
-	double _ext_stim[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
-	double old_ext_stim[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
+	double _ATP_internal[cont::NX+1][cont::NY+1][cont::NZ+1];
+	double old_ATP_internal[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
+	double (*_ATP)[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
+	double (*old_ATP)[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
+	double _ext_stim_internal[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
+	double old_ext_stim_internal[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
+	double (*_ext_stim)[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
+	double (*old_ext_stim)[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
 	Cell* cell_map[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
 	uint_fast8_t cell_map2[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
 	uint_fast8_t air_stim_flg[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
@@ -38,8 +41,12 @@ public:
         int __MAX_CELL_NUM=30000,
             bool _forced_sc=false
 		):_MAX_CELL_NUM(__MAX_CELL_NUM),
+		_ATP_internal(),
+		old_ATP_internal(),
 		_ATP(),
 		old_ATP(),
+		_ext_stim_internal(),
+		old_ext_stim_internal(),
 		_ext_stim(),
 		old_ext_stim(),
 		cell_map(),
@@ -48,6 +55,10 @@ public:
         cell_diffu_map(),flg_forced_sc(_forced_sc)
 		{
 using namespace cont;
+_ATP = &_ATP_internal;
+old_ATP = &old_ATP_internal;
+_ext_stim = &_ext_stim_internal;
+old_ext_stim = &old_ext_stim_internal;
 std::memset(_ATP, 0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
 std::memset(old_ATP, 0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
 std::memset(_ext_stim, 0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));

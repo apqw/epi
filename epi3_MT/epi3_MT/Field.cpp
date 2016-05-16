@@ -552,6 +552,7 @@ void Field::calc_b() {
 	int* a_prev_z = new int[iz_bound];
 	int* a_next_z = new int[iz_bound];
     //memcpy(old_ext_stim, _ext_stim, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
+	/*
     tbb::parallel_for(tbb::blocked_range<int>(0, NX+1), [&](const tbb::blocked_range< int >& range) {
         for (int j = range.begin(); j!= range.end(); ++j) {
             for (int k = 0; k <= NY; k++) {
@@ -562,6 +563,8 @@ old_ext_stim[j][k][l]=_ext_stim[j][k][l];
             }
         }
     });
+	*/
+	std::swap(old_ext_stim, _ext_stim);
     for (int l = 0; l < iz_bound; l++) {
         int prev_z = 0, next_z = 0;
         if (l == 0) {
@@ -598,14 +601,14 @@ old_ext_stim[j][k][l]=_ext_stim[j][k][l];
 							flg_cornified = true;
 						}
 					}
-
-					_ext_stim[j][k][l]= old_ext_stim[j][k][l]+DT_Ca*(DB * (cell_map2[prev_x][k][l] * (old_ext_stim[prev_x][k][l] - old_ext_stim[j][k][l])
-						+ cell_map2[j][prev_y][l] * (old_ext_stim[j][prev_y][l] - old_ext_stim[j][k][l])
-						+ cell_map2[j][k][prev_z] * (old_ext_stim[j][k][prev_z] - old_ext_stim[j][k][l])
-						+ cell_map2[next_x][k][l] * (old_ext_stim[next_x][k][l] - old_ext_stim[j][k][l])
-						+ cell_map2[j][next_y][l] * (old_ext_stim[j][next_y][l] - old_ext_stim[j][k][l])
-						+ cell_map2[j][k][next_z] * ( old_ext_stim[j][k][next_z] - old_ext_stim[j][k][l])) *inv_dz*inv_dz
-						+ fB(dum_age, old_ext_stim[j][k][l] ,flg_cornified));
+					auto& cext = (*old_ext_stim)[j][k][l];
+					(*_ext_stim)[j][k][l]= (*old_ext_stim)[j][k][l]+DT_Ca*(DB * (cell_map2[prev_x][k][l] * ((*old_ext_stim)[prev_x][k][l] - cext)
+						+ cell_map2[j][prev_y][l] * ((*old_ext_stim)[j][prev_y][l] - cext)
+						+ cell_map2[j][k][prev_z] * ((*old_ext_stim)[j][k][prev_z] - cext)
+						+ cell_map2[next_x][k][l] * ((*old_ext_stim)[next_x][k][l] - cext)
+						+ cell_map2[j][next_y][l] * ((*old_ext_stim)[j][next_y][l] - cext)
+						+ cell_map2[j][k][next_z] * ((*old_ext_stim)[j][k][next_z] - cext)) *inv_dz*inv_dz
+						+ fB(dum_age, (*old_ext_stim)[j][k][l] ,flg_cornified));
 
 
 				}
@@ -613,8 +616,8 @@ old_ext_stim[j][k][l]=_ext_stim[j][k][l];
 		}
 	});
 	for (int l = 0; l <= iz_bound; l++) {
-		for (int j = 0; j < NX; j++) _ext_stim[j][NY][l]=_ext_stim[j][0][l];
-		for (int k = 0; k <= NY; k++) _ext_stim[NX][k][l]=_ext_stim[0][k][l];
+		for (int j = 0; j < NX; j++) (*_ext_stim)[j][NY][l]= (*_ext_stim)[j][0][l];
+		for (int k = 0; k <= NY; k++)(*_ext_stim)[NX][k][l]= (*_ext_stim)[0][k][l];
 	}
 	delete a_prev_z;
 	delete a_next_z;
@@ -703,6 +706,7 @@ void Field::calc_ca()
     }
 	for (int cstp = 0; cstp <Ca_ITR; cstp++) {
    // std::memcpy(old_ATP, _ATP, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
+		std::swap(old_ATP, _ATP);
 		cells.other_foreach_parallel_native([&iz_bound,this](CellPtr& c) {
 			if (c->state() == DEAD) {
 				
@@ -724,8 +728,8 @@ void Field::calc_ca()
 
 				assert(iz < iz_bound);
 
-				double tmp_a = grid_avg8_n(old_ATP, ix, iy, iz);
-				double tmp_B = grid_avg8_n(_ext_stim, ix, iy, iz);
+				double tmp_a = grid_avg8_n(*old_ATP, ix, iy, iz);
+				double tmp_B = grid_avg8_n(*_ext_stim, ix, iy, iz);
 
 				c->diffu = fu(c->ca2p(), c->ex_inert(), c->IP3(), tmp_B);
 				double _th = thpri;
@@ -767,23 +771,25 @@ void Field::calc_ca()
 					for (int l = 0; l < iz_bound; l++) {
                         int prev_z = a_prev_z[l], next_z = a_next_z[l];
                         double 	tmp = *cell_diffu_map[j][k][l];
-                        double catp=old_ATP[j][k][l];
-						_ATP[j][k][l]
-                            =catp+ DT_Ca*(Da * (cell_map2[prev_x][k][l] * (old_ATP[prev_x][k][l] - catp)
-                                + cell_map2[next_x][k][l] * (old_ATP[next_x][k][l] - catp)
-                                + cell_map2[j][prev_y][l] * (old_ATP[j][prev_y][l] - catp)
-                                + cell_map2[j][next_y][l] * (old_ATP[j][next_y][l] - catp)
-                                + cell_map2[j][k][prev_z] * (old_ATP[j][k][prev_z] - catp)
-                                + cell_map2[j][k][next_z] * (old_ATP[j][k][next_z] - catp)) *inv_dx*inv_dx
+                        double catp=(*old_ATP)[j][k][l];
+						(*_ATP)[j][k][l]
+                            =catp+ DT_Ca*(Da * (cell_map2[prev_x][k][l] * ((*old_ATP)[prev_x][k][l] - catp)
+                                + cell_map2[next_x][k][l] * ((*old_ATP)[next_x][k][l] - catp)
+                                + cell_map2[j][prev_y][l] * ((*old_ATP)[j][prev_y][l] - catp)
+                                + cell_map2[j][next_y][l] * ((*old_ATP)[j][next_y][l] - catp)
+                                + cell_map2[j][k][prev_z] * ((*old_ATP)[j][k][prev_z] - catp)
+                                + cell_map2[j][k][next_z] * ((*old_ATP)[j][k][next_z] - catp)) *inv_dx*inv_dx
                                 + fa(tmp, catp)+air_stim_flg[j][k][l] * AIR_STIM);
 					}
 				}
 			}
 		});
 		for (int l = 0; l <= iz_bound; l++) {
-			for (int j = 0; j < NX; j++) _ATP[j][NY][l]=_ATP[j][0][l];
-			for (int k = 0; k <= NY; k++) _ATP[NX][k][l] = _ATP[0][k][l];
+			for (int j = 0; j < NX; j++) (*_ATP)[j][NY][l]= (*_ATP)[j][0][l];
+			for (int k = 0; k <= NY; k++) (*_ATP)[NX][k][l] = (*_ATP)[0][k][l];
 		}
+		
+		/*
         tbb::parallel_for(tbb::blocked_range<int>(0, NX+1), [&](const tbb::blocked_range< int >& range) {
             for (int j = range.begin(); j!= range.end(); ++j) {
                 for (int k = 0; k <= NY; k++) {
@@ -794,6 +800,7 @@ old_ATP[j][k][l]=_ATP[j][k][l];
                 }
             }
         });
+		*/
 		cells.other_foreach_parallel_native([&iz_bound](CellPtr& c) {
 			c->ca2p.update();
 			c->ex_inert.update();
