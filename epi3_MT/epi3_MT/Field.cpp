@@ -420,7 +420,7 @@ void Field::setup_map()
 	using namespace cont;
 	std::memset(cell_map, 0, sizeof(Cell*)*(NX + 1)*(NY + 1)*(NZ + 1));
 	std::memset(cell_map2, 0, sizeof(uint_fast8_t)*(NX + 1)*(NY + 1)*(NZ + 1));
-	std::memset(air_stim_flg, 0, sizeof(uint_fast8_t)*(NX + 1)*(NY + 1)*(NZ + 1));
+    //std::memset(air_stim_flg, 0, sizeof(uint_fast8_t)*(NX + 1)*(NY + 1)*(NZ + 1));
 	/*
 		for (int i = 0; i != NX; ++i) {
 			for (int j = 0; j <= NY; j++) {
@@ -525,9 +525,6 @@ void Field::setup_map()
 						
 						if (distSq < normal_radSq) {
 							cell_map[ipx][ipy][ipz] = c.get();
-							air_stim_flg[ipx][ipy][ipz] = (c->state() == AIR);
-							
-							
 						}
 						
 					}
@@ -642,14 +639,24 @@ void Field::calc_ca()
     tbb::parallel_for(tbb::blocked_range<int>(0, NX), [&](const tbb::blocked_range< int >& range) {
         for (int j = range.begin(); j!= range.end(); ++j) {
             for (int k = 0; k < NY; k++) {
-                for (int l = 0; l < iz_bound; l++) {
+                for (int l = 0; l <iz_bound; l++) {
                     double*	tmp = &dummy_diffu;
+                    uint_fast8_t asf=0;
                     if (cell_map[j][k][l] != nullptr) {
                         if (get_state_mask(cell_map[j][k][l]->state())&(ALIVE_M | FIX_M | MUSUME_M)) {
                             tmp = &(cell_map[j][k][l]->diffu);
                         }
+
+                        for(auto& conn:cell_map[j][k][l]->connected_cell._cell()){
+                            if(conn->state() == AIR){
+                                asf=1;
+                                break;
+                            }
+                        }
                     }
                     cell_diffu_map[j][k][l]=tmp;
+                    air_stim_flg[j][k][l]=asf;
+                    //air_stim_flg‚Í[0,NX)*[0,NY)*[0,iz_bound)‚Å‚µ‚©Žg‚í‚ê‚È‚¢
                 }
             }
         }
