@@ -646,13 +646,15 @@ void Field::calc_ca()
                         if (get_state_mask(cell_map[j][k][l]->state())&(ALIVE_M | FIX_M | MUSUME_M)) {
                             tmp = &(cell_map[j][k][l]->diffu);
                         }
-
-                        for(auto& conn:cell_map[j][k][l]->connected_cell._cell()){
-                            if(conn->state() == AIR){
+                        int c_count= cell_map[j][k][l]->connected_cell.count();
+                        auto& ccell=cell_map[j][k][l]->connected_cell._cell();
+                        for(int cc=0;cc<c_count;++cc){
+                            if(ccell[cc]->state()==AIR){
                                 asf=1;
                                 break;
                             }
                         }
+
                     }
                     cell_diffu_map[j][k][l]=tmp;
                     air_stim_flg[j][k][l]=asf;

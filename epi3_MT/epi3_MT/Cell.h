@@ -57,7 +57,7 @@ public:
 		return false;
 	}
 
-    std::array<Cell*, N>& _cell(){
+    const std::array<Cell*, N>& _cell() const{
         return cell;
     }
 	
