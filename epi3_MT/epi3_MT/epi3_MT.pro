@@ -9,7 +9,8 @@ SOURCES += main.cpp \
     Field.cpp \
     general_func.cpp \
     primitive_func.cpp \
-    util_func.cpp
+    util_func.cpp \
+    lfqueue.cpp
 
 HEADERS += \
     Cell.h \
@@ -20,7 +21,8 @@ HEADERS += \
     fsys.h \
     general_func.h \
     primitive_func.h \
-    util_func.h
+    util_func.h \
+    lfqueue.h
 QMAKE_INCDIR+=/opt/intel/tbb44_20160413oss/include
 QMAKE_CXXFLAGS_RELEASE-=-O2
 QMAKE_CXXFLAGS+=-std=c++14 -O3 -ipo -xCORE-AVX2

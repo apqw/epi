@@ -33,7 +33,7 @@ private:
 	double calc_zzmax();
 	double zzmax=0;
     int per_x_next_idx[cont::NX],per_x_prev_idx[cont::NX],per_y_next_idx[cont::NY],per_y_prev_idx[cont::NY];
-    int sw=0;
+    std::atomic_int sw=0;
     int num_sc=0;
     bool flg_forced_sc=false;
 public:
@@ -59,10 +59,10 @@ _ATP = &_ATP_internal;
 old_ATP = &old_ATP_internal;
 _ext_stim = &_ext_stim_internal;
 old_ext_stim = &old_ext_stim_internal;
-std::memset(_ATP, 0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
-std::memset(old_ATP, 0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
-std::memset(_ext_stim, 0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
-std::memset(old_ext_stim, 0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
+std::memset(_ATP, a0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
+std::memset(old_ATP, a0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
+std::memset(_ext_stim, B0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
+std::memset(old_ext_stim, B0, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
 std::memset(cell_map, 0, sizeof(Cell*)*(NX + 1)*(NY + 1)*(NZ + 1));
 std::memset(cell_map2, 0, sizeof(uint_fast8_t)*(NX + 1)*(NY + 1)*(NZ + 1));
 std::memset(air_stim_flg, 0, sizeof(uint_fast8_t)*(NX + 1)*(NY + 1)*(NZ + 1));

@@ -4,6 +4,7 @@
 #include "define.h"
 #include "component.h"
 #include "util_func.h"
+#include "lfqueue.h"
 #include <unordered_map>
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_for_each.h>
@@ -226,8 +227,10 @@ public:
 
 class CellMan {
 	std::vector<CellPtr> cell;
-	std::vector<int> remove_index;
-	std::vector<CellPtr> add_cell;
+    LFQueue<int,cont::MAX_CELL_NUM> remove_index;
+    //std::vector<int> remove_index;
+    LFQueue<CellPtr,cont::MAX_CELL_NUM> add_cell;
+    //std::vector<CellPtr> add_cell;
 	int memb_num; int der_num;
 	bool nmemb_is_set; int nder_is_set;
 public:
@@ -403,11 +406,19 @@ public:
 		});
 	}
 	void update() {
+        unsigned int rmsz = remove_index.count();
+        auto& rm_arr = remove_index.raw_arr();
+        for(int i=0;i<rmsz;i++){
+cell[rm_arr[i]] = cell.back();
+cell.pop_back();
+        }
+        /*
 		for (auto ridx : remove_index) {
 			cell[ridx] = cell.back(); //delete(overwrite)
 			cell.pop_back();
 		}
-		cell.insert(cell.end(), add_cell.begin(), add_cell.end());
+        */
+        cell.insert(cell.end(), add_cell.raw_arr().begin(), add_cell.raw_arr().begin()+add_cell.count());
 		add_cell.clear();
 		remove_index.clear();
 	}

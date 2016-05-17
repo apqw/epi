@@ -44,9 +44,9 @@ void Field::interact_cell() {
 		});
 	
 }
-//do not multithread
+//maybe can be multithreaded
 void Field::cell_state_renew() {
-	cells.other_foreach([&](CellPtr& c, int i) {
+    cells.other_foreach_parallel([&](CellPtr& c, int i) {
 		switch (c->state())
 		{
         case MUSUME:
@@ -62,8 +62,8 @@ void Field::cell_state_renew() {
 		case ALIVE:
             if(c->agek()>=cont::THRESH_DEAD){
 
-                sw++;
-                printf("sw updated:%d\n",sw);
+                //sw++;
+                printf("sw updated:%d\n",++sw);
             }
 			c->ALIVE_state_renew();
 
@@ -602,7 +602,9 @@ old_ext_stim[j][k][l]=_ext_stim[j][k][l];
 						}
 					}
 					auto& cext = (*old_ext_stim)[j][k][l];
-					(*_ext_stim)[j][k][l]= (*old_ext_stim)[j][k][l]+DT_Ca*(DB * (cell_map2[prev_x][k][l] * ((*old_ext_stim)[prev_x][k][l] - cext)
+                    (*_ext_stim)[j][k][l]= (*old_ext_stim)[j][k][l]
+                        +DT_Ca*(DB *
+                         (cell_map2[prev_x][k][l] * ((*old_ext_stim)[prev_x][k][l] - cext)
 						+ cell_map2[j][prev_y][l] * ((*old_ext_stim)[j][prev_y][l] - cext)
 						+ cell_map2[j][k][prev_z] * ((*old_ext_stim)[j][k][prev_z] - cext)
 						+ cell_map2[next_x][k][l] * ((*old_ext_stim)[next_x][k][l] - cext)
@@ -1022,4 +1024,34 @@ void Field::init_with_file(std::ifstream& dstrm) {
 	printf("setting initial connection...\n");
 	connect_cells();
 	printf("done.\n");
+
+    printf("initializing values...\n"); //initial_u
+    cells.foreach_parallel_native([&](CellPtr& c){
+c->ca2p.force_set_next_value(u0);
+c->ex_inert.force_set_next_value(v0);
+c->IP3.force_set_next_value(p0);
+c->connected_cell.foreach([&](Cell* conn){
+    c->gj.at(conn).force_set_next_value(w0);
+    c->gj.at(conn).update();
+});
+
+c->ca2p.update();
+c->ex_inert.update();
+c->IP3.update();
+    });
+
+    cells.foreach_parallel_native([&](CellPtr& c){
+    c->ca2p_avg.force_set_next_value(c->ca2p());
+    c->ca2p_avg.update();
+    });
+
+    cells.other_foreach_parallel_native([&](CellPtr& c){
+        if(c->state() == DEAD){
+        c->ca2p_avg.force_set_next_value(0);
+        c->ca2p.force_set_next_value(0);
+        c->ca2p_avg.update();
+        c->ca2p.update();
+        }
+    });
+    printf("done.\n");
 }

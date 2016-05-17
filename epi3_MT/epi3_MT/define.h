@@ -206,6 +206,7 @@ namespace cont {
 	static constexpr double w0 = 0.99;
 	static constexpr double a0 = 0;
 	static constexpr double B0 = 0;
+    static constexpr double ca_0=0.122;
 
 	static constexpr double Rad = 1.4;
 	static constexpr int irx = (int)(Rad*NX / LX);
@@ -214,12 +215,12 @@ namespace cont {
 
 	static constexpr double FAC_MAP = 2.0;
 	static constexpr double Kpp = 0.3;
-	static constexpr double dp = 0.9;
+    static constexpr double dp = 0.1;//ha? 0.9->0.1
 	static constexpr double kf = 8.1;
 	static constexpr double mu0 = 0.567;
 	static constexpr double mu1 = 0.1;
 	static constexpr double kmu = 0.05;
-	static constexpr double para_b = 0.1;
+    static constexpr double para_b = 0.11;
 	static constexpr double para_bb = 0.89;
 	static constexpr double para_k1 = 0.7;
 	static constexpr double gamma = 2.0;
@@ -227,9 +228,9 @@ namespace cont {
 	static constexpr double beta_zero = 0.02;
 	static constexpr double CA_OUT = 1.0;
 	static constexpr double beta = CA_OUT*beta_zero;
-	static constexpr double kbc = 1.0;
+    static constexpr double kbc = 0.4;//1.0->0.4
 	static constexpr double Hb = 0.01;
-	static constexpr double Cout = 0.4;
+    static constexpr double Cout = 1.0;//
 	static constexpr double para_k2 = 0.7;
 	static constexpr double thpri = 1.0;
 	static constexpr double thgra = 0.2;
@@ -239,7 +240,7 @@ namespace cont {
 	static constexpr double Kpri = 6.0;
 	static constexpr double delta_K = 1.0;
 	static constexpr double H0 = 0.5;
-	static constexpr double ca2p_du = 0.03;
+    static constexpr double ca2p_du = 0.01; //ha? 0.03->0.01
 	static constexpr double iage_kitei = 0;
 	static constexpr double delta_I = 1.5;
 	static constexpr double wd = 0.1;
