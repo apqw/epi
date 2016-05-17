@@ -408,7 +408,7 @@ public:
 	void update() {
         unsigned int rmsz = remove_index.count();
         auto& rm_arr = remove_index.raw_arr();
-        for(int i=0;i<rmsz;i++){
+        for(unsigned int i=0;i<rmsz;i++){
 cell[rm_arr[i]] = cell.back();
 cell.pop_back();
         }

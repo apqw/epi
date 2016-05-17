@@ -419,15 +419,8 @@ void Field::setup_map()
 {
 	using namespace cont;
     tbb::parallel_for(tbb::blocked_range<int>(0, NX+1), [&](const tbb::blocked_range< int >& range) {
-        for (int j = range.begin(); j!= range.end(); ++j) {
-            for (int k = 0; k <= NY; k++) {
-
-                for (int l = 0; l <= NZ; l++) {
-cell_map[j][k][l]=0;
-cell_map2[j][k][l]=0;
-                }
-            }
-        }
+		std::memset(&(cell_map[range.begin()]), 0, sizeof(Cell*)*range.size()*(NY + 1)*(NZ + 1));
+		std::memset(&(cell_map2[range.begin()]), 0, sizeof(uint_fast8_t)*range.size()*(NY + 1)*(NZ + 1));
     });
     //std::memset(cell_map, 0, sizeof(Cell*)*(NX + 1)*(NY + 1)*(NZ + 1));
     //std::memset(cell_map2, 0, sizeof(uint_fast8_t)*(NX + 1)*(NY + 1)*(NZ + 1));
