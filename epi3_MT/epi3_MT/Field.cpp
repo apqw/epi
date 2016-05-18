@@ -524,8 +524,9 @@ void Field::setup_map()
 					//ipz = imz = iz + m;
 					//ipz = m;
 					if ((distSq = diffxSq + a_diffySq[yc] + a_diffzSq[zc]) < cradSq) {
+                        if(get_state_mask(c->state())&(ALIVE_M|FIX_M|MUSUME_M)){
 						cell_map2[ipx][ipy][ipz] = 1;
-
+                }
 						
 						if (distSq < normal_radSq) {
 							cell_map[ipx][ipy][ipz] = c.get();
@@ -732,7 +733,7 @@ void Field::calc_ca()
 				double IAGv = iage_kitei;
 				if (c->state()==ALIVE){
 					//ALIVE
-					_th = thgra + ((thpri - thgra)*0.5) * (1.0 + tanh((THRESH_SP - c->agek()) / delta_th));
+                    _th = thgra + ((thpri - thgra)*0.5) * (1.0 + tanh((THRESH_SP - c->agek()) / delta_th));
 					_Kpa = Kgra + ((Kpri - Kgra)*0.5) * (1.0 + tanh((THRESH_SP - c->agek()) / delta_K));
 					IAGv= 0.5*(1.0 + tanh((c->agek() - THRESH_SP) / delta_I));
 				}
@@ -752,7 +753,7 @@ void Field::calc_ca()
 				c->diffu+=ca2p_du*IAGv*tmp_diffu;
 				c->IP3+= DT_Ca*dp*IAGv*tmp_IP3;
 				c->ca2p += DT_Ca*c->diffu;
-				c->ca2p_avg += c->ca2p()+ DT_Ca*c->diffu;
+                c->ca2p_avg += c->ca2p.get_next_value();
 			}
 		});
 

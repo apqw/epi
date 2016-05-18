@@ -115,7 +115,7 @@ namespace cont {
 	static constexpr int MAX_CELL_CONNECT_NUM = 400;
 	static constexpr int MAX_CELL_NUM = 30000;
 	static constexpr double DT_Cell = 0.01;
-	static constexpr double DT_Ca = 0.02;
+    static constexpr double DT_Ca = DT_Cell;//0.02;
 
 	/*
 	LX,LY,LZ:計算領域のサイズ
