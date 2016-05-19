@@ -412,12 +412,6 @@ public:
 cell[rm_arr[i]] = cell.back();
 cell.pop_back();
         }
-        /*
-		for (auto ridx : remove_index) {
-			cell[ridx] = cell.back(); //delete(overwrite)
-			cell.pop_back();
-		}
-        */
         cell.insert(cell.end(), add_cell.raw_arr().begin(), add_cell.raw_arr().begin()+add_cell.count());
 		add_cell.clear();
 		remove_index.clear();
