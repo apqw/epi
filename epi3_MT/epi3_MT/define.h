@@ -115,7 +115,7 @@ namespace cont {
 	static constexpr int MAX_CELL_CONNECT_NUM = 400;
 	static constexpr int MAX_CELL_NUM = 30000;
 	static constexpr double DT_Cell = 0.01;
-    static constexpr double DT_Ca = DT_Cell;//0.02;
+    static constexpr double DT_Ca = 0.01;//0.02;
 
 	/*
 	LX,LY,LZ:計算領域のサイズ
@@ -200,10 +200,11 @@ namespace cont {
     static constexpr int NUM_ITR = 2*((int)1e6); //twice
 	static constexpr double KBEND = 0.5;
 
-    static constexpr int Ca_ITR = 1000;//Ca_N ok
+    static constexpr double Ca_avg_time=10.0;
+    static int Ca_ITR = (int)(Ca_avg_time/DT_Ca);//Ca_N ok
     static constexpr double v0 = 0.97;//ok
     static constexpr double p0 = 0;//ok
-    static constexpr double w0 = 0.99;//ok
+    static constexpr double w0 = 0.1;//ok //0.99->0.1
     static constexpr double a0 = 0;//ok
     static constexpr double B0 = 0;//ok
     static constexpr double ca_0=0.122;//

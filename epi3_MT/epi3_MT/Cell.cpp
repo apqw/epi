@@ -450,7 +450,7 @@ void Cell::FIX_state_renew() {
 		pair_generated=divide_try();
 	}
 	else {
-		ageb += cont::DT_Cell*ageb_const();
+        ageb += cont::DT_Cell*ageb_const(); //ok
 	}
 
 	

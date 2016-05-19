@@ -538,6 +538,18 @@ void Field::setup_map()
 		}
 
 	});
+
+    for(int l=0;l<NZ;l++){
+        for(int j=0;j<NX;j++){
+            cell_map2[j][NY][l]=cell_map2[j][0][l];
+            cell_map[j][NY][l]=cell_map[j][0][l];
+        }
+
+        for(int k=0;k<=NY;k++){
+            cell_map2[NX][k][l]=cell_map2[0][k][l];
+            cell_map[NX][k][l]=cell_map[0][k][l];
+        }
+    }
 }
 
 void Field::calc_b() {
@@ -1048,4 +1060,6 @@ c->IP3.update();
         }
     });
     printf("done.\n");
+
+    printf("Ca2P iteration loop:%d\n",Ca_ITR);
 }
