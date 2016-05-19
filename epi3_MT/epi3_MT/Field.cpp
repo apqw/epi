@@ -119,15 +119,6 @@ void Field::connect_cells() {
 	//warn
 	//impl-dependent-memset
 	std::memset(aindx, 0, sizeof(std::atomic<int>)*ANX*ANY*ANZ);
-	/*
-	for (int i = 0; i < ANX; i++) {
-		for (int j = 0; j < ANY; j++) {
-			for (int k = 0; k < ANZ; k++) {
-                aindx[i][j][k] = 0;
-			}
-		}
-	}
-	*/
     cells.foreach_parallel_native([&](CellPtr& c) {
 		int aix, aiy, aiz;
 		aix = (int)((0.5*LX - p_diff_sc_x(0.5*LX, c->pos[0]())) / AREA_GRID);
@@ -422,24 +413,9 @@ void Field::setup_map()
 		std::memset(&(cell_map[range.begin()]), 0, sizeof(Cell*)*range.size()*(NY + 1)*(NZ + 1));
 		std::memset(&(cell_map2[range.begin()]), 0, sizeof(uint_fast8_t)*range.size()*(NY + 1)*(NZ + 1));
     });
-    //std::memset(cell_map, 0, sizeof(Cell*)*(NX + 1)*(NY + 1)*(NZ + 1));
-    //std::memset(cell_map2, 0, sizeof(uint_fast8_t)*(NX + 1)*(NY + 1)*(NZ + 1));
-    //std::memset(air_stim_flg, 0, sizeof(uint_fast8_t)*(NX + 1)*(NY + 1)*(NZ + 1));
-	/*
-		for (int i = 0; i != NX; ++i) {
-			for (int j = 0; j <= NY; j++) {
-				for (int k = 0; k <= NZ; k++) {
-					air_stim_flg[i][j][k] = 0;
-					
-					cell_map2[i][j][k] = 0;
-				}
-			}
-		}
-	*/
 	cells.foreach_parallel_native([&](CellPtr& c) {
 		
 		auto& cv = c->pos;
-		//double crad = c->old_data.radius;
         c->set_lattice();
 		auto& clat = c->lat;
 		int  k, l, m, ipx, ipy, ipz;
@@ -557,19 +533,6 @@ void Field::calc_b() {
 	int iz_bound = (int)((zzmax + FAC_MAP*R_max) / dz);
 	int* a_prev_z = new int[iz_bound];
 	int* a_next_z = new int[iz_bound];
-    //memcpy(old_ext_stim, _ext_stim, sizeof(double)*(NX + 1)*(NY + 1)*(NZ + 1));
-	/*
-    tbb::parallel_for(tbb::blocked_range<int>(0, NX+1), [&](const tbb::blocked_range< int >& range) {
-        for (int j = range.begin(); j!= range.end(); ++j) {
-            for (int k = 0; k <= NY; k++) {
-
-                for (int l = 0; l <= NZ; l++) {
-old_ext_stim[j][k][l]=_ext_stim[j][k][l];
-                }
-            }
-        }
-    });
-	*/
 	std::swap(old_ext_stim, _ext_stim);
     for (int l = 0; l < iz_bound; l++) {
         int prev_z = 0, next_z = 0;
@@ -631,18 +594,6 @@ old_ext_stim[j][k][l]=_ext_stim[j][k][l];
 	delete a_next_z;
 }
 
-void Field::b_update()
-{
-	/*
-	for (auto& x : ext_stim) {
-		for (auto& y : x) {
-			for (auto& z : y) {
-				z.update();
-			}
-		}
-	}
-	*/
-}
 double th(CELL_STATE state, double age) {
 	assert(get_state_mask(state)&(ALIVE_M | FIX_M | MUSUME_M));
 	using namespace cont;
@@ -796,19 +747,6 @@ void Field::calc_ca()
 			for (int j = 0; j < NX; j++) (*_ATP)[j][NY][l]= (*_ATP)[j][0][l];
 			for (int k = 0; k <= NY; k++) (*_ATP)[NX][k][l] = (*_ATP)[0][k][l];
 		}
-		
-		/*
-        tbb::parallel_for(tbb::blocked_range<int>(0, NX+1), [&](const tbb::blocked_range< int >& range) {
-            for (int j = range.begin(); j!= range.end(); ++j) {
-                for (int k = 0; k <= NY; k++) {
-
-                    for (int l = 0; l <= NZ; l++) {
-old_ATP[j][k][l]=_ATP[j][k][l];
-                    }
-                }
-            }
-        });
-		*/
 		cells.other_foreach_parallel_native([&iz_bound](CellPtr& c) {
 			c->ca2p.update();
 			c->ex_inert.update();
@@ -818,7 +756,6 @@ old_ATP[j][k][l]=_ATP[j][k][l];
 				gjv.second.update();
 			}
 		});
-		//ATP_update();
 	}
 	cells.other_foreach_parallel_native([](CellPtr& c) {
 		if (get_state_mask(c->state())&(ALIVE_M | FIX_M | MUSUME_M)) {
@@ -832,30 +769,6 @@ old_ATP[j][k][l]=_ATP[j][k][l];
         c->ca2p.update();
 	});
     delete a_prev_z;delete a_next_z;
-}
-
-void Field::ATP_update()
-{/*
-    using namespace cont;
-    tbb::parallel_for(tbb::blocked_range<int>(0, NX+1), [&](const tbb::blocked_range< int >& range) {
-        for (int j = range.begin(); j!= range.end(); ++j) {
-            for (auto& y : ATP[j]) {
-                for (auto& z : y) {
-                    z.update();
-                }
-            }
-        }
-    });
-	*/
-/*
-	for (auto& x : ATP) {
-		for (auto& y : x) {
-			for (auto& z : y) {
-				z.update();
-			}
-		}
-	}
-    */
 }
 
 void Field::init_with_file(std::ifstream& dstrm) {
@@ -944,20 +857,6 @@ void Field::init_with_file(std::ifstream& dstrm) {
 				assert(tmp_pair[id_count]->pair == nullptr);
 				cptr->pair = tmp_pair[id_count];
 				tmp_pair[id_count]->pair = cptr;
-				/*
-				if (state == FIX || tmp_pair_state[id_count] == FIX) {
-					cptr->old_data.spring_force =
-						tmp_pair[id_count]->old_data.spring_force = Kspring;
-				}
-				else if (state == MUSUME &&  tmp_pair_state[id_count] == MUSUME) {
-					cptr->old_data.spring_force =
-						tmp_pair[id_count]->old_data.spring_force = Kspring_d;
-				}
-				else {
-					cptr->old_data.spring_force =
-						tmp_pair[id_count]->old_data.spring_force = 0;
-				}
-				*/
 			}
 			else {
 				tmp_pair[pair_cell_id] = cptr;

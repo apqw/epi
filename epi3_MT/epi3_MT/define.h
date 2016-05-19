@@ -34,43 +34,6 @@ template<typename T,unsigned X,unsigned Y,unsigned Z>
 using RawArr3D = std::array<RawArr2D<T, Y, Z>, X>;
 
 
-
-class FObj{};
-class CellUpdateFunc :FObj {
-public:
-//	virtual void operator()(Cell& new_cell, const CellPtr& c_cell) {};
-};
-
-/*
-enum CELL_STATE {
-	ALIVE	= 1u<<0,
-	DEAD	= 1u<<1,
-	DISA	= 1u<<2,
-	UNUSED	= 1u<<3,
-	FIX		= 1u<<4,
-	BLANK	= 1u<<5,
-	DER		= 1u<<6,
-	MUSUME	= 1u<<7,
-	AIR		= 1u<<8,
-	MEMB	= 1u<<9
-};
-*/
-/*
-//diffefenrnentffd
-enum CELL_STATE {
-	MEMB = 0,
-	DER = 1,
-	FIX = 2,
-	MUSUME = 3,
-	ALIVE = 4,
-	AIR = 5,
-	DEAD = 6,
-	DISA = 7,
-	UNUSED = 8, //
-	BLANK = 9
-	
-};
-*/
 enum CELL_STATE:unsigned int {
 	ALIVE = 0,
 	DEAD = 1,

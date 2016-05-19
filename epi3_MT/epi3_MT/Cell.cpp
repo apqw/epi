@@ -120,17 +120,6 @@ double Cell::c_other::operator()(Cell* me, Cell* oppo) {
 	return ljmain(me, oppo);
 }
 
-/*
-void Cell::wall_interact::operator()(Cell* me) {
-	double distlj = 2.0*me->pos[2]();
-	double LJ6 = me->radius() / me->pos[2]();
-	LJ6 = LJ6*LJ6;
-	LJ6 = LJ6*LJ6*LJ6;
-	double ljm = 4.0*cont::eps_m*LJ6*(LJ6 - 1.0) / (distlj*distlj);
-	me->pos[2] += cont::DT_Cell* ljm*2.0*me->pos[2]();
-}
-*/
-
 void Cell::wall_interact() {
 	double distlj = 2.0*pos[2]();
 	double LJ6 = radius() / pos[2]();
@@ -387,7 +376,7 @@ bool Cell::divide_try()
 		pos,
 		radius,
 		ca2p,
-		ca2p_avg,
+        ca2p,//this is avg value,do not use orignal avg
 		IP3,
 		ex_inert,
 		0,0,//set ages 0
