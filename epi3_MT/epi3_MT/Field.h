@@ -33,7 +33,7 @@ private:
 	double calc_zzmax();
 	double zzmax=0;
     int per_x_next_idx[cont::NX],per_x_prev_idx[cont::NX],per_y_next_idx[cont::NY],per_y_prev_idx[cont::NY];
-    std::atomic_int sw=0;
+    std::atomic_int sw=cont::SW_THRESH-1;
     int num_sc=0;
     bool flg_forced_sc=false;
 public:

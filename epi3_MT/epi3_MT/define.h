@@ -204,7 +204,7 @@ namespace cont {
     static int Ca_ITR = (int)(Ca_avg_time/DT_Ca);//Ca_N ok
     static constexpr double v0 = 0.97;//ok
     static constexpr double p0 = 0;//ok
-    static constexpr double w0 = 0.1;//ok //0.99->0.1
+    static constexpr double w0 = 0.99;//ok //0.99->0.1
     static constexpr double a0 = 0;//ok
     static constexpr double B0 = 0;//ok
     static constexpr double ca_0=0.122;//
@@ -255,5 +255,5 @@ namespace cont {
     static constexpr double DUR_DEAD = 2.0;//ok
     static constexpr double kb = 0.025;//0.03->0.025
     static constexpr double T_TURNOVER = 6000.0;//
-    static constexpr int NUM_SC_INIT = SW_THRESH-1;//ok
+    static constexpr int NUM_SC_INIT = 1;//ok ha/???->19->1
 }
