@@ -6,6 +6,15 @@
 #include <random>
 class Cell;
 
+class Random_gen{
+std::mt19937_64 mt;
+std::uniform_real_distribution<double> dist;
+public:
+void init();
+Random_gen();
+double gen_rand_real();
+};
+
 static bool rng_initalized = false;
 static std::mt19937_64 mt;
 static std::uniform_real_distribution<double> rng_real_dist(0.0, 1.0);

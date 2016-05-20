@@ -3,6 +3,22 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+Random_gen::Random_gen():dist(0.0,1.0){
+    init();
+}
+
+void Random_gen::init(){
+    std::random_device rng;
+    std::array<uint32_t, 16> rng_seed;
+    std::generate(rng_seed.begin(), rng_seed.end(), std::ref(rng));
+    std::seed_seq rng_seed_seq(rng_seed.begin(), rng_seed.end());
+    mt.seed(rng_seed_seq);
+}
+
+double Random_gen::gen_rand_real(){
+return dist(mt);
+}
+
 void genrand_init() {
 	std::random_device rng;
 	std::array<uint32_t, 16> rng_seed;
@@ -12,10 +28,8 @@ void genrand_init() {
 	rng_initalized = true;
 }
 double genrand_real() {
-    //assert(rng_initalized);
-    //static thread_local std::mt19937_64 mt;
-    //std::uniform_real_distribution<double> distr(0.0,1.0);
-    return rng_real_dist(mt);
+    static thread_local Random_gen rng;
+    return rng.gen_rand_real();
 }
 
 double p_diff_sc_x(double v1, double v2) {
