@@ -135,7 +135,7 @@ void Cell::DER_interact() {
 		switch (conn->state())
 		{
 		case DER:
-			if (this>conn)_interact<c_der_to_der>(this, conn);
+			if (this->my_construction_count>conn->my_construction_count)_interact<c_der_to_der>(this, conn);
 			break;
 		default:
 			_interact<c_other>(this, conn);
@@ -150,7 +150,7 @@ void Cell::AL_AIR_DE_interact() {
 		switch (conn->state())
 		{
 		case ALIVE:case AIR:case DEAD:
-			if (this>conn)_interact<c_al_air_de_to_al_air_de_fix_mu>(this, conn);
+			if (this->my_construction_count>conn->my_construction_count)_interact<c_al_air_de_to_al_air_de_fix_mu>(this, conn);
 			break;
 		case DER:
 			break;
@@ -169,7 +169,7 @@ void Cell::FIX_interact() {
 		switch (conn->state())
 		{
 		case FIX:
-			if (this>conn)_interact<c_fix_mu_to_fix_mu>(this, conn);
+			if (this->my_construction_count>conn->my_construction_count)_interact<c_fix_mu_to_fix_mu>(this, conn);
 			break;
 		case MUSUME:
 			_interact<c_fix_mu_to_fix_mu>(this, conn);
@@ -197,7 +197,7 @@ void Cell::MUSUME_interact() {
 		switch (conn->state())
 		{
 		case MUSUME:
-			if (this>conn)_interact<c_fix_mu_to_fix_mu>(this, conn);
+			if (this->my_construction_count>conn->my_construction_count)_interact<c_fix_mu_to_fix_mu>(this, conn);
 			break;
 		case MEMB:
 			
@@ -221,7 +221,7 @@ void Cell::MEMB_interact() {
 		{
 		case MEMB:
 			
-			if(this>conn)_interact<c_memb_to_memb>(this, conn);
+			if(this->my_construction_count>conn->my_construction_count)_interact<c_memb_to_memb>(this, conn);
 			break;
 		default:
 			break;
@@ -330,7 +330,7 @@ void Cell::memb_bend_interact() {
 }
 
 void Cell::pair_interact() {
-	if (pair!=nullptr&&this > pair.get()) {
+	if (pair!=nullptr&&this->my_construction_count > pair->my_construction_count) {
 		double dist = sqrt(cellDistSq(this, pair.get()));
 		double force = cont::Kspring_division*(dist - spring_nat_len());
         auto dum = (cont::DT_Cell*force)*p_diff_v3(pos, pair->pos)/dist;
