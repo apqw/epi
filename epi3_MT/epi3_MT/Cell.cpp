@@ -62,10 +62,10 @@ double Cell::c_mu_to_memb::operator()(Cell* me, Cell* oppo) {
 	}
 	else {
 		double spf = 0;
-		if (paired_with_fix(me)) {
+        if (paired_with_fix(me)) { //get this out of loop
 			spf= cont::Kspring;
 		}
-		else if (me->rest_div_times > 0) {
+        else if (me->rest_div_times() > 0) {
 			spf = cont::Kspring_d;
 		}
 		return adhesion(me,oppo, spf);
@@ -177,6 +177,7 @@ void Cell::FIX_interact() {
 		case MEMB:
 			
 			if (dermis == conn) {
+                //printf("fix to memb");
 				_interact<c_fix_to_memb>(this, conn);
 			}
 			else {
@@ -202,6 +203,7 @@ void Cell::MUSUME_interact() {
 		case MEMB:
 			
 			if (dermis == conn) {
+                //printf("mu to memb");
 				_interact<c_mu_to_memb>(this, conn); //fix_to_memb‚É‚È‚Á‚Ä‚½
 			}
 			else {
@@ -485,7 +487,7 @@ void Cell::MUSUME_state_renew() {
 		return;
 	}
 
-	if (rest_div_times>0&&ageb() >= div_age_thresh*(1.0 - cont::stoch_div_time_ratio)) {
+    if (rest_div_times()>0&&ageb() >= div_age_thresh*(1.0 - cont::stoch_div_time_ratio)) {
 		pair_generated = divide_try();
 	}
 	else {
@@ -536,7 +538,7 @@ void Cell::pair_disperse() {
 	double rad_sum = radius() + pair->radius();
 	double unpair_th = unpair_dist_coef*rad_sum;
 	double distSq = 0;
-	if (spring_nat_len < 2.0*radius()) {
+    if (spring_nat_len() < 2.0*radius()) {
 		spring_nat_len += DT_Cell*eps_L;
 		pair->spring_nat_len.force_set_next_value(spring_nat_len() + DT_Cell*eps_L);
 	}

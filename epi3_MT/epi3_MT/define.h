@@ -121,7 +121,7 @@ namespace cont {
     static constexpr double delta_R = 0.4*R_der;//ok
     static constexpr double para_ljp2 = 0.005;//ok
     static constexpr double Kspring_division = 5.0;//ok
-    static constexpr double agki_max = 6.0;//ok
+    static constexpr double agki_max = 5.9;//ok
     static constexpr double fac = 1;//ok
     static constexpr double agki_max_fix = fac*agki_max;//ok
     static constexpr double stoch_div_time_ratio = 0.25;//ok
