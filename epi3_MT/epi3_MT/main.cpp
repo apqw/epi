@@ -5,7 +5,7 @@
 #include "util_func.h"
 #include "Field.h"
 void OutputDebugString(const char* str) {
-	std::cout << "No input specified." << std::endl;
+    std::cout << str << std::endl;
 }
 
 #include "codetest.h"
@@ -30,6 +30,11 @@ int main(int argc, char *argv[]) {
 		//printf("No input specified.\n");
 		exit(1);
 	}
+    if(argc <= 2){
+        OutputDebugString("Last data flag is not specified.");
+        //printf("No input specified.\n");
+        exit(1);
+    }
 
 	make_dir(OUTPUTDIR);
 
@@ -42,7 +47,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	Field* fld = new Field(30000,true);
-	fld->init_with_file(data);
+    fld->init_with_file(data,std::stoi(argv[2])==1);
 genrand_init();
 	fld->main_loop();
 	system("pause");

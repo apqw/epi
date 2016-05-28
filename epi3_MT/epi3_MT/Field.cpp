@@ -10,6 +10,7 @@
 #include <tbb/task_group.h>
 #include <chrono>
 #include <sstream>
+#include <iomanip>
 void Field::interact_cell() {
 
 	
@@ -275,8 +276,8 @@ cells.foreach_parallel([](CellPtr& c,int i) {
 	cells.update();
 	cells.all_cell_update();
 
-	cells.other_foreach([](CellPtr& c, int i) {
-        if (c->pair != nullptr&&c>c->pair) {
+    cells.other_foreach_parallel_native([](CellPtr& c) {
+        if (c->pair != nullptr&&c->my_construction_count>c->pair->my_construction_count) {
 			c->pair_disperse();
 
 		}
@@ -317,10 +318,42 @@ void Field::check_localization(){
 
     });
 }
+
+void Field::output_data_impl(const std::string& filename){
+
+    std::ofstream wfile;
+    wfile.open(filename,std::ios::out);
+    cells.foreach([](CellPtr& c,int i){
+    c->__my_index=i;
+    });
+    using namespace std;
+    cells.foreach([&](CellPtr& c,int i){
+        wfile<<i<<" "
+            <<c->state()<<" "
+           <<fixed<<setprecision(15)<<c->radius()<<" "
+          <<fixed<<setprecision(15)<<c->ageb()<<" "
+         <<fixed<<setprecision(15)<<c->agek()<<" "
+            <<fixed<<setprecision(15)<<c->ca2p()<<" "
+           <<fixed<<setprecision(15)<<c->pos[0]()<<" "
+          <<fixed<<setprecision(15)<<c->pos[1]()<<" "
+         <<fixed<<setprecision(15)<<c->pos[2]()<<" "
+        <<fixed<<setprecision(15)<<c->ca2p_avg()<<" "
+           <<c->rest_div_times()<<" "
+          <<fixed<<setprecision(15)<<c->ex_fat()<<" "
+         <<fixed<<setprecision(15)<<c->in_fat()<<" "
+        <<(c->is_touch?1:0)<<" "
+           <<fixed<<setprecision(15)<<c->spring_nat_len()<<" "
+          <<(c->pair==nullptr?-1:c->pair->__my_index)<<" "
+                                                  <<0<<std::endl;
+    });
+}
+
 void Field::output_data(int idx){
 std::ostringstream _fname;
 _fname<< output_dir<<"/"<<idx;
-std::string filename=_fname.str();
+output_data_impl(_fname.str());
+//std::string filename=_fname.str();
+/*
 std::ofstream wfile;
 wfile.open(filename,std::ios::out);
 cells.foreach([](CellPtr& c,int i){
@@ -345,6 +378,7 @@ cells.foreach([&](CellPtr& c,int i){
       <<(c->pair==nullptr?-1:c->pair->__my_index)<<" "
                                               <<0<<std::endl;
 });
+*/
 }
 
 void Field::main_loop()
@@ -361,6 +395,11 @@ void Field::main_loop()
             printf("logging...\n");
             output_data(i/CUT);
             printf("done.\n");
+        if(i%(CUT*10)==0){
+            printf("saving field data...\n");
+            output_field_data(i);
+            printf("done.\n");
+        }
         }
 
 		cell_dynamics();
@@ -753,7 +792,7 @@ void Field::calc_ca()
     delete a_prev_z;delete a_next_z;
 }
 
-void Field::init_with_file(std::ifstream& dstrm) {
+void Field::init_with_file(std::ifstream& dstrm,bool use_last) {
 	using namespace cont;
 	std::string line;
 	CELL_STATE state;
@@ -765,8 +804,8 @@ void Field::init_with_file(std::ifstream& dstrm) {
 	unsigned int phase = 0;
 	int nmemb = 0;
 	int nder = 0;
-	while (!dstrm.eof()) {
-		std::getline(dstrm, line);
+    while (std::getline(dstrm, line)) {
+
         sscanf(line.c_str(), "%*d %d %lf %lf %lf %*f %lf %lf %lf %*f %d %lf %lf %d %lf %d %d",
 			&state, &rad, &ageb, &agek, &x, &y, &z, &div_times, &ex_fat, &fat, &touch, &spr_len, &pair_cell_id, &stem_orig_id);
 		if (state == BLANK)break; //owari
@@ -801,7 +840,7 @@ void Field::init_with_file(std::ifstream& dstrm) {
 		}
 
 		//if (state == FIX)printf("FIX\n");
-		printf("Phase %d  Cell loaded:%d\n",phase, id_count++);
+
 		if (state == MEMB)nmemb++;
 		if (state == DER)nder++;
 		auto cptr = std::make_shared<Cell>(
@@ -828,7 +867,7 @@ void Field::init_with_file(std::ifstream& dstrm) {
 		agki_max:
 #endif
 			0,//div thresh
-			state==FIX?div_max:0,//rest div times
+            state==FIX?div_max:div_times,//rest div times
 			stem_orig_id<MALIG_NUM,//malignant
 			touch == 1//touch
 			);
@@ -845,7 +884,7 @@ void Field::init_with_file(std::ifstream& dstrm) {
 				tmp_pair_state[pair_cell_id] = state;
 			}
 		}
-
+printf("Phase %d  Cell loaded:%d\n",phase, id_count++);
 
 	}
 
@@ -942,5 +981,136 @@ c->IP3.update();
     });
     printf("done.\n");
 
+if(use_last){
+init_field_data_with_file("last_data_uvp","last_data_w_alt","last_data_a","last_data_B");
+}
+
     printf("Ca2P iteration loop:%d\n",Ca_ITR);
+}
+
+void Field::output_field_data(int i){
+    output_data_impl("last_data_cell");
+
+    cells.foreach([](CellPtr& c,int i){
+    c->__my_index=i;
+    });
+FILE *fuvp,*fw_alt,*fa,*fB,*finfo; //dont use ofstream
+finfo=std::fopen("last_data_info.txt","w");
+std::fprintf(finfo,"i=%d,t=%lf,cell_num=%d\n",i,cont::DT_Cell*i,cells._raw_cell_set().size());
+std::fclose(finfo);
+tbb::task_group t;
+t.run([&]{
+fuvp=std::fopen("last_data_uvp","w");
+cells.foreach([&fuvp](CellPtr& c,int i){
+std::fprintf(fuvp,"%d %1.14e %1.14e %1.14e\n",i,c->ca2p(),c->ex_inert(),c->IP3());
+});
+std::fclose(fuvp);
+});
+t.run([&]{
+fw_alt=std::fopen("last_data_w_alt","w");
+cells.foreach([&fw_alt](CellPtr& c,int i){
+std::fprintf(fw_alt,"%d %d\n",i,c->gj.size());
+for(auto& gjv:c->gj){
+    std::fprintf(fw_alt,"%d %1.14e\n",gjv.first->__my_index,gjv.second());
+}
+});
+std::fclose(fw_alt);
+});
+
+t.run([&]{
+fa=std::fopen("last_data_a","w");
+for(int i=0;i<=cont::NX;i++){
+    for(int j=0;j<=cont::NY;j++){
+        for(int k=0;k<=cont::NZ;k++){
+            std::fprintf(fa,"%f %f %f %1.14e\n",cont::dx*i,cont::dy*j,cont::dz*k,(*_ATP)[i][j][k]);
+        }
+        //std::fprintf(fa,"\n");
+    }
+    //std::fprintf(fa,"\n");
+}
+std::fclose(fa);
+});
+
+t.run([&]{
+fB=std::fopen("last_data_B","w");
+for(int i=0;i<=cont::NX;i++){
+    for(int j=0;j<=cont::NY;j++){
+        for(int k=0;k<=cont::NZ;k++){
+            std::fprintf(fB,"%f %f %f %1.14e\n",cont::dx*i,cont::dy*j,cont::dz*k,(*_ext_stim)[i][j][k]);
+        }
+        //std::fprintf(fB,"\n");
+    }
+    //std::fprintf(fB,"\n");
+}
+std::fclose(fB);
+});
+t.wait();
+}
+
+void Field::init_field_data_with_file(std::string nuvp, std::string nw_alt, std::string na, std::string nB){
+std::ifstream fuvp(nuvp),fw_alt(nw_alt),fa(na),fB(nB);
+std::string ln;
+int cidx,lcount;
+double ca2p,ex_inert,IP3;
+lcount=0;
+while(std::getline(fuvp,ln)){
+    sscanf(ln.c_str(),"%d %lf %lf %lf",&cidx,&ca2p,&ex_inert,&IP3);
+
+CellPtr& c = cells._raw_cell_set()[cidx];
+c->ca2p.force_set_next_value(ca2p);c->ex_inert.force_set_next_value(ex_inert);c->IP3.force_set_next_value(IP3);
+c->ca2p.update();c->ex_inert.update();c->IP3.update();
+lcount++;
+}
+if(lcount!=cells._raw_cell_set().size()){
+    printf("cell num mismatch. lcount=%d real=%d\n",lcount,cells._raw_cell_set().size());
+    exit(1);
+}
+
+lcount=0;
+int gj_len=0;
+while(std::getline(fw_alt,ln)){
+if(sscanf(ln.c_str(),"%d %d",&cidx,&gj_len) != 2){
+    fprintf(stdout,"bad GJ data format (index)\n");
+    fflush(stdout);
+    exit(-1);
+}
+CellPtr& c = cells._raw_cell_set()[cidx];
+int gj_idx=0;double gj_val=0;
+for(int i=0;i<gj_len;i++){
+if(!std::getline(fw_alt,ln)){
+fprintf(stdout,"bad GJ data format\n");
+fflush(stdout);
+exit(-1);
+}
+sscanf(ln.c_str(),"%d %lf",&gj_idx,&gj_val);
+c->gj.emplace(cells._raw_cell_set()[gj_idx].get(),gj_val);
+}
+lcount++;
+}
+assert(lcount==cells._raw_cell_set().size());
+for(int i=0;i<=cont::NX;i++){
+    for(int j=0;j<=cont::NY;j++){
+        for(int k=0;k<=cont::NZ;k++){
+            if(!std::getline(fa,ln)){
+                fprintf(stdout,"bad ATP data format\n");
+                fflush(stdout);
+                exit(-1);
+            }
+            sscanf(ln.c_str(),"%*f %*f %*f %lf",&((*_ATP)[i][j][k]));
+        }
+    }
+}
+
+for(int i=0;i<=cont::NX;i++){
+    for(int j=0;j<=cont::NY;j++){
+        for(int k=0;k<=cont::NZ;k++){
+            if(!std::getline(fB,ln)){
+                fprintf(stdout,"bad ext_stim data format\n");
+                fflush(stdout);
+                exit(-1);
+            }
+            sscanf(ln.c_str(),"%*f %*f %*f %lf",&((*_ext_stim)[i][j][k]));
+        }
+    }
+}
 }
