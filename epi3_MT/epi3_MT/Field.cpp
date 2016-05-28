@@ -186,26 +186,14 @@ void Field::connect_cells() {
                         for (int m = 0; m < sz; ++m) {
 							Cell* o = area[aix][aiy][aiz][m];
                             if (c->my_construction_count <= o->my_construction_count)continue;
-
-							//diffv = c->pos - o->pos;
 							diffx = p_diff_sc_x(c->pos[0]() , o->pos[0]());
 							diffy = p_diff_sc_y(c->pos[1](), o->pos[1]());
 							diffz=c->pos[2]()-o->pos[2]();
 							rad_sum = c->radius() + o->radius();
-                            /*
-                            if (fabs(tmp - tmp2) > 1) {
-                                printf("%lf\n", tmp - tmp2);
-                            }
-                            */
 							if (diffx*diffx + diffy*diffy + diffz*diffz <= LJ_THRESH*LJ_THRESH*rad_sum*rad_sum) {
 								//printf("connecting... %d \n", c->connected_cell.count()+1);
 								c->connected_cell.add(o);
 								o->connected_cell.add(c);
-								/*
-								if (o->state() == MEMB) {
-									printf("eusyo");
-								}
-								*/
 								assert(c->connected_cell.count() < N2);
 							}
 
@@ -470,9 +458,7 @@ void Field::setup_map()
 		}
 		yc = 0; zc = 0;
 		for (k = xmin; k <= xmax; k++) {
-			//imx = k;
 			mx = k * dx;
-
 			ipx = k;
 
 
@@ -494,13 +480,9 @@ void Field::setup_map()
 			diffxSq = diffx*diffx;
 			for (yc=0,l = ymin; l <= ymax; l++,yc++) {
 				ipy = a_ipy[yc];
-
-				
 				for (zc=0,ipz = zmin; ipz <= zmax; ipz++,zc++) {
-					//ipz = imz = iz + m;
-					//ipz = m;
 					if ((distSq = diffxSq + a_diffySq[yc] + a_diffzSq[zc]) < cradSq) {
-                        if(get_state_mask(c->state())&(ALIVE_M|FIX_M|MUSUME_M)){
+                        if(get_state_mask(c->state())&(ALIVE_M|FIX_M|MUSUME_M)){ //put this out of loop
 						cell_map2[ipx][ipy][ipz] = 1;
                 }
 						
