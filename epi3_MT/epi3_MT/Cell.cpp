@@ -369,7 +369,7 @@ bool Cell::divide_try()
 	using namespace cont;
 	if (pair != nullptr)return false;
 
-    double div_gamma = DT_Cell*(is_malignant ? accel_div:1)*eps_kb*u0 / (div_age_thresh*stoch_div_time_ratio);
+    double div_gamma = stoch_corr_coef*DT_Cell*(is_malignant ? accel_div:1)*eps_kb*u0 / (div_age_thresh*stoch_div_time_ratio);
 	if (STOCHASTIC&&genrand_real()>div_gamma) {
 		return false;
 	}
@@ -434,7 +434,8 @@ void Cell::FIX_state_renew() {
         printf("connected_num:%d\n",connected_cell.count());
         assert(dermis != nullptr);
     }
-
+    //using namespace cont;
+//printf("ppp:%lf\n",eps_kb*u0 / (div_age_thresh * stoch_div_time_ratio));
 
 	//if (state() == MUSUME&&rest_div_times <= 0)return false;
 	if (ageb() >= div_age_thresh*(1.0 - cont::stoch_div_time_ratio)) {

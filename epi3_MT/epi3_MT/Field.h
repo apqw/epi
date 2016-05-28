@@ -95,7 +95,8 @@ public:
     }
 
 
-    void init_with_file(std::ifstream& dstrm);
+    void init_with_file(std::ifstream& dstrm,bool use_last=false);
+    void init_field_data_with_file(std::string nuvp,std::string nw_alt,std::string na,std::string nB);
     void cell_dynamics();
     void main_loop();
     void setup_map();
@@ -104,6 +105,8 @@ public:
     void initialize_sc();
     void check_localization();
     void output_data(int i);
+    void output_data_impl(const std::string&);
+    void output_field_data(int i);
 
 
     //~Field();
