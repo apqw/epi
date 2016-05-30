@@ -192,7 +192,7 @@ namespace cont {
     static constexpr double beta_zero = 0.02;//ok
     static constexpr double CA_OUT = 1.0;//ok
     static constexpr double beta = CA_OUT*beta_zero;//ok
-    static constexpr double kbc = 0.4;//1.0->0.4 //ok
+    static constexpr double kbc = 0.4*1.2;//1.0->0.4 //ok //0.6
     static constexpr double Hb = 0.01;//ok
     static constexpr double Cout = 1.0;//ha?? 0.4->1.0 //ok
     static constexpr double para_k2 = 0.7;//ok

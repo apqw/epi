@@ -1,0 +1,93 @@
+#ifndef ATOMICS_H
+#define ATOMICS_H
+#include <atomic>
+#include <array>
+#include <utility>
+
+struct atomic_double {
+private:
+    std::atomic<double> v;
+public:
+    atomic_double():v(0){}
+    atomic_double(double _v) :v(_v) {}
+    atomic_double(atomic_double&& _v):v(_v.v.load()){}
+    atomic_double(const atomic_double& _v):v(_v.v.load()){}
+    atomic_double& operator=(const double c) {
+        double expected = v.load(std::memory_order_relaxed);
+        while (
+            !v.compare_exchange_weak(expected,c));
+        return *this;
+    }
+
+    atomic_double& operator=(const atomic_double& c) {
+        double expected = v.load(std::memory_order_relaxed);
+        double cv=(double)c;
+        while (
+            !v.compare_exchange_weak(expected,cv));
+        return *this;
+    }
+
+
+    operator double() const{
+        return v.load(std::memory_order_relaxed);
+    }
+    /*
+    T& operator()() {
+        return v.load(std::memory_order_relaxed);
+    }
+    */
+
+    atomic_double& operator+=(double c) {
+        auto expected = v.load(std::memory_order_relaxed);
+        while (
+            !v.compare_exchange_weak(expected, expected+c));
+        return *this;
+    }
+    atomic_double& operator*=(double c) {
+        auto expected = v.load(std::memory_order_relaxed);
+        while (
+            !v.compare_exchange_weak(expected, expected * c));
+        return *this;
+    }
+    atomic_double& operator-=(double c) {
+        auto expected = v.load(std::memory_order_relaxed);
+        while (
+            !v.compare_exchange_weak(expected, expected - c));
+        return *this;
+    }
+    atomic_double& operator/=(double c) {
+        auto expected = v.load(std::memory_order_relaxed);
+        while (
+            !v.compare_exchange_weak(expected, expected / c));
+        return *this;
+    }
+
+};
+template<typename T,unsigned N>
+class Lockfree_push_stack{
+private:
+    T _data[N]={};
+std::atomic<size_t> _next=0;
+template<typename ITR,size_t... I>
+Lockfree_push_stack(ITR it,std::index_sequence<I...>):_data{*(it+I)...}{}
+
+public:
+Lockfree_push_stack(){}
+
+void push_back(T&& item){
+_data[_next++]=item;
+}
+void clear(){
+    _next=0;
+}
+
+size_t size() const{
+    return _next;
+}
+
+T& operator[](size_t idx){
+    return _data[idx];
+}
+};
+
+#endif // ATOMICS_H
