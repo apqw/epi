@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	Field* fld = new Field(30000,true);
+    Field* fld = new Field(30000,false);
     fld->init_with_file(data,std::stoi(argv[2])==1);
 genrand_init();
 	fld->main_loop();
