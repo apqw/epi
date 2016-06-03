@@ -69,9 +69,7 @@ sw.first()[idx]=v;
     static SwapData<double[cont::MAX_CELL_NUM]>spr_nat_len_s;
     static SwapData<int[cont::MAX_CELL_NUM]>rest_div_times_s;
     static SwapData<std::unordered_map<Cell*,double>[cont::MAX_CELL_NUM]>gj_s;
-    static size_t unused_id[cont::MAX_CELL_NUM];
-    static std::atomic_size_t id_head;
-    static size_t unused_id_num;
+    static
 public:
     /*
      * ˆÊ’u
