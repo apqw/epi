@@ -10,8 +10,11 @@
 #define defd static double
 #define rdefd static double&
 #define defi static int
+#define rdefi static int&
 #define defui static unsigned int
+#define rdefui static unsigned int&
 #define defs static size_t
+#define rdefs static size_t&
 
 enum CELL_STATE:uint_fast8_t {
     ALIVE = 0,
@@ -123,6 +126,7 @@ namespace cont {
 	defd alpha_b = 5.0;//ok
 	defd ADHE_CONST = 31.3;//ok
 	defui DISA_conn_num_thresh = 11; //Nc ok
+	rdefui Nc = DISA_conn_num_thresh;
 	defd THRESH_DEAD = 22.0;//ok
 	defd eps_kk = 0.10*0.5;//ok
 	defd eps_ks = 0.10*0.5;//ok

@@ -86,6 +86,8 @@ namespace cont {
 		pdefd(alpha_b);
 		pdefd(ADHE_CONST);
 		pdefui(DISA_conn_num_thresh);
+		pdefui(Nc);
+		pdefd(THRESH_DEAD);
 		pdefd(eps_kk);
 		pdefd(eps_ks);
 		pdefd(S0);
@@ -150,7 +152,7 @@ namespace cont {
 		pdefd(STIM11);
 		pdefd(Kaa);
 		pdefd(AIR_STIM);
-		pdefui(AIR_STIM);
+		pdefi(SW_THRESH);
 		pdefd(DB);
 		pdefd(DUR_ALIVE);
 		pdefd(DUR_DEAD);
