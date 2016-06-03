@@ -29,4 +29,62 @@ return *data1;
     }
 };
 
+template<typename T, T& sw, int subidx>
+struct SwapArrAccessor2 {
+private:
+	size_t idx;
+public:
+	const auto& operator()() {
+		return sw.first()[idx][subidx];
+	}
+	template<typename U>
+	SwapArrAccessor2& operator+=(const U& v) {
+		sw.second()[idx][subidx] += v;
+		return *this;
+	}
+
+	template<typename U>
+	void _set(U& v) {
+		sw.first()[idx][subidx] = v;
+	}
+
+	SwapArrAccessor2() {}
+
+	void _migrate(const size_t dest_idx) {
+		sw.first()[dest_idx][subidx] = sw.first()[idx][subidx];
+		sw.second()[dest_idx][subidx] = sw.second()[idx][subidx];
+		idx = dest_idx;
+	}
+	void init(const size_t _idx) {
+		idx = _idx;
+	}
+};
+
+template<typename T, T& sw>
+struct SwapArrAccessor1 {
+	size_t idx;
+	const auto& operator()() {
+		return sw.first()[idx];
+	}
+	template<typename U>
+	SwapArrAccessor1& operator+=(const U& v) {
+		sw.second()[idx] += v;
+		return *this;
+	}
+	template<typename U>
+	void _set(U& v) {
+		sw.first()[idx] = v;
+	}
+
+	SwapArrAccessor1() {}
+	void _migrate(const size_t dest_idx) {
+		sw.first()[dest_idx] = sw.first()[idx];
+		sw.second()[dest_idx] = sw.second()[idx];
+		idx = dest_idx;
+	}
+	void init(const size_t _idx) {
+		idx = _idx;
+	}
+};
+
 #endif // SWAPDATA_H

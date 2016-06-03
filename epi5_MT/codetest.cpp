@@ -1,9 +1,12 @@
 #include "codetest.h"
 #include "atomics.h"
+#include "cell.h"
+#include "cellmanager.h"
 #include <cstdio>
 #include <cassert>
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
+#include <memory>
 bool atomic_double_test(){
     double dval=0.1;
 atomic_double a(dval);
@@ -64,4 +67,20 @@ printf("lfps size:%d pushed:%lf ok\n",a.size(),(double)a[0]);
 
 return true;
 
+}
+
+bool cell_test() {
+	auto p = Cell::create(ALIVE);
+	auto q = Cell::create(DEAD); auto r = Cell::create(DEAD);
+	p->x += 0.1;
+	printf("p idx:%d q idx:%d p prex:%lf\n", p->get_index(), q->get_index(),p->x());
+	Cell::pos_swap();
+	printf("pos swapped p pos:%lf\n", p->x());
+	printf("cell man size:%d\n", Cell::cells.size());
+	Cell::cells.add_remove_queue(1);
+	Cell::cells.remove_exec();
+	printf("cell man size:%d\n", Cell::cells.size());
+	Cell::cells.remove_exec();
+	printf("cell man size:%d\n", Cell::cells.size());
+	return true;
 }

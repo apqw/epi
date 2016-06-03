@@ -1,0 +1,18 @@
+# DT_Cell:細胞の時間ステップ
+DT_Cell = 0.01
+DT_Ca=0.01
+MALIG_NUM=0
+
+dh=0.5
+COMPRESS_FACTOR=4
+eps_m=0.01
+DER_DER_CONST=0.2
+THRESH_SP=3.0
+K_TOTAL=3.0
+K_DESMOSOME_RATIO=0.01
+LJ_THRESH=1.2
+Kspring=25.0
+Kspring_d=5.0
+R_max=1.4
+R_der=1.4
+R_memb=1.0
