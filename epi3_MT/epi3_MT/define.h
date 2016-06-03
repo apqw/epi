@@ -106,7 +106,7 @@ namespace cont {
     static constexpr double P_MEMB = 1. / COMPRESS_FACTOR;//ok
     static constexpr double eps_m = 0.01; //ok
     static constexpr double DER_DER_CONST = 0.2; //ok
-    static constexpr double THRESH_SP = 3.0; //ok
+    static constexpr double THRESH_SP = 3.0; //ok 3.0->1.0
     static constexpr double K_TOTAL = 3.0;//ok
     static constexpr double K_DESMOSOME_RATIO = 0.01;//ok
     static constexpr double K_DESMOSOME = K_TOTAL*K_DESMOSOME_RATIO;//ok
@@ -125,7 +125,7 @@ namespace cont {
     static constexpr double fac = 1;//ok
     static constexpr double agki_max_fix = fac*agki_max;//ok
     static constexpr double stoch_div_time_ratio = 0.25;//ok
-    static constexpr int div_max = 10;//ok
+    static constexpr int div_max = 15;//ok
 	static constexpr double accel_div = 1.0;
     static constexpr double eps_kb = 0.1;//ok
     static constexpr double u0 = 0.122;//ok
@@ -138,10 +138,10 @@ namespace cont {
     static constexpr double S0 = 0.122*0.2;//u0*0.2; ok
     static constexpr double alpha_k = 2.0;//ok
 	static constexpr double accel_diff = 1.0;
-    static constexpr double lipid_rel = 0.05;//ok
+    static constexpr double lipid_rel = 0.05*2.0;//ok
     static constexpr double ubar = 0.25;//ok
     static constexpr double delta_lipid = 0.05;//ok
-    static constexpr double lipid = 0.032;//ok
+    static constexpr double lipid = 0.032*2.0;//ok
 
 #ifdef UNPAIR_DBG
 	static constexpr double eps_L = 1;

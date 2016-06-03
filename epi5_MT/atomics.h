@@ -90,4 +90,6 @@ T& operator[](size_t idx){
 }
 };
 
+template<typename T,unsigned
+
 #endif // ATOMICS_H

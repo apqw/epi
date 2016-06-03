@@ -23,6 +23,8 @@ HEADERS += \
     primitive_func.h \
     util_func.h \
     lfqueue.h
+
+
 QMAKE_INCDIR+=/opt/intel/tbb44_20160413oss/include
 QMAKE_CXXFLAGS_RELEASE-=-O2
 QMAKE_CXXFLAGS+=-std=c++14 -O3 -ipo -xCORE-AVX2
