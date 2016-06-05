@@ -112,6 +112,31 @@ public:
 		assert(_next > 0);
 		_data[idx] = _data[--_next];
 	}
+
+	template<class Fn>
+	void foreach(const Fn& lmbd) {
+		for (size_t i = 0; i < size(); ++i) {
+			lmbd((*this)[i]);
+		}
+	}
+
+	template<class Fn>
+	void foreach_with_index(const Fn& lmbd) {
+		for (size_t i = 0; i < size(); ++i) {
+			lmbd((*this)[i],i);
+		}
+	}
+
+	void force_set_count(size_t c) {
+		_next = c;
+	}
+
+	bool exist(const T& k) const{
+		for (size_t i = 0; i < _next; ++i) {
+			if (_data[i] == k)return true;
+		}
+		return false;
+	}
 };
 
 

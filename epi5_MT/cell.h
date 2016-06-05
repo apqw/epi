@@ -3,62 +3,37 @@
 #include "atomics.h"
 #include "define.h"
 #include "swapdata.h"
+#include "utils.h"
 #include <memory>
 #include <vector>
 #include <unordered_map>
 
-class CellManager;
-class Cell;
-using CellPtr = std::shared_ptr<Cell>;
-
-
 
 class Cell:public std::enable_shared_from_this<Cell>
 {
-
-	static SwapData<atomic_double[cont::MAX_CELL_NUM][3]> pos_s;
-	static SwapData<double[cont::MAX_CELL_NUM]>ca2p_s;
-	static SwapData<double[cont::MAX_CELL_NUM]>IP3_s;
-	static SwapData<double[cont::MAX_CELL_NUM]>ex_inert_s;
-	static SwapData<double[cont::MAX_CELL_NUM]>agek_s;
-	static SwapData<double[cont::MAX_CELL_NUM]>ageb_s;
-	static SwapData<double[cont::MAX_CELL_NUM]>ex_fat_s;
-	static SwapData<double[cont::MAX_CELL_NUM]>in_fat_s;
-	static SwapData<double[cont::MAX_CELL_NUM]>spr_nat_len_s;
-	//static SwapData<int[cont::MAX_CELL_NUM]>rest_div_times_s;
-	static SwapData<std::unordered_map<Cell*, double>[cont::MAX_CELL_NUM]>gj_s;
-	
-
 	size_t index;
+	Cell* _dermis=nullptr;
 
-	
+	struct Memb_data {
+		Cell* memb_u; Cell* memb_b; Cell* memb_l; Cell* memb_r;
+		Cell* memb_bb; Cell* memb_ll;
+		double nv[3]; double ipn;
+		double mv[3]; double ipm;
+		double dn, dm;
+	};
+
+	struct ctor_cookie{};
 
 public:
-
-	static CellManager cells;
-	static void pos_swap();
-	static void ca2p_swap();
-	static void IP3_swap();
-	static void ex_inert_swap();
-	static void agek_swap();
-	static void ageb_swap();
-	static void ex_fat_swap();
-	static void in_fat_swap();
-	static void spr_nat_len_swap();
-	static void load_from_file(std::string path);
-	static void output(std::string path);
-
-	static unsigned int nmemb;
-	static unsigned int nder;
-	//static void 
+	friend class CellManager;
 	/*
 	 * 位置
 	 * 並列で加算など可能
 	 * 相互作用の計算で同時に同じ細胞の値に加算する可能性がある
 	 */
-	SwapArrAccessor2<SwapData<atomic_double[cont::MAX_CELL_NUM][3]>,Cell::pos_s, 0> x;
-	SwapArrAccessor2<SwapData<atomic_double[cont::MAX_CELL_NUM][3]>,Cell::pos_s, 1> y;
-	SwapArrAccessor2<SwapData<atomic_double[cont::MAX_CELL_NUM][3]>,Cell::pos_s, 2> z;
+	SwapArrAccessor2<atomic_double[cont::MAX_CELL_NUM][3],0> x;
+	SwapArrAccessor2<atomic_double[cont::MAX_CELL_NUM][3],1> y;
+	SwapArrAccessor2<atomic_double[cont::MAX_CELL_NUM][3],2> z;
 
 
 
@@ -73,7 +48,7 @@ public:
 	/*
 	 * 分裂中のペアへのポインタ
 	 */
-	CellPtr pair;
+	CellPtr pair=nullptr;
 
 	/*
 	 * 半径
@@ -85,7 +60,7 @@ public:
 	 * Ca2+濃度(平均化されていない)
 	 * この値はCa2+の計算部分以外では使われないはず
 	 */
-	SwapArrAccessor1<SwapData<double[cont::MAX_CELL_NUM]>, Cell::ca2p_s> ca2p;
+	SwapArrAccessor1<double[cont::MAX_CELL_NUM]> ca2p;
 
 	/*
 	 * Ca2+濃度(平均)
@@ -95,32 +70,32 @@ public:
 	/*
 	 * IP3
 	 */
-	SwapArrAccessor1<SwapData<double[cont::MAX_CELL_NUM]>, Cell::IP3_s> IP3;
+	SwapArrAccessor1<double[cont::MAX_CELL_NUM]> IP3;
 
 	/*
 	 * 不活性化物質
 	 */
-	SwapArrAccessor1<SwapData<double[cont::MAX_CELL_NUM]>, Cell::ex_inert_s> ex_inert;
+	SwapArrAccessor1<double[cont::MAX_CELL_NUM]> ex_inert;
 
 	/*
 	 * 分化後の年齢
 	 */
-	SwapArrAccessor1<SwapData<double[cont::MAX_CELL_NUM]>, Cell::agek_s> agek;
+	SwapArrAccessor1<double[cont::MAX_CELL_NUM]> agek;
 
 	/*
 	 * 分化前の年齢
 	 */
-	SwapArrAccessor1<SwapData<double[cont::MAX_CELL_NUM]>, Cell::ageb_s> ageb;
+	SwapArrAccessor1<double[cont::MAX_CELL_NUM]> ageb;
 
 	/*
 	 * 細胞外脂質
 	 */
-	SwapArrAccessor1<SwapData<double[cont::MAX_CELL_NUM]>, Cell::ex_fat_s> ex_fat;
+	SwapArrAccessor1<double[cont::MAX_CELL_NUM]> ex_fat;
 
 	/*
 	 * 細胞内脂質
 	 */
-	SwapArrAccessor1<SwapData<double[cont::MAX_CELL_NUM]>, Cell::in_fat_s> in_fat;
+	SwapArrAccessor1<double[cont::MAX_CELL_NUM]> in_fat;
 
 	/*
 	 * 細胞分裂中のバネの自然長
@@ -128,7 +103,7 @@ public:
 	 * 他の細胞の値も書き換えるが、同時に書き換えないようにできる。
 	 */
 
-	SwapArrAccessor1<SwapData<double[cont::MAX_CELL_NUM]>, Cell::spr_nat_len_s> spr_nat_len;
+	SwapArrAccessor1<double[cont::MAX_CELL_NUM]> spr_nat_len;
 
 	/*
 	 * 分裂開始年齢のしきい値
@@ -157,7 +132,7 @@ public:
 	/*
 	 * gj
 	 */
-	SwapArrAccessor1<SwapData<std::unordered_map<Cell*, double>[cont::MAX_CELL_NUM]>, Cell::gj_s> gj;
+	SwapUMapArrAccessor<Cell*,double,cont::MAX_CELL_NUM> gj;
 
 	/*
 	 * diff_u
@@ -165,26 +140,35 @@ public:
 	 */
 	double diff_u;
 
-	size_t get_index();
+	
+
+	size_t get_index() const;
 	void set_index(size_t i);
+	
+	void set_dermis(Cell* d);
+	const Cell* dermis()const;
+
 	void migrate(size_t dest_idx);
 
 	CELL_STATE state;
 
-	static CellPtr create(CELL_STATE _state, double _x = 0, double _y = 0, double _z = 0,
-		double _radius = cont::R_max, double _ca2p = cont::ca2p_init, double _ca2p_avg = cont::ca2p_init,
-		double _IP3 = cont::IP3_init, double _ex_inert = cont::ex_inert_init,
-		double _agek = 0, double _ageb = 0,
-		double _ex_fat = 0, double _in_fat = 0,
-		double _spr_nat_len = 0,
-		double _div_age_thresh = 0,
-		int _rest_div_times = 0,
-		bool _is_malignant = false);
+	double spring_force_to_memb;
+	Memb_data md;
 
 	/*
-		直接呼ばずにCell::createのほうを使う
+	ctor_cookieがprivateなので自分自身もしくはfriendなclassからのみ生成できる
 	*/
-	Cell(CELL_STATE _state,
+	Cell(ctor_cookie,CELL_STATE _state,
+		SwapData<atomic_double[cont::MAX_CELL_NUM][3]>& pos_s,
+		SwapData<double[cont::MAX_CELL_NUM]>&ca2p_s,
+		SwapData<double[cont::MAX_CELL_NUM]>&IP3_s,
+		SwapData<double[cont::MAX_CELL_NUM]>&ex_inert_s,
+		SwapData<double[cont::MAX_CELL_NUM]>&agek_s,
+		SwapData<double[cont::MAX_CELL_NUM]>&ageb_s,
+		SwapData<double[cont::MAX_CELL_NUM]>&ex_fat_s,
+		SwapData<double[cont::MAX_CELL_NUM]>&in_fat_s,
+		SwapData<double[cont::MAX_CELL_NUM]>&spr_nat_len_s,
+		SwapData<std::unordered_map<Cell*, double>[cont::MAX_CELL_NUM]>&gj_s,
 		double _radius = cont::R_max, double _ca2p_avg = cont::ca2p_init,
 		double _div_age_thresh = 0,
 		bool _is_malignant = false);
