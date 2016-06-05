@@ -52,15 +52,13 @@ public:
 	}
 
 	bool exist(Cell *const  c) {
-		for (int i = 0; i < _count; ++i) {
-			if (cell[i] == c)return true;
-		}
-		return false;
+		return std::find(cell.begin(), cell.begin() + _count, c) != cell.begin() + _count;
 	}
 
     const std::array<Cell*, N>& _cell() const{
         return cell;
     }
+
 	
 
 };
@@ -176,7 +174,7 @@ public:
 	CellPtr pair;
 	Cell* dermis;
 	Vec3<DV<double>> pos = { 0.0,0.0,0.0 };
-	DV<double> radius = 0;
+	const double radius = 0;
 	DV<double> ca2p = 0;
 	DV<double> ca2p_avg = 0;
 	DV<double> IP3 = 0;
@@ -200,7 +198,7 @@ public:
 	Cell(
 		CELL_STATE _state = UNUSED,
 		Vec3<DV<double>> _pos = { 0,0,0 },
-		DV<double> _radius = 0,
+		double _radius = 0,
 		DV<double> _ca2p = 0,
 		DV<double> _ca2p_avg = 0,
 		DV<double> _IP3 = 0,

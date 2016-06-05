@@ -78,14 +78,14 @@ double Cell::c_fix_to_memb::operator()(Cell* me, Cell* oppo) {
 	}
 	else {
 		double distlj = sqrt(cellDistSq(me,oppo));
-		double LJ2 = distlj / (me->radius() + oppo->radius());
+		double LJ2 = distlj / (me->radius + oppo->radius);
 		return  -(cont::Kspring / distlj) * (LJ2 - 1.0);
 	}
 }
 
 double Cell::c_memb_to_memb::operator()(Cell* me, Cell* oppo) {
 	using namespace cont;
-	double rad_sum = me->radius() + oppo->radius();
+	double rad_sum = me->radius + oppo->radius;
 	double cr_dist = rad_sum*P_MEMB;
 	double lambda_dist = (1.0 + P_MEMB)*rad_sum;
 	double distSq = cellDistSq(me, oppo);
@@ -122,7 +122,7 @@ double Cell::c_other::operator()(Cell* me, Cell* oppo) {
 
 void Cell::wall_interact() {
 	double distlj = 2.0*pos[2]();
-	double LJ6 = radius() / pos[2]();
+	double LJ6 = radius / pos[2]();
 	LJ6 = LJ6*LJ6;
 	LJ6 = LJ6*LJ6*LJ6;
 	double ljm = 4.0*cont::eps_m*LJ6*(LJ6 - 1.0) / (distlj*distlj);
@@ -251,7 +251,7 @@ void Cell::update() {
 	pos[0].update();
 	pos[1].update();
 	pos[2].update();
-	radius.update();
+	//radius.update();
 	//ca2p.update();
 	//ca2p_avg.update();
 	//IP3.update();
@@ -328,7 +328,62 @@ Vec3<double> MEMB_bend_data::memb_bend_force_sqr() {
 	do memb_bend_calc1() and memb_bend_calc2() before doing this
 */
 void Cell::memb_bend_interact() {
-	pos += cont::DT_Cell*mbd.memb_bend_force_sqr();
+
+	auto& nvr = mbd.memb_r->mbd.nv;
+	auto& nvl = mbd.memb_l->mbd.nv;
+	auto& nvll = mbd.memb_ll->mbd.nv;
+
+	auto& mvu = mbd.memb_u->mbd.mv;
+	auto& mvb = mbd.memb_b->mbd.mv;
+	auto& mvbb = mbd.memb_bb->mbd.mv;
+
+	auto& ipnl = mbd.memb_l->mbd.ipn;
+	auto& ipnll = mbd.memb_ll->mbd.ipn;
+
+	auto& ipmb = mbd.memb_b->mbd.ipm;
+	auto& ipmbb = mbd.memb_bb->mbd.ipn;
+
+	auto& dnl = mbd.memb_l->mbd.dn;
+	auto& dmb = mbd.memb_b->mbd.dm;
+
+	auto& ipn = mbd.ipn;
+	auto& ipm = mbd.ipm;
+	auto& nv = mbd.nv;
+	auto&mv = mbd.mv;
+	auto&dn = mbd.dn;
+	auto&dm = mbd.dm;
+
+	double x = cont::KBEND*(
+		-(1.0 - ipn)*(nvr[0] - ipn*nv[0]) / dn
+		+ (1.0 - ipnl)*((nv[0] - ipnl*nvl[0]) / dnl - (nvl[0] - ipnl*nv[0]) / dn)
+		+ (1.0 - ipnll)*(nvll[0] - ipnll*nvl[0]) / dnl
+
+		- (1.0 - ipm)*(mvu[0] - ipm*mv[0]) / dm
+		+ (1.0 - ipmb)*((mv[0] - ipmb*mvb[0]) / dmb - (mvb[0] - ipmb*mv[0]) / dm)
+		+ (1.0 - ipmbb)*(mvbb[0] - ipmbb*mvb[0]) / dmb);
+
+	double y = cont::KBEND*(
+		-(1.0 - ipn)*(nvr[1] - ipn*nv[1]) / dn
+		+ (1.0 - ipnl)*((nv[1] - ipnl*nvl[1]) / dnl - (nvl[1] - ipnl*nv[1]) / dn)
+		+ (1.0 - ipnll)*(nvll[1] - ipnll*nvl[1]) / dnl
+
+		- (1.0 - ipm)*(mvu[1] - ipm*mv[1]) / dm
+		+ (1.0 - ipmb)*((mv[1] - ipmb*mvb[1]) / dmb - (mvb[1] - ipmb*mv[1]) / dm)
+		+ (1.0 - ipmbb)*(mvbb[1] - ipmbb*mvb[1]) / dmb);
+
+	double z = cont::KBEND*(
+		-(1.0 - ipn)*(nvr[2] - ipn*nv[2]) / dn
+		+ (1.0 - ipnl)*((nv[2] - ipnl*nvl[2]) / dnl - (nvl[2] - ipnl*nv[2]) / dn)
+		+ (1.0 - ipnll)*(nvll[2] - ipnll*nvl[2]) / dnl
+
+		- (1.0 - ipm)*(mvu[2] - ipm*mv[2]) / dm
+		+ (1.0 - ipmb)*((mv[2] - ipmb*mvb[2]) / dmb - (mvb[2] - ipmb*mv[2]) / dm)
+		+ (1.0 - ipmbb)*(mvbb[2] - ipmbb*mvb[2]) / dmb);
+
+	pos[0] += cont::DT_Cell*x;
+	pos[1] += cont::DT_Cell*y;
+	pos[2] += cont::DT_Cell*z;
+	//pos += cont::DT_Cell*mbd.memb_bend_force_sqr();
 }
 
 void Cell::pair_interact() {
@@ -536,10 +591,10 @@ void Cell::pair_disperse() {
 	using namespace cont;
 	assert(pair != nullptr);
 	assert(pair->pair.get() == this);
-	double rad_sum = radius() + pair->radius();
+	double rad_sum = radius + pair->radius;
 	double unpair_th = unpair_dist_coef*rad_sum;
 	double distSq = 0;
-    if (spring_nat_len() < 2.0*radius()) {
+    if (spring_nat_len() < 2.0*radius) {
 		spring_nat_len += DT_Cell*eps_L;
 		pair->spring_nat_len.force_set_next_value(spring_nat_len() + DT_Cell*eps_L);
 	}

@@ -5,6 +5,7 @@
 #include "utils.h"
 #include <functional>
 #include <cmath>
+#include <tbb/task_group.h>
 
 #define CIFuncCName Coef
 #define CIFuncDecl(name) struct name{static double CIFuncCName(const Cell* c1,const Cell* c2);}
@@ -426,13 +427,19 @@ void init_cell_interaction() {
 
 void cell_interaction(CellManager & cman)
 {
+	tbb::task_group t;
+	t.run([&] {
 		memb_bend(cman);
-
+	});
+	t.run([&] {
 		cman.all_foreach_parallel([&](size_t i) {
 			auto&c = cman[i];
 			interaction_table[c->state](c);
 			if (c->pair != nullptr)_pair_interaction(c);
 		});
+	});
+	t.wait();
+		
 
 	
 }

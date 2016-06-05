@@ -83,19 +83,19 @@ bool is_near_delta(Cell* c1, Cell* c2, double delta) {
 }
 
 double ljmain(Cell* c1, Cell* c2) {
-	return _ljmain(c1->radius(), c2->radius(), cellDistSq(c1, c2));
+	return _ljmain(c1->radius, c2->radius, cellDistSq(c1, c2));
 }
 
 double ljmain_der_near(Cell* c1, Cell* c2) {
-	return _ljmain_der_near(c1->radius(), c2->radius(), sqrt(cellDistSq(c1, c2)));
+	return _ljmain_der_near(c1->radius, c2->radius, sqrt(cellDistSq(c1, c2)));
 }
 
 double ljmain_der_far(Cell* c1, Cell* c2) {
-	return _ljmain_der_far(c1->radius(), c2->radius(), sqrt(cellDistSq(c1, c2)));
+	return _ljmain_der_far(c1->radius, c2->radius, sqrt(cellDistSq(c1, c2)));
 }
 
 double adhesion(Cell* c1, Cell* c2, double sprconst) {
-	return _adhe(sqrt(cellDistSq(c1, c2)), c1->radius() + c2->radius(), sprconst);
+	return _adhe(sqrt(cellDistSq(c1, c2)), c1->radius + c2->radius, sprconst);
 }
 
 bool paired_with_fix(Cell* c1) {
@@ -104,7 +104,8 @@ bool paired_with_fix(Cell* c1) {
 
 Vec3<double> calc_dermis_normal(Cell * me, Cell * dermis)
 {
-	Vec3<double> nv = me->pos - dermis->pos;
+	
+	Vec3<double> nv = p_diff_v3(me->pos, dermis->pos);
 	double norm = sqrt(vec_sum(nv*nv));
 	return nv / norm;
 }

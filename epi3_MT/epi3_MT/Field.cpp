@@ -11,19 +11,20 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
+#include <tbb/blocked_range3d.h>
 void Field::interact_cell() {
 
 	
 	cells.foreach_parallel_native([](CellPtr& c) {
 			switch (c->state()) {
 			case MEMB:
-				if (c->pos[2]() < c->radius()) {
+				if (c->pos[2]() < c->radius) {
 					c->wall_interact();
 				}
 				c->MEMB_interact();
 				break;
 			case DER:
-				if (c->pos[2]() < c->radius()) {
+				if (c->pos[2]() < c->radius) {
 					c->wall_interact();
 				}
 				c->DER_interact();
@@ -190,7 +191,7 @@ void Field::connect_cells() {
 							diffx = p_diff_sc_x(c->pos[0]() , o->pos[0]());
 							diffy = p_diff_sc_y(c->pos[1](), o->pos[1]());
 							diffz=c->pos[2]()-o->pos[2]();
-							rad_sum = c->radius() + o->radius();
+							rad_sum = c->radius + o->radius;
 							if (diffx*diffx + diffy*diffy + diffz*diffz <= LJ_THRESH*LJ_THRESH*rad_sum*rad_sum) {
 								//printf("connecting... %d \n", c->connected_cell.count()+1);
 								c->connected_cell.add(o);
@@ -204,21 +205,32 @@ void Field::connect_cells() {
 			}
 
 	});
-	cells.foreach_parallel_native([&](CellPtr& c) {
 
+	cells.foreach_parallel_native([&](CellPtr& c) {
 		//delete unconnected cell value
-		for (auto it = c->gj.begin(); it != c->gj.end();) {
-			if (!c->connected_cell.exist(it->first)) {
-				it = c->gj.erase(it);
-			}
-			else {
-				++it;
+/*
+		if (c->state() == MEMB) {
+			for (auto&& it = c->gj.begin(), itend = c->gj.end(); it != itend; ++it) {
+				if (!c->connected_cell.exist(it->first)) {
+					it->second._both_set(w0);
+				}
 			}
 		}
+		else {
+		*/
+			for (auto&& it = c->gj.begin(); it != c->gj.end();) {
+				if (!c->connected_cell.exist(it->first)) {
+					it = c->gj.erase(it);
+				}
+				else {
+					++it;
+				}
+			}
+		//}
 
 		//set newly connected cell value
 		c->connected_cell.foreach([&](Cell* cptr) {
-			if (c->gj.count(cptr)==0) {
+			if (c->gj.find(cptr)==c->gj.end()) {
 				c->gj.emplace(cptr, w0);
 			}
 		});
@@ -330,7 +342,7 @@ void Field::output_data_impl(const std::string& filename){
     cells.foreach([&](CellPtr& c,int i){
         wfile<<i<<" "
             <<c->state()<<" "
-           <<fixed<<setprecision(15)<<c->radius()<<" "
+           <<fixed<<setprecision(15)<<c->radius<<" "
           <<fixed<<setprecision(15)<<c->ageb()<<" "
          <<fixed<<setprecision(15)<<c->agek()<<" "
             <<fixed<<setprecision(15)<<c->ca2p()<<" "
@@ -452,9 +464,9 @@ void Field::setup_map()
 		constexpr int _iry = 2 * iry;
 		constexpr int _irz = 2 * irz;
 		double diffx,diffxSq, diffy, diffz, distSq;
-		double crad = FAC_MAP*c->radius();
+		double crad = FAC_MAP*c->radius;
 		double cradSq = crad*crad;
-		double normal_radSq = c->radius()*c->radius();
+		double normal_radSq = c->radius*c->radius;
 		int xmax = clat[0] + _irx; int xmin = clat[0] - _irx;
 		int ymax = clat[1] + _iry; int ymin = clat[1] - _iry;
 		int z_b = clat[2] - _irz;
@@ -496,6 +508,7 @@ void Field::setup_map()
 			zc++;
 		}
 		yc = 0; zc = 0;
+		bool afm_cell = get_state_mask(c->state())&(ALIVE_M | FIX_M | MUSUME_M);
 		for (k = xmin; k <= xmax; k++) {
 			mx = k * dx;
 			ipx = k;
@@ -519,9 +532,10 @@ void Field::setup_map()
 			diffxSq = diffx*diffx;
 			for (yc=0,l = ymin; l <= ymax; l++,yc++) {
 				ipy = a_ipy[yc];
+				double tmps = diffxSq + a_diffySq[yc];
 				for (zc=0,ipz = zmin; ipz <= zmax; ipz++,zc++) {
-					if ((distSq = diffxSq + a_diffySq[yc] + a_diffzSq[zc]) < cradSq) {
-                        if(get_state_mask(c->state())&(ALIVE_M|FIX_M|MUSUME_M)){ //put this out of loop
+					if ((distSq = tmps + a_diffzSq[zc]) < cradSq) {
+                        if(afm_cell){ //put this out of loop
 						cell_map2[ipx][ipy][ipz] = 1;
                 }
 						
@@ -572,15 +586,15 @@ void Field::calc_b() {
         a_prev_z[l]=prev_z;
         a_next_z[l]=next_z;
     }
-	tbb::parallel_for(tbb::blocked_range<int>(0, NX ), [&](const tbb::blocked_range< int >& range) {
+	tbb::parallel_for(tbb::blocked_range3d<int>(0, NX,0,NY,0,iz_bound ), [&](const tbb::blocked_range3d< int >& range) {
 
-		for (int j = range.begin(); j != range.end(); ++j) {
+		for (int j = range.pages().begin(); j != range.pages().end(); ++j) {
             int prev_x = per_x_prev_idx[j];
             int next_x = per_x_next_idx[j];
-			for (int k = 0; k < NY; k++) {
+			for (int k = range.rows().begin(); k != range.rows().end(); k++) {
                 int prev_y = per_y_prev_idx[k];
                 int next_y = per_y_next_idx[k];
-				for (int l = 0; l < iz_bound; l++) {
+				for (int l = range.cols().begin(); l !=range.cols().end() ; l++) {
                     int prev_z = a_prev_z[l], next_z = a_next_z[l];
 					double dum_age = 0;
 					bool flg_cornified = false;

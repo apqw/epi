@@ -11,6 +11,7 @@
 #include "map.h"
 #include "utils.h"
 #include "ext_stim.h"
+#include <tbb/task_group.h>
 
 void cell_dynamics(CellManager& cellset) {
 	cell_interaction(cellset);
@@ -57,10 +58,10 @@ void proc(std::string init_data_path,std::string param_path,std::string init_uvp
 	printf("current cell num:%d\n", cellset->size());
 	for (int i = 0; i < 10000; i++) {
 		if(i%100==0)printf("loop:%d\n", i);
-
-		cell_dynamics(*cellset);
-		zzmax = calc_zzmax(*cellset);
-		setup_map_lat(*cellset, *cell_map1, *cell_map2);
+			cell_dynamics(*cellset);
+			zzmax = calc_zzmax(*cellset);
+			setup_map_lat(*cellset, *cell_map1, *cell_map2);
+		
 		calc_ext_stim(*ext_stim, *cell_map1, *cell_map2, zzmax);
 	}
 }

@@ -561,6 +561,11 @@ public:
         this->next = v;
 	}
 
+	void _both_set(const T& v) {
+		this->next = v;
+		this->value = v;
+	}
+
 
     const T get_next_value()const {
 		return this->next;
