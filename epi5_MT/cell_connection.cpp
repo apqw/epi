@@ -91,27 +91,23 @@ struct lat_arr_##axis {\
 }
 
 void gj_refresh(CellManager& cman) {
-	static std::unordered_map<Cell*,bool> connflg[cont::MAX_CELL_NUM];
 
-	cman.all_foreach_parallel([&](size_t i) {
-		auto&c = cman[i];
+	cman.all_foreach_parallel_native([](Cell* c) {
 		
-		auto&cf = connflg[i];
-		for (auto&& it = cf.begin(); it != cf.end(); ++it) {
-			it->second = false;
+		for (auto&& it = c->gj.begin(); it != c->gj.end();) {
+			if (!c->connected_cell.exist(it->first)) {
+				it = c->gj.erase(it);
+			}
+			else {
+				++it;
+			}
 		}
-		c->connected_cell.foreach([&](Cell* cptr) {
-			cf[cptr] = true;
-			if (!c->gj.exist(cptr)) {
-				c->gj._emplace(cptr, cont::gj_init);
+
+		c->connected_cell.foreach([c](Cell* cptr) {
+			if (c->gj.find(cptr)==c->gj.end()) {
+				c->gj.emplace(cptr, cont::gj_init);
 			}
 		});
-
-		for (auto&& it = cf.begin(); it != cf.end(); ++it) {
-			if (!it->second) {
-				c->gj._set(it->first, cont::gj_init);
-			}
-		}
 	
 	});
 }
@@ -132,7 +128,7 @@ Cell* find_dermis(Cell* c) {
 	return dermis;
 }
 
-void set_dermis(CellManager& cman) {
+inline void set_dermis(CellManager& cman) {
 	cman.other_foreach_parallel([&](size_t i) {
 		auto&c = cman[i];
 		if (c->state == FIX || c->state == MUSUME) {

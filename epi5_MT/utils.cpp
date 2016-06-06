@@ -2,47 +2,8 @@
 #include "define.h"
 #include "cell.h"
 #include <cmath>
-double p_diff_x(double x1, double x2)
-{
-	using namespace cont;
-	double diff = x1 - x2;
-	if (fabs(diff) <= 0.5*LX)return diff;
-	if (diff > 0)return diff - LX;
-	if (diff < 0)return diff + LX;
-	return diff;
-}
-
-double p_diff_y(double y1, double y2)
-{
-	using namespace cont;
-	double diff = y1 - y2;
-	if (fabs(diff) <= 0.5*LY)return diff;
-	if (diff > 0)return diff - LY;
-	if (diff < 0)return diff + LY;
-	return diff;
-}
-
-double p_dist_sq(double x1, double y1, double z1, double x2, double y2, double z2)
-{
-	double diffx = p_diff_x(x1, x2);
-	double diffy = p_diff_y(y1, y2);
-	double diffz = z1 - z2;
-	return diffx*diffx + diffy*diffy + diffz*diffz;
-}
-
-double p_cell_dist_sq(const Cell* c1, const Cell* c2)
-{
-	return p_dist_sq(c1->x(), c1->y(), c1->z(), c2->x(), c2->y(), c2->z());
-}
-
-double min0(double a) {
-	return a > 0 ? a : 0;
-}
 
 
-bool no_double_count(Cell* c1, Cell* c2) {
-	return c1->get_index() > c2->get_index();
-}
 
 int __lat_x[cont::NX*3];
 int __lat_y[cont::NY * 3];

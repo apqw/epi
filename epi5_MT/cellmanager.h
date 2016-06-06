@@ -5,44 +5,42 @@
 #include "define.h"
 #include "swapdata.h"
 #include <tbb/parallel_for.h>
+#include <tbb/parallel_for_each.h>
 #include <tbb/blocked_range.h>
 
 #define D_CELL_LOOP_ACCESSOR(prefix,start,end)\
 template<class Fn>\
-void prefix##_foreach_with_index(const Fn& lmbd) {\
+inline void prefix##_foreach_with_index(const Fn& lmbd) {\
 	for (size_t i = (start); i < (end); ++i) {\
 		lmbd((*this)[i], i);\
 	}\
 }\
 \
 template<class Fn>\
-void prefix##_foreach(const Fn& lmbd) {\
+inline void prefix##_foreach(const Fn& lmbd) {\
 	for (size_t i = (start); i < (end); ++i) {\
 		lmbd((*this)[i]);\
 	}\
 }\
 \
 template<class Fn>\
-void prefix##_foreach_parallel(const Fn& lmbd) {\
+inline void prefix##_foreach_parallel(const Fn& lmbd) {\
 	tbb::parallel_for<size_t,Fn>((start), (end), lmbd);\
+}\
+template<class Fn>\
+inline void prefix##_foreach_parallel_native(const Fn& lmbd) {\
+	\
+	tbb::parallel_for_each(_data+(start),_data+ (end), lmbd);\
 }
-
 
 
 class CellManager :public Lockfree_push_stack<CellPtr, cont::MAX_CELL_NUM> {
 
 	std::vector<std::shared_ptr<Cell>> cell_store;
 
-	SwapData<atomic_double[cont::MAX_CELL_NUM][3]> pos_s;
 	SwapData<double[cont::MAX_CELL_NUM]>ca2p_s;
 	SwapData<double[cont::MAX_CELL_NUM]>IP3_s;
 	SwapData<double[cont::MAX_CELL_NUM]>ex_inert_s;
-	SwapData<double[cont::MAX_CELL_NUM]>agek_s;
-	SwapData<double[cont::MAX_CELL_NUM]>ageb_s;
-	SwapData<double[cont::MAX_CELL_NUM]>ex_fat_s;
-	SwapData<double[cont::MAX_CELL_NUM]>in_fat_s;
-	SwapData<double[cont::MAX_CELL_NUM]>spr_nat_len_s;
-	SwapData<std::unordered_map<Cell*, double>[cont::MAX_CELL_NUM]>gj_s;
 
 	Lockfree_push_stack<size_t, cont::MAX_CELL_NUM> remove_queue;
 	size_t nmemb, nder;

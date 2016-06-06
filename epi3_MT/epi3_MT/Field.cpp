@@ -207,6 +207,7 @@ void Field::connect_cells() {
 	});
 
 	cells.foreach_parallel_native([&](CellPtr& c) {
+		//printf("conn:%d\n", c->connected_cell.count());
 		//delete unconnected cell value
 /*
 		if (c->state() == MEMB) {

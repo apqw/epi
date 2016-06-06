@@ -7,7 +7,7 @@
 
 
 
-void set_lattice(Cell* c) {
+inline void set_lattice(Cell*const& c) {
 	c->lat[0] = precalc_lat_x()[(int)(c->x()*cont::inv_dx) + cont::NX];
 	c->lat[1] = precalc_lat_y()[(int)(c->y()*cont::inv_dy) + cont::NY];
 	c->lat[2] = precalc_lat_z()[(int)(c->z()*cont::inv_dz) + cont::NZ];
@@ -17,7 +17,7 @@ void setup_map_lat(CellManager & cman, Field<Cell*,cont::NX + 1, cont::NY + 1, c
 {
 
 	using namespace cont;
-	tbb::parallel_for(tbb::blocked_range<int>(0, NX + 1), [&](const tbb::blocked_range< int >& range) {
+	tbb::parallel_for(tbb::blocked_range<int>(0, NX + 1), [&cmap1,&cmap2](const tbb::blocked_range< int >& range) {
 		std::memset(&(cmap1()[range.begin()]), 0, sizeof(Cell*)*range.size()*(NY + 1)*(NZ + 1));
 		std::memset(&(cmap2()[range.begin()]), 0, sizeof(uint_fast8_t)*range.size()*(NY + 1)*(NZ + 1));
 	});
@@ -43,22 +43,14 @@ void setup_map_lat(CellManager & cman, Field<Cell*,cont::NX + 1, cont::NY + 1, c
 		int zmin = z_b >= 1 ? z_b : 1;
 		int zmax = z_u < NZ ? z_u : NZ - 1;
 
-		double a_diffySq[_iry * 2 + 1];
-		double a_diffzSq[_irz * 2 + 1];
-		int a_ipy[_iry * 2 + 1];
+		static thread_local double a_diffySq[_iry * 2 + 1];
+		static thread_local double a_diffzSq[_irz * 2 + 1];
+		static thread_local int a_ipy[_iry * 2 + 1];
 		int yc = 0; int zc = 0;
 		for (l = ymin; l <= ymax; l++) {
 			my = l * dy;
 			a_ipy[yc] = precalc_lat_y()[l+NY];
-			diffy = my - c->y();
-			if (fabs(diffy) >= 0.5*LY) {
-				if (diffy > 0) {
-					diffy -= LY;
-				}
-				else {
-					diffy += LY;
-				}
-			}
+			diffy =p_diff_y( my , c->y());
 			a_diffySq[yc] = diffy*diffy;
 			yc++;
 		}
@@ -74,21 +66,14 @@ void setup_map_lat(CellManager & cman, Field<Cell*,cont::NX + 1, cont::NY + 1, c
 		for (k = xmin; k <= xmax; k++) {
 			mx = k * dx;
 			ipx = precalc_lat_x()[k+NX];
-			diffx = mx - c->x();
-			if (fabs(diffx) >= 0.5*LX) {
-				if (diffx > 0) {
-					diffx -= LX;
-				}
-				else {
-					diffx += LX;
-				}
-			}
+			diffx = p_diff_x(mx, c->x());
 			diffxSq = diffx*diffx;
-			for (yc = 0, l = ymin; l <= ymax; l++, yc++) {
+			for (yc = 0; yc<_iry * 2 + 1;yc++) {
 				ipy = a_ipy[yc];
+				double tmps = diffxSq + a_diffySq[yc];
 				for (zc = 0, ipz = zmin; ipz <= zmax; ipz++, zc++) {
 					
-					if ((distSq = diffxSq + a_diffySq[yc] + a_diffzSq[zc]) < cradSq) {
+					if ((distSq = tmps + a_diffzSq[zc]) < cradSq) {
 						if (afm_cell) {
 							cmap2()[ipx][ipy][ipz] = 1;
 						}
@@ -102,8 +87,8 @@ void setup_map_lat(CellManager & cman, Field<Cell*,cont::NX + 1, cont::NY + 1, c
 			}
 		}
 	});
-	for (int l = 0; l<NZ; l++) {
-		for (int j = 0; j<NX; j++) {
+	tbb::parallel_for<size_t>(0, NZ, [&cmap1, &cmap2](size_t l) {
+		for (int j = 0; j<=NX; j++) {
 			cmap2()[j][NY][l] = cmap2()[j][0][l];
 			cmap1()[j][NY][l] = cmap1()[j][0][l];
 		}
@@ -112,5 +97,5 @@ void setup_map_lat(CellManager & cman, Field<Cell*,cont::NX + 1, cont::NY + 1, c
 			cmap2()[NX][k][l] = cmap2()[0][k][l];
 			cmap1()[NX][k][l] = cmap1()[0][k][l];
 		}
-	}
+	});
 }

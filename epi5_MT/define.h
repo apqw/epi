@@ -1,5 +1,6 @@
 #ifndef DEFINE_H
 #define DEFINE_H
+#define NDEBUG
 #include <string>
 #include <memory>
 #define cdefd static constexpr double

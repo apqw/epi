@@ -1,15 +1,42 @@
 #pragma once
 #include <memory>
 #include "define.h"
-
 #define DIST_SQ(x,y,z) ((x)*(x)+(y)*(y)+(z)*(z))
 
-double p_diff_x(double x1, double x2);
-double p_diff_y(double y1, double y2);
-double p_dist_sq(double x1, double y1, double z1, double x2, double y2, double z2);
-double p_cell_dist_sq(const Cell* c1, const Cell* c2);
+inline double p_diff_x(double x1, double x2)
+{
+	using namespace cont;
+	double diff = x1 - x2;
+	if (diff > 0.5*LX)return diff - LX;
+	if (diff <= -0.5*LX)return diff + LX;
+	return diff;
+}
+
+inline double p_diff_y(double y1, double y2)
+{
+	using namespace cont;
+	double diff = y1 - y2;
+	if (diff > 0.5*LY)return diff - LY;
+	if (diff <= -0.5*LY)return diff + LY;
+	return diff;
+}
+
+inline double p_dist_sq(double x1, double y1, double z1, double x2, double y2, double z2)
+{
+	double diffx = p_diff_x(x1, x2);
+	double diffy = p_diff_y(y1, y2);
+	double diffz = z1 - z2;
+	return diffx*diffx + diffy*diffy + diffz*diffz;
+}
+
+inline double min0(double a) {
+	return a > 0 ? a : 0;
+}
+
+
+
+
 double min0(double a);
-bool no_double_count(Cell* c1, Cell* c2);
 
 extern int __lat_x[cont::NX * 3];
 extern int __lat_y[cont::NY * 3];

@@ -13,7 +13,7 @@
 #include "ext_stim.h"
 #include <tbb/task_group.h>
 
-void cell_dynamics(CellManager& cellset) {
+inline void cell_dynamics(CellManager & cellset) {
 	cell_interaction(cellset);
 	cell_state_renew(cellset);
 

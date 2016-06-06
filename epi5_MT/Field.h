@@ -15,7 +15,7 @@ public:
 		tbb::parallel_for(tbb::blocked_range3d<double>(0,X-1,0,Y-1,0,Z-1), lmbd);
 	}
 
-	auto& operator()() {
+	inline auto& operator()() {
 		return _fdata;
 	}
 	//~Field();

@@ -7,6 +7,7 @@
 #include <memory>
 #include <vector>
 #include <unordered_map>
+#include "DualValue.h"
 
 
 class Cell:public std::enable_shared_from_this<Cell>
@@ -31,9 +32,9 @@ public:
 	 * 並列で加算など可能
 	 * 相互作用の計算で同時に同じ細胞の値に加算する可能性がある
 	 */
-	SwapArrAccessor2<atomic_double[cont::MAX_CELL_NUM][3],0> x;
-	SwapArrAccessor2<atomic_double[cont::MAX_CELL_NUM][3],1> y;
-	SwapArrAccessor2<atomic_double[cont::MAX_CELL_NUM][3],2> z;
+	dual_double x;
+	dual_double y;
+	dual_double z;
 
 
 
@@ -80,22 +81,22 @@ public:
 	/*
 	 * 分化後の年齢
 	 */
-	SwapArrAccessor1<double[cont::MAX_CELL_NUM]> agek;
+	double agek;
 
 	/*
 	 * 分化前の年齢
 	 */
-	SwapArrAccessor1<double[cont::MAX_CELL_NUM]> ageb;
+	double ageb;
 
 	/*
 	 * 細胞外脂質
 	 */
-	SwapArrAccessor1<double[cont::MAX_CELL_NUM]> ex_fat;
+	double ex_fat;
 
 	/*
 	 * 細胞内脂質
 	 */
-	SwapArrAccessor1<double[cont::MAX_CELL_NUM]> in_fat;
+	double in_fat;
 
 	/*
 	 * 細胞分裂中のバネの自然長
@@ -103,7 +104,7 @@ public:
 	 * 他の細胞の値も書き換えるが、同時に書き換えないようにできる。
 	 */
 
-	SwapArrAccessor1<double[cont::MAX_CELL_NUM]> spr_nat_len;
+	double spr_nat_len;
 
 	/*
 	 * 分裂開始年齢のしきい値
@@ -132,7 +133,7 @@ public:
 	/*
 	 * gj
 	 */
-	SwapUMapArrAccessor<Cell*,double,cont::MAX_CELL_NUM> gj;
+	std::unordered_map<Cell*,double> gj;
 
 	/*
 	 * diff_u
@@ -142,7 +143,10 @@ public:
 
 	
 
-	size_t get_index() const;
+	inline size_t get_index() const
+	{
+		return index;
+	}
 	void set_index(size_t i);
 	
 	void set_dermis(Cell* d);
@@ -159,20 +163,24 @@ public:
 	ctor_cookieがprivateなので自分自身もしくはfriendなclassからのみ生成できる
 	*/
 	Cell(ctor_cookie,CELL_STATE _state,
-		SwapData<atomic_double[cont::MAX_CELL_NUM][3]>& pos_s,
 		SwapData<double[cont::MAX_CELL_NUM]>&ca2p_s,
 		SwapData<double[cont::MAX_CELL_NUM]>&IP3_s,
 		SwapData<double[cont::MAX_CELL_NUM]>&ex_inert_s,
-		SwapData<double[cont::MAX_CELL_NUM]>&agek_s,
-		SwapData<double[cont::MAX_CELL_NUM]>&ageb_s,
-		SwapData<double[cont::MAX_CELL_NUM]>&ex_fat_s,
-		SwapData<double[cont::MAX_CELL_NUM]>&in_fat_s,
-		SwapData<double[cont::MAX_CELL_NUM]>&spr_nat_len_s,
-		SwapData<std::unordered_map<Cell*, double>[cont::MAX_CELL_NUM]>&gj_s,
+		double _agek = 0,double _ageb = 0,double _ex_fat=0,double _in_fat=0,double _spr_nat_len=0,
+		double _x=0, double _y = 0, double _z = 0,
 		double _radius = cont::R_max, double _ca2p_avg = cont::ca2p_init,
 		double _div_age_thresh = 0,
 		bool _is_malignant = false);
 
 };
+
+inline double p_cell_dist_sq(const Cell*const& c1, const Cell*const& c2)
+{
+	return p_dist_sq(c1->x(), c1->y(), c1->z(), c2->x(), c2->y(), c2->z());
+}
+
+inline bool no_double_count(const Cell*const& c1,const Cell*const& c2) {
+	return c1->get_index() > c2->get_index();
+}
 
 #endif // CELL_H

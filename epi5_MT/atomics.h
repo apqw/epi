@@ -132,10 +132,7 @@ public:
 	}
 
 	bool exist(const T& k) const{
-		for (size_t i = 0; i < _next; ++i) {
-			if (_data[i] == k)return true;
-		}
-		return false;
+		return std::find(_data, _data+_next, k) != _data + _next;
 	}
 };
 

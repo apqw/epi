@@ -7,22 +7,22 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <cassert>
-void calc_dermis_normal(const Cell* me, const Cell*dermis, double* outx, double* outy, double* outz) {
+inline void calc_dermis_normal(const Cell*& me, const Cell*&dermis, double& outx, double& outy, double& outz) {
 	double nvx = p_diff_x(me->x(), dermis->x());
 	double nvy = p_diff_y(me->y(), dermis->y());
 	double nvz = me->z() - dermis->z();
 
 	double norm = sqrt(DIST_SQ(nvx, nvy, nvz));
-	*outx = nvx / norm;
-	*outy = nvy / norm;
-	*outz = nvz / norm;
+	outx = nvx / norm;
+	outy = nvy / norm;
+	outz = nvz / norm;
 
 }
 
 void div_direction(const Cell* me, const Cell*dermis, double* outx, double* outy, double* outz) {
 	
 	double nx, ny, nz;
-	calc_dermis_normal(me, dermis, &nx, &ny, &nz);
+	calc_dermis_normal(me, dermis, nx, ny, nz);
 	double ox, oy, oz;
 	double sum;
 	do {
@@ -71,8 +71,8 @@ void divide_try(CellManager& cman, Cell* div) {
 		div->is_malignant
 		);
 	div->pair->pair = div;
-	div->spr_nat_len._set(delta_L);
-	div->ageb._set(0);
+	div->spr_nat_len=delta_L;
+	div->ageb = 0;
 	if (div->state == MUSUME) {
 		div->rest_div_times--;
 		div->pair->rest_div_times--;
@@ -90,12 +90,12 @@ void divide_try(CellManager& cman, Cell* div) {
 	div->pair->z -= divz*0.5*delta_L;
 }
 
-double ageb_const(Cell* c) {
+inline double ageb_const(Cell*& c) {
 	using namespace cont;
 	return (c->is_malignant ? accel_div : 1)*eps_kb*(ca2p_init + alpha_b*min0(c->ca2p_avg - ca2p_init));
 }
 
-double agek_const(Cell* c) {
+inline double agek_const(Cell*& c) {
 	using namespace cont;
 	//assert(state() == DEAD || state() == AIR || state() == ALIVE);
 	if (c->state == DEAD || c->state == AIR) {
@@ -107,14 +107,14 @@ double agek_const(Cell* c) {
 	}
 }
 
-double k_lipid_release(Cell* c) {
+inline double k_lipid_release(Cell*& c) {
 	using namespace cont;
-	return 0.25*lipid_rel*(1 + tanh((c->ca2p_avg - ubar) / 0.01))*(1 + tanh((c->agek() - THRESH_SP) / delta_lipid));
+	return 0.25*lipid_rel*(1 + tanh((c->ca2p_avg - ubar) / 0.01))*(1 + tanh((c->agek - THRESH_SP) / delta_lipid));
 }
 
-double k_lipid(Cell* c) {
+inline double k_lipid(Cell*& c) {
 	using namespace cont;
-	return 0.25*lipid*(1 + tanh((ubar - c->ca2p_avg) / 0.01))*(1 + tanh((c->agek() - THRESH_SP) / delta_lipid));
+	return 0.25*lipid*(1 + tanh((ubar - c->ca2p_avg) / 0.01))*(1 + tanh((c->agek - THRESH_SP) / delta_lipid));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -131,11 +131,11 @@ void _MUSUME_state_renew(CellManager& cman,Cell* musume) {
 		return;
 	}
 
-	if (musume->rest_div_times > 0 && musume->ageb() >= musume->div_age_thresh*(1.0 - cont::stoch_div_time_ratio)) {
+	if (musume->rest_div_times > 0 && musume->ageb >= musume->div_age_thresh*(1.0 - cont::stoch_div_time_ratio)) {
 		divide_try(cman, musume);
 	}
 	else {
-		musume->ageb = musume->ageb()+cont::DT_Cell*ageb_const(musume);
+		musume->ageb +=cont::DT_Cell*ageb_const(musume);
 	}
 }
 
@@ -148,37 +148,39 @@ void _FIX_state_renew(CellManager& cman, Cell* fix) {
 		return;
 	}
 
-	if (fix->ageb() >= fix->div_age_thresh*(1.0 - cont::stoch_div_time_ratio)) {
+	if (fix->ageb >= fix->div_age_thresh*(1.0 - cont::stoch_div_time_ratio)) {
 		divide_try(cman, fix);
 	}
 	else {
-		fix->ageb =fix->ageb()+ cont::DT_Cell*ageb_const(fix);
+		fix->ageb += cont::DT_Cell*ageb_const(fix);
 	}
 }
 
 void _DEAD_AIR_state_renew(CellManager& cman, Cell* da) {
 	using namespace cont;
-	if (da->agek() >= ADHE_CONST&&da->connected_cell.size() <= DISA_conn_num_thresh) {
+	if (da->agek >= ADHE_CONST&&da->connected_cell.size() <= DISA_conn_num_thresh) {
 		da->state = DISA;
 		cman.add_remove_queue(da->get_index());
 	}
 	else {
-		da->agek =da->agek()+ DT_Cell*agek_const(da);
+		da->agek += DT_Cell*agek_const(da);
 	}
 }
 
-void _ALIVE_state_renew(CellManager& cman, Cell* al) {
+inline void _ALIVE_state_renew(CellManager& cman, Cell* al) {
 	using namespace cont;
 
-	if (al->agek() >= THRESH_DEAD) {
+	if (al->agek >= THRESH_DEAD) {
 		al->state = DEAD;
 		printf("sw updated:%d\n", ++cman.sw);
 	}
 	else {
-		al->agek =al->agek()+ DT_Cell*agek_const(al);
-		double tmp = k_lipid_release(al)*al->in_fat();
-		al->in_fat=al->in_fat()+DT_Cell*(k_lipid(al)*(1.0 - al->in_fat()) - tmp);
-		al->ex_fat =al->ex_fat()+ DT_Cell*tmp;
+		
+		double tmp = k_lipid_release(al)*al->in_fat;
+		al->in_fat+=DT_Cell*(k_lipid(al)*(1.0 - al->in_fat) - tmp);
+		al->ex_fat += DT_Cell*tmp;
+
+		al->agek += DT_Cell*agek_const(al); //update last
 	}
 }
 
@@ -202,20 +204,20 @@ void _init_interaction_table(void(*sr_tbl[cont::STATE_NUM])(CellManager&, Cell*)
 }
 
 
-void pair_disperse(Cell* c) {
+void pair_disperse(Cell*& c) {
 	using namespace cont;
 	assert(c->pair != nullptr);
 	assert(c->pair->pair == c);
 	double rad_sum = c->radius + c->pair->radius;
 	double unpair_th = unpair_dist_coef*rad_sum;
 	double distSq = 0;
-	if (c->spr_nat_len() < 2.0*c->radius) {
-		c->spr_nat_len =c->spr_nat_len()+ DT_Cell*eps_L;
-		c->pair->spr_nat_len._set(c->spr_nat_len() + DT_Cell*eps_L);
+	if (c->spr_nat_len < 2.0*c->radius) {
+		c->spr_nat_len += DT_Cell*eps_L;
+		c->pair->spr_nat_len = c->spr_nat_len;
 	}
 	else if ((distSq = p_cell_dist_sq(c, c->pair))>unpair_th*unpair_th) {
-		c->spr_nat_len._set(0);
-		c->pair->spr_nat_len._set(0);
+		c->spr_nat_len = 0;
+		c->pair->spr_nat_len = 0;
 		c->pair->pair = nullptr;
 		c->pair = nullptr;
 		printf("unpaired. distSq:%lf\n", distSq);

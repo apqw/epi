@@ -15,8 +15,8 @@ void calc_ext_stim(SwapData<Field<double, cont::NX + 1, cont::NY + 1, cont::NZ +
 {
 	using namespace cont;
 	int iz_bound = (int)((zzmax + FAC_MAP*R_max) *inv_dz);
-	int* a_prev_z = new int[iz_bound];
-	int* a_next_z = new int[iz_bound];
+	static int a_prev_z[cont::NZ];
+	static int a_next_z[cont::NZ];
 	for (int l = 0; l < iz_bound; l++) {
 		int prev_z = 0, next_z = 0;
 		if (l == 0) {
@@ -52,7 +52,7 @@ void calc_ext_stim(SwapData<Field<double, cont::NX + 1, cont::NY + 1, cont::NZ +
 
 					if (cmap1()[j][k][l] != nullptr) {
 						if (cmap1()[j][k][l]->state==DEAD|| cmap1()[j][k][l]->state==ALIVE) {
-							dum_age = cmap1()[j][k][l]->agek();
+							dum_age = cmap1()[j][k][l]->agek;
 							flg_cornified = true;
 						}
 					}
@@ -79,6 +79,4 @@ void calc_ext_stim(SwapData<Field<double, cont::NX + 1, cont::NY + 1, cont::NZ +
 	}
 
 	ext_stim.swap();
-	delete a_prev_z;
-	delete a_next_z;
 }
