@@ -7,126 +7,98 @@
 #include <cinttypes>
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
-void CellManager::pos_swap()
+void pos_copy(CellManager& cman)
 {
-	//pos_s.swap();
-}
-
-void CellManager::pos_copy()
-{
-	tbb::parallel_for(tbb::blocked_range<size_t>(0, size()), [&](const tbb::blocked_range<size_t>& range) {
-		for (size_t i = range.begin(); i != range.end(); ++i) {
-			(*this)[i]->x.update();
-			(*this)[i]->y.update();
-			(*this)[i]->z.update();
-		}
+	cman.all_foreach_parallel_native([](Cell* c) {
+		c->x.update();
+		c->y.update();
+		c->z.update();
 	});
 }
 
-void CellManager::ca2p_swap()
+void ca2p_swap(CellManager& cman)
 {
-	ca2p_s.swap();
+	cman.ca2p_s.swap();
 }
 
-void CellManager::IP3_swap()
+void IP3_swap(CellManager& cman)
 {
-	IP3_s.swap();
+	cman.IP3_s.swap();
 }
 
-void CellManager::ex_inert_swap()
-{
-	ex_inert_s.swap();
-}
-
-void CellManager::agek_swap()
-{
-	//agek_s.swap();
-}
-
-void CellManager::ageb_swap()
-{
-	//ageb_s.swap();
-}
-
-void CellManager::ex_fat_swap()
-{
-	//ex_fat_s.swap();
-}
-
-void CellManager::in_fat_swap()
-{
-	//in_fat_s.swap();
-}
-
-void CellManager::spr_nat_len_swap()
-{
-	//spr_nat_len_s.swap();
-}
 
 size_t CellManager::register_cell(const CellPtr & c)
 {
 	return push_back_with_index(c);
 }
 
-void CellManager::add_remove_queue(size_t idx)
+
+void CellManager::_memb_init()
 {
-	remove_queue.push_back(idx);
+	using namespace cont;
+	auto&cells = *this;
+	cells.memb_foreach_with_index([&](CellPtr& cptr, size_t j) {
+		int jj = j%NMX;
+		int kk = j / NMX;
+		if (jj == 0) {
+			cptr->md.memb_l = cells[j + NMX - 1];
+		}
+		else {
+			cptr->md.memb_l = cells[j - 1];
+		}
+
+		if (jj <= 1) {
+			cptr->md.memb_ll = cells[j + NMX - 2];
+		}
+		else {
+			cptr->md.memb_ll = cells[j - 2];
+		}
+
+		if (jj == NMX - 1) {
+			cptr->md.memb_r = cells[j - (NMX - 1)];
+		}
+		else {
+			cptr->md.memb_r = cells[j + 1];
+		}
+
+		if (kk == 0) {
+			cptr->md.memb_b = cells[j + NMX*NMY - NMX];
+		}
+		else {
+			cptr->md.memb_b = cells[j - NMX];
+		}
+
+		if (kk <= 1) {
+			cptr->md.memb_bb = cells[j + NMX*NMY - 2 * NMX];
+		}
+		else {
+			cptr->md.memb_bb = cells[j - 2 * NMX];
+		}
+
+		if (kk == NMY - 1) {
+			cptr->md.memb_u = cells[j - (NMX*NMY - NMX)];
+		}
+		else {
+			cptr->md.memb_u = cells[j + NMX];
+		}
+
+		cptr->connected_cell.push_back(cptr->md.memb_l);
+		cptr->connected_cell.push_back(cptr->md.memb_r);
+		cptr->connected_cell.push_back(cptr->md.memb_b);
+		cptr->connected_cell.push_back(cptr->md.memb_u);
+		//test
+		/*
+		cptr->gj._emplace(cptr->md.memb_l, 0);
+		cptr->gj._emplace(cptr->md.memb_r, 0);
+		cptr->gj._emplace(cptr->md.memb_b, 0);
+		cptr->gj._emplace(cptr->md.memb_u, 0);
+		*/
+	});
 }
 
-void CellManager::remove_exec()
+void CellManager::_load_from_file(std::string path)
 {
-	for (size_t i = 0; i < remove_queue.size(); ++i) {
-		_data[i] = _data[--_next];
-		_data[i]->migrate(i);
-	}
-	remove_queue.clear();
-}
-
-CellPtr CellManager::create(CELL_STATE _state, double _x, double _y, double _z, double _radius, double _ca2p, double _ca2p_avg, double _IP3, double _ex_inert, double _agek, double _ageb, double _ex_fat, double _in_fat, double _spr_nat_len, double _div_age_thresh, int _rest_div_times, bool _is_malignant)
-{
-	
-	std::shared_ptr<Cell> cptr = std::make_shared<Cell>(
-		Cell::ctor_cookie(),
-		_state,
-		ca2p_s,
-		IP3_s,
-		ex_inert_s,
-		_agek,_ageb,_ex_fat,_in_fat,_spr_nat_len,
-	_x,_y,_z,
-		
-		_radius, _ca2p_avg, _div_age_thresh, _is_malignant);
-	cell_store.push_back(cptr);
-	cptr->set_index(this->register_cell(cptr.get()));
-	size_t _index = cptr->get_index();
-	cptr->ca2p.init(_index);
-	cptr->IP3.init(_index);
-	cptr->ex_inert.init(_index);
-	/*
-	cptr->agek.init(_index);
-	cptr->ageb.init(_index);
-	cptr->in_fat.init(_index);
-	cptr->ex_fat.init(_index);
-	cptr->spr_nat_len.init(_index);
-	*/
-	//cptr->rest_div_times.init(_index);
-
-	cptr->ca2p._set(_ca2p);
-	cptr->IP3._set(_IP3);
-	cptr->ex_inert._set(_ex_inert);
-	/*
-	cptr->agek._set(_agek);
-	cptr->ageb._set(_ageb);
-	cptr->in_fat._set(_in_fat);
-	cptr->ex_fat._set(_ex_fat);
-	cptr->spr_nat_len._set(_spr_nat_len);
-	*/
-	cptr->rest_div_times = _rest_div_times;
-
-	return cptr.get();
-}
-
-void cman_load_from_file(CellManager & cman, std::string path)
-{
+	auto&cman = *this;
 	/*
 	ファイル読み込み試行
 	*/
@@ -247,6 +219,71 @@ void cman_load_from_file(CellManager & cman, std::string path)
 	cman.nder = nder;
 }
 
+void CellManager::add_remove_queue(size_t idx)
+{
+	remove_queue.push_back(idx);
+}
+
+void CellManager::remove_exec()
+{
+	for (size_t i = 0; i < remove_queue.size(); ++i) {
+		_data[i] = _data[--_next];
+		_data[i]->migrate(i);
+	}
+	remove_queue.clear();
+}
+
+void CellManager::init_internal(std::string init_data_path)
+{
+	_load_from_file(init_data_path);
+	_memb_init();
+
+}
+
+CellPtr CellManager::create(CELL_STATE _state, double _x, double _y, double _z, double _radius, double _ca2p, double _ca2p_avg, double _IP3, double _ex_inert, double _agek, double _ageb, double _ex_fat, double _in_fat, double _spr_nat_len, double _div_age_thresh, int _rest_div_times, bool _is_malignant)
+{
+	
+	std::shared_ptr<Cell> cptr = std::make_shared<Cell>(
+		Cell::ctor_cookie(),
+		_state,
+		ca2p_s,
+		IP3_s,
+		_ex_inert,
+		_agek,_ageb,_ex_fat,_in_fat,_spr_nat_len,
+	_x,_y,_z,
+		
+		_radius, _ca2p_avg, _div_age_thresh, _is_malignant);
+	cell_store.push_back(cptr);
+	cptr->set_index(this->register_cell(cptr.get()));
+	size_t _index = cptr->get_index();
+	cptr->ca2p.init(_index);
+	cptr->IP3.init(_index);
+	//cptr->ex_inert.init(_index);
+	/*
+	cptr->agek.init(_index);
+	cptr->ageb.init(_index);
+	cptr->in_fat.init(_index);
+	cptr->ex_fat.init(_index);
+	cptr->spr_nat_len.init(_index);
+	*/
+	//cptr->rest_div_times.init(_index);
+
+	cptr->ca2p._set(_ca2p);
+	cptr->IP3._set(_IP3);
+	//cptr->ex_inert._set(_ex_inert);
+	/*
+	cptr->agek._set(_agek);
+	cptr->ageb._set(_ageb);
+	cptr->in_fat._set(_in_fat);
+	cptr->ex_fat._set(_ex_fat);
+	cptr->spr_nat_len._set(_spr_nat_len);
+	*/
+	cptr->rest_div_times = _rest_div_times;
+
+	return cptr.get();
+}
+
+
 void cell_pos_periodic_fix(CellManager& cman) {
 	
 	cman.all_foreach_parallel_native([&](Cell* c) {
@@ -267,3 +304,4 @@ void cell_pos_periodic_fix(CellManager& cman) {
 	});
 	
 }
+

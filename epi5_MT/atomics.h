@@ -109,6 +109,10 @@ public:
 		return _data[idx];
 	}
 
+	const T& operator[](size_t idx)const {
+		return _data[idx];
+	}
+
 	void unordered_remove_non_concurrent(size_t idx) {
 		assert(_next > 0);
 		_data[idx] = _data[--_next];
@@ -118,6 +122,13 @@ public:
 	void foreach(const Fn& lmbd) {
 		for (size_t i = 0; i < size(); ++i) {
             lmbd((*this)[i]);
+		}
+	}
+
+	template<class Fn>
+	void foreach(const Fn& lmbd)const {
+		for (size_t i = 0; i < size(); ++i) {
+			lmbd((*this)[i]);
 		}
 	}
 

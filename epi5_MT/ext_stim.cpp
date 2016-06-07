@@ -5,16 +5,15 @@
 #include "utils.h"
 #include "cell.h"
 
-double fB(double age, double B, bool cornif) {
+inline double fB(double age, double B, bool cornif) {
 	using namespace cont;
 	return (cornif&&age > THRESH_DEAD - DUR_ALIVE&&age <= THRESH_DEAD + DUR_DEAD ? 1 : 0) - kb*B;
 }
 
-void calc_ext_stim(SwapData<Field<double, cont::NX + 1, cont::NY + 1, cont::NZ + 1>>& ext_stim, Field<Cell*, cont::NX + 1, cont::NY + 1, cont::NZ + 1>& cmap1,
-	Field<uint_fast8_t, cont::NX + 1, cont::NY + 1, cont::NZ + 1>& cmap2,double zzmax)
+void calc_ext_stim(SwapData<FArr3D<double>>& ext_stim, FArr3D<Cell*>& cmap1, const FArr3D<uint_fast8_t>& cmap2, double zzmax)
 {
 	using namespace cont;
-	int iz_bound = (int)((zzmax + FAC_MAP*R_max) *inv_dz);
+	const int iz_bound = (int)((zzmax + FAC_MAP*R_max) *inv_dz);
 	static int a_prev_z[cont::NZ];
 	static int a_next_z[cont::NZ];
 	for (int l = 0; l < iz_bound; l++) {
@@ -40,13 +39,13 @@ void calc_ext_stim(SwapData<Field<double, cont::NX + 1, cont::NY + 1, cont::NZ +
 	tbb::parallel_for(tbb::blocked_range3d<size_t>(0, NX, 0, NY, 0, iz_bound), [&](const tbb::blocked_range3d<size_t>& range) {
 		
 		for (size_t j = range.pages().begin(); j < range.pages().end(); ++j) {
-			int prev_x = per_x_prev_idx[j];
-			int next_x = per_x_next_idx[j];
+			const int prev_x = per_x_prev_idx[j];
+			const int next_x = per_x_next_idx[j];
 			for (size_t k = range.rows().begin(); k < range.rows().end(); ++k) {
-				int prev_y = per_y_prev_idx[k];
-				int next_y = per_y_next_idx[k];
+				const int prev_y = per_y_prev_idx[k];
+				const int next_y = per_y_next_idx[k];
 				for (int l = range.cols().begin(); l < range.cols().end(); ++l) {
-					int prev_z = a_prev_z[l], next_z = a_next_z[l];
+					const int prev_z = a_prev_z[l], next_z = a_next_z[l];
 					double dum_age = 0;
 					bool flg_cornified = false;
 
@@ -80,3 +79,4 @@ void calc_ext_stim(SwapData<Field<double, cont::NX + 1, cont::NY + 1, cont::NZ +
 
 	ext_stim.swap();
 }
+

@@ -7,7 +7,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <cassert>
-inline void calc_dermis_normal(const Cell*& me, const Cell*&dermis, double& outx, double& outy, double& outz) {
+inline void calc_dermis_normal(const Cell*const& me, const Cell*const&dermis, double& outx, double& outy, double& outz) {
 	double nvx = p_diff_x(me->x(), dermis->x());
 	double nvy = p_diff_y(me->y(), dermis->y());
 	double nvz = me->z() - dermis->z();
@@ -19,7 +19,7 @@ inline void calc_dermis_normal(const Cell*& me, const Cell*&dermis, double& outx
 
 }
 
-void div_direction(const Cell* me, const Cell*dermis, double* outx, double* outy, double* outz) {
+void div_direction(const Cell*const& me, const Cell*const&dermis, double* outx, double* outy, double* outz) {
 	
 	double nx, ny, nz;
 	calc_dermis_normal(me, dermis, nx, ny, nz);
@@ -46,7 +46,7 @@ void div_direction(const Cell* me, const Cell*dermis, double* outx, double* outy
 	*outz = oz / sum;
 }
 
-void divide_try(CellManager& cman, Cell* div) {
+void divide_try(CellManager& cman, Cell*const& div) {
 	using namespace cont;
 	if (div->pair != nullptr)return;
 	double div_gamma= stoch_corr_coef*DT_Cell*(div->is_malignant ? accel_div : 1)*eps_kb*ca2p_init / (div->div_age_thresh*stoch_div_time_ratio);
@@ -62,7 +62,7 @@ void divide_try(CellManager& cman, Cell* div) {
 		div->ca2p(),
 		div->ca2p(),//this is avg value,do not use orignal avg
 		div->IP3(),
-		div->ex_inert(),
+		div->ex_inert,
 		0, 0,//set ages 0
 		0, 0,//set fats 0
 		delta_L,//init
@@ -90,15 +90,15 @@ void divide_try(CellManager& cman, Cell* div) {
 	div->pair->z -= divz*0.5*delta_L;
 }
 
-inline double ageb_const(Cell*& c) {
+inline double ageb_const(const Cell*const& c) {
 	using namespace cont;
 	return (c->is_malignant ? accel_div : 1)*eps_kb*(ca2p_init + alpha_b*min0(c->ca2p_avg - ca2p_init));
 }
 
-inline double agek_const(Cell*& c) {
+inline double agek_const(const Cell*const& c) {
 	using namespace cont;
 	//assert(state() == DEAD || state() == AIR || state() == ALIVE);
-	if (c->state == DEAD || c->state == AIR) {
+	if (c->state==DEAD || c->state==AIR) {
 		return eps_kk*ca2p_init;
 	}
 	else {
@@ -107,19 +107,19 @@ inline double agek_const(Cell*& c) {
 	}
 }
 
-inline double k_lipid_release(Cell*& c) {
+inline double k_lipid_release(const Cell*const& c) {
 	using namespace cont;
 	return 0.25*lipid_rel*(1 + tanh((c->ca2p_avg - ubar) / 0.01))*(1 + tanh((c->agek - THRESH_SP) / delta_lipid));
 }
 
-inline double k_lipid(Cell*& c) {
+inline double k_lipid(const Cell*const& c) {
 	using namespace cont;
 	return 0.25*lipid*(1 + tanh((ubar - c->ca2p_avg) / 0.01))*(1 + tanh((c->agek - THRESH_SP) / delta_lipid));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void _MUSUME_state_renew(CellManager& cman,Cell* musume) {
+void _MUSUME_state_renew(CellManager& cman,Cell*const& musume) {
 	if (musume->dermis() == nullptr && musume->pair == nullptr) {
 		if (SYSTEM == WHOLE) {
 			printf("ALIVE detected\n");
@@ -139,7 +139,7 @@ void _MUSUME_state_renew(CellManager& cman,Cell* musume) {
 	}
 }
 
-void _FIX_state_renew(CellManager& cman, Cell* fix) {
+void _FIX_state_renew(CellManager& cman, Cell*const& fix) {
 	if (fix->dermis() == nullptr) {
 		printf("err\n");
 		printf("x:%lf,y:%lf,z:%lf\n", fix->x(), fix->y(), fix->z());
@@ -156,7 +156,7 @@ void _FIX_state_renew(CellManager& cman, Cell* fix) {
 	}
 }
 
-void _DEAD_AIR_state_renew(CellManager& cman, Cell* da) {
+void _DEAD_AIR_state_renew(CellManager& cman, Cell*const& da) {
 	using namespace cont;
 	if (da->agek >= ADHE_CONST&&da->connected_cell.size() <= DISA_conn_num_thresh) {
 		da->state = DISA;
@@ -167,7 +167,7 @@ void _DEAD_AIR_state_renew(CellManager& cman, Cell* da) {
 	}
 }
 
-inline void _ALIVE_state_renew(CellManager& cman, Cell* al) {
+inline void _ALIVE_state_renew(CellManager& cman, Cell*const& al) {
 	using namespace cont;
 
 	if (al->agek >= THRESH_DEAD) {
@@ -184,13 +184,13 @@ inline void _ALIVE_state_renew(CellManager& cman, Cell* al) {
 	}
 }
 
-void _NULL_state_renew(CellManager& cman, Cell* al) {
+void _NULL_state_renew(CellManager& cman, Cell*const& al) {
 
 }
 
-void(*state_renew_table[cont::STATE_NUM])(CellManager&,Cell*);
+void(*state_renew_table[cont::STATE_NUM])(CellManager&,Cell*const&);
 
-void _init_interaction_table(void(*sr_tbl[cont::STATE_NUM])(CellManager&, Cell*)) {
+void _init_interaction_table(void(*sr_tbl[cont::STATE_NUM])(CellManager&, Cell*const&)) {
 	sr_tbl[ALIVE] = _ALIVE_state_renew;
 	sr_tbl[DEAD] = _DEAD_AIR_state_renew;
 	sr_tbl[DISA] = _NULL_state_renew;
@@ -204,7 +204,7 @@ void _init_interaction_table(void(*sr_tbl[cont::STATE_NUM])(CellManager&, Cell*)
 }
 
 
-void pair_disperse(Cell*& c) {
+void pair_disperse(Cell*const& c) {
 	using namespace cont;
 	assert(c->pair != nullptr);
 	assert(c->pair->pair == c);
@@ -231,13 +231,13 @@ void init_cell_state_renewal() {
 
 void cell_state_renew(CellManager & cman)
 {
-	cman.other_foreach_parallel([&](size_t i) {
-		auto&c = cman[i];
+	cman.other_foreach_parallel_native([&](Cell*const&c) {
+		//auto&c = cman[i];
 		state_renew_table[c->state](cman, c);
 	});
 	cman.remove_exec();
-	cman.other_foreach_parallel([&](size_t i) {
-		auto&c = cman[i];
+	cman.other_foreach_parallel_native([](Cell*const&c) {
+		//auto&c = cman[i];
 		if (c->pair != nullptr&&no_double_count(c, c->pair)) {
 			pair_disperse(c);
 		}

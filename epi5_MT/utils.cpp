@@ -12,6 +12,8 @@ int per_x_prev_idx[cont::NX];
 int per_x_next_idx[cont::NX];
 int per_y_prev_idx[cont::NY];
 int per_y_next_idx[cont::NY];
+int per_z_prev_idx[cont::NZ];
+int per_z_next_idx[cont::NZ];
 
 void init_precalc_lat()
 {
@@ -54,5 +56,17 @@ void init_precalc_per()
 		}
 		per_y_prev_idx[k] = prev_y;
 		per_y_next_idx[k] = next_y;
+	}
+
+	for (int l = 0; l < NZ; l++) {
+		int prev_z = l-1, next_z = l+1;
+		if (prev_z ==-1) {
+			prev_z = 1;
+		}
+		if (next_z == NZ) {
+			next_z = NZ - 1;
+		}
+		per_z_prev_idx[l] = prev_z;
+		per_z_next_idx[l] = next_z;
 	}
 }

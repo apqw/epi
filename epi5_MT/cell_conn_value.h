@@ -22,7 +22,7 @@ public:
         return _conn_checked;
     }
 
-    inline T&& operator()(){
+    inline T& operator()(){
         return _value;
     }
 };

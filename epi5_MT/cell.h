@@ -14,7 +14,7 @@
 class Cell:public std::enable_shared_from_this<Cell>
 {
 	size_t index;
-	Cell* _dermis=nullptr;
+	const Cell* _dermis=nullptr;
 
 	struct Memb_data {
 		Cell* memb_u; Cell* memb_b; Cell* memb_l; Cell* memb_r;
@@ -77,7 +77,7 @@ public:
 	/*
 	 * •sŠˆ«‰»•¨¿
 	 */
-	SwapArrAccessor1<double[cont::MAX_CELL_NUM]> ex_inert;
+	double ex_inert;
 
 	/*
 	 * •ª‰»Œã‚Ì”N—î
@@ -150,7 +150,7 @@ public:
 	}
 	void set_index(size_t i);
 	
-	void set_dermis(Cell* d);
+	void set_dermis(const Cell* d);
 	const Cell* dermis()const;
 
 	void migrate(size_t dest_idx);
@@ -166,7 +166,7 @@ public:
 	Cell(ctor_cookie,CELL_STATE _state,
 		SwapData<double[cont::MAX_CELL_NUM]>&ca2p_s,
 		SwapData<double[cont::MAX_CELL_NUM]>&IP3_s,
-		SwapData<double[cont::MAX_CELL_NUM]>&ex_inert_s,
+		double _ex_inert=0,
 		double _agek = 0,double _ageb = 0,double _ex_fat=0,double _in_fat=0,double _spr_nat_len=0,
 		double _x=0, double _y = 0, double _z = 0,
 		double _radius = cont::R_max, double _ca2p_avg = cont::ca2p_init,

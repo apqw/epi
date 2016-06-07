@@ -3,25 +3,25 @@
 #include "define.h"
 #define DIST_SQ(x,y,z) ((x)*(x)+(y)*(y)+(z)*(z))
 
-inline double p_diff_x(double x1, double x2)
+inline double p_diff_x(const double x1, const double x2)
 {
 	using namespace cont;
-	double diff = x1 - x2;
+	const double diff = x1 - x2;
 	if (diff > 0.5*LX)return diff - LX;
 	if (diff <= -0.5*LX)return diff + LX;
 	return diff;
 }
 
-inline double p_diff_y(double y1, double y2)
+inline double p_diff_y(const double y1, const double y2)
 {
 	using namespace cont;
-	double diff = y1 - y2;
+	const double diff = y1 - y2;
 	if (diff > 0.5*LY)return diff - LY;
 	if (diff <= -0.5*LY)return diff + LY;
 	return diff;
 }
 
-inline double p_dist_sq(double x1, double y1, double z1, double x2, double y2, double z2)
+inline double p_dist_sq(const double x1, const double y1, const double z1, const double x2, const double y2, const double z2)
 {
 	double diffx = p_diff_x(x1, x2);
 	double diffy = p_diff_y(y1, y2);
@@ -29,11 +29,28 @@ inline double p_dist_sq(double x1, double y1, double z1, double x2, double y2, d
 	return diffx*diffx + diffy*diffy + diffz*diffz;
 }
 
-inline double min0(double a) {
+inline double min0(const double a) {
 	return a > 0 ? a : 0;
 }
+/*
+template<CELL_STATE_MASK First>
+constexpr uint_fast16_t __mask_sum()
+{
+	return First;
+}
 
+template<CELL_STATE_MASK First, CELL_STATE_MASK Second,CELL_STATE_MASK...rest>
+constexpr uint_fast16_t __mask_sum()
+{
+	return First | __mask_sum<Second,rest...>();
+}
 
+template<CELL_STATE_MASK... cs>
+inline bool state_check(CELL_STATE cellstate) {
+	return ((1u << cellstate)&__mask_sum<cs...>()) != 0x0000;
+}
+
+*/
 
 
 double min0(double a);
@@ -45,6 +62,8 @@ extern int per_x_prev_idx[cont::NX];
 extern int per_x_next_idx[cont::NX];
 extern int per_y_prev_idx[cont::NY];
 extern int per_y_next_idx[cont::NY];
+extern int per_z_prev_idx[cont::NZ];
+extern int per_z_next_idx[cont::NZ];
 
 void init_precalc_lat();
 constexpr int(&precalc_lat_x())[cont::NX * 3]{
@@ -72,4 +91,12 @@ constexpr int(&precalc_per_next_y())[cont::NY]{
 
 constexpr int(&precalc_per_prev_y())[cont::NY]{
 	return per_y_prev_idx;
+}
+
+constexpr int(&precalc_per_next_z())[cont::NZ]{
+	return per_z_next_idx;
+}
+
+constexpr int(&precalc_per_prev_z())[cont::NZ]{
+	return per_z_prev_idx;
 }

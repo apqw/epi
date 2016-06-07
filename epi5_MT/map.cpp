@@ -22,8 +22,8 @@ void setup_map_lat(CellManager & cman, Field<Cell*,cont::NX + 1, cont::NY + 1, c
 		std::memset(&(cmap2()[range.begin()]), 0, sizeof(uint_fast8_t)*range.size()*(NY + 1)*(NZ + 1));
 	});
 
-	cman.all_foreach_parallel([&](size_t i) {
-		auto&c = cman[i];
+	cman.all_foreach_parallel_native([&](Cell*&c) {
+		//auto&c = cman[i];
 		set_lattice(c);
 		auto& clat = c->lat;
 		int  k, l, m, ipx, ipy, ipz;

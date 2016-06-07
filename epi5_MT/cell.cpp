@@ -18,7 +18,7 @@ void Cell::set_index(size_t i)
 	index = i;
 }
 
-void Cell::set_dermis(Cell * d)
+void Cell::set_dermis(const Cell *const d)
 {
 	_dermis = d;
 }
@@ -34,7 +34,7 @@ void Cell::migrate(size_t dest_idx)
 	size_t _index = get_index();
 	ca2p._migrate(_index);
 	IP3._migrate(_index);
-	ex_inert._migrate(_index);
+	//ex_inert._migrate(_index);
 //	agek._migrate(_index);
 //	ageb._migrate(_index);
 //	in_fat._migrate(_index);
@@ -47,7 +47,7 @@ void Cell::migrate(size_t dest_idx)
 Cell::Cell(ctor_cookie,CELL_STATE _state, 
 	SwapData<double[cont::MAX_CELL_NUM]>&ca2p_s,
 	SwapData<double[cont::MAX_CELL_NUM]>&IP3_s,
-	SwapData<double[cont::MAX_CELL_NUM]>&ex_inert_s,
+	double _ex_inert,
 	double _agek , double _ageb , double _ex_fat , double _in_fat, double _spr_nat_len,
 	double _x, double _y, double _z,
 	double _radius , double _ca2p_avg ,
@@ -59,7 +59,7 @@ Cell::Cell(ctor_cookie,CELL_STATE _state,
 	z(_z),
 	ca2p(ca2p_s),
 	IP3(IP3_s),
-	ex_inert(ex_inert_s),
+	ex_inert(_ex_inert),
 	agek(_agek),
 	ageb(_ageb),
 	ex_fat(_ex_fat),

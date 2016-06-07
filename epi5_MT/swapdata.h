@@ -29,6 +29,13 @@ return *data1;
     T& second(){
         return *data2;
     }
+
+	const T& first()const {
+		return *data1;
+	}
+	const T& second()const {
+		return *data2;
+	}
     void swap(){
         T* tmp=data2;
         data2=data1;

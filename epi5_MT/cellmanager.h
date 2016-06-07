@@ -35,30 +35,32 @@ inline void prefix##_foreach_parallel_native(const Fn& lmbd) {\
 	tbb::parallel_for_each(_data+(start),_data+ (end), lmbd);\
 }
 
+/*
 
-class CellManager :public Lockfree_push_stack<CellPtr, cont::MAX_CELL_NUM> {
+	ManagerÇæÇ©ÇÁÇ∆åæÇ¡ÇƒÇ»ÇÒÇ≈Ç‡Ç©ÇÒÇ≈Ç‡ãlÇﬂçûÇ‹Ç»Ç¢Ç±Ç∆ÅIÅI
+
+*/
+class CellManager :Lockfree_push_stack<CellPtr, cont::MAX_CELL_NUM> {
 
 	std::vector<std::shared_ptr<Cell>> cell_store;
 
 	SwapData<double[cont::MAX_CELL_NUM]>ca2p_s;
 	SwapData<double[cont::MAX_CELL_NUM]>IP3_s;
-	SwapData<double[cont::MAX_CELL_NUM]>ex_inert_s;
 
 	Lockfree_push_stack<size_t, cont::MAX_CELL_NUM> remove_queue;
 	size_t nmemb, nder;
+	size_t register_cell(const CellPtr& c);
+	void _memb_init();
+	void _load_from_file(std::string path);
+	void init_internal(std::string init_data_path);
 public:
-	void pos_swap();
-	void pos_copy();
-	void ca2p_swap();
-	void IP3_swap();
-	void ex_inert_swap();
-	void agek_swap();
-	void ageb_swap();
-	void ex_fat_swap();
-	void in_fat_swap();
-	void spr_nat_len_swap();
-	friend void cman_load_from_file(CellManager& cman, std::string path);
+	//void pos_swap();
+	//void pos_copy(CellManager& cman);
+	friend void ca2p_swap(CellManager& cman);
+	friend void IP3_swap(CellManager& cman);
+	friend void cman_init(CellManager&cells, std::string init_data_path);
 	friend void cell_pos_periodic_fix(CellManager& cman);
+	
 	
 
 	CellPtr create(CELL_STATE _state, double _x = 0, double _y = 0, double _z = 0,
@@ -71,7 +73,7 @@ public:
 		int _rest_div_times = 0,
 		bool _is_malignant = false);
 
-	size_t register_cell(const CellPtr& c);
+	
 	void add_remove_queue(size_t idx);
 	void remove_exec();
 	D_CELL_LOOP_ACCESSOR(all, 0, size());
@@ -81,7 +83,13 @@ public:
 	D_CELL_LOOP_ACCESSOR(non_memb, nmemb, size());
 
 	std::atomic<uint_fast8_t> sw;
+	inline size_t size()const {
+		return Lockfree_push_stack::size();
+	}
 };
 
-void cman_load_from_file(CellManager& cman, std::string path);
+void cman_init(CellManager&cells, std::string init_data_path);
 void cell_pos_periodic_fix(CellManager& cman);
+void pos_copy(CellManager& cman);
+void ca2p_swap(CellManager& cman);
+void IP3_swap(CellManager& cman);

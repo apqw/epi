@@ -17,8 +17,16 @@
 #define defs static size_t
 #define rdefs static size_t&
 
+#ifdef _WIN32
+#define RESTRICT __restrict
+#else
+#define RESTRICT __restrict__
+#endif
+
 class Cell;
 using CellPtr = Cell*;//std::shared_ptr<Cell>;
+
+
 
 /*
 	DO NOT CHANGE 
@@ -34,6 +42,19 @@ enum CELL_STATE:uint_fast8_t {
     MUSUME = 7,
     AIR = 8,
     MEMB = 9
+};
+
+enum CELL_STATE_MASK :uint_fast16_t {
+	ALIVE_M = 1u<<ALIVE,
+	DEAD_M = 1u << DEAD,
+	DISA_M = 1u<<DISA,
+	UNUSED_M = 1u<<UNUSED, //
+	FIX_M = 1u<<FIX,
+	BLANK_M = 1u<<BLANK,
+	DER_M = 1u<<DER,
+	MUSUME_M = 1u<<MUSUME,
+	AIR_M = 1u<<AIR,
+	MEMB_M = 1u<<MEMB
 };
 
 enum BoundaryType {
@@ -219,5 +240,11 @@ cdefui WHOLE = 0;
 cdefui BASAL = 1;
 static constexpr bool STOCHASTIC = true;
 
+template<typename T, size_t X, size_t Y, size_t Z>
+class Field;
+template<typename T>
+using FArr3D = Field<T, cont::NX + 1, cont::NY + 1, cont::NZ + 1>;
 
+template<typename T>
+using RawArr3D = T[cont::NX + 1][cont::NY + 1][cont::NZ + 1];
 #endif // DEFINE_H

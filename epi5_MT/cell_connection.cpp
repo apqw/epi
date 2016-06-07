@@ -5,11 +5,11 @@
 #include "cell_conn_value.h"
 using cint = int_fast16_t;
 
-void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY][cont::ANZ] , Cell*(&area)[cont::ANX][cont::ANY][cont::ANZ][cont::N3]) {
+void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY][cont::ANZ] , Cell* RESTRICT(&area)[cont::ANX][cont::ANY][cont::ANZ][cont::N3]) {
 	using namespace cont;
 	std::memset(aindx, 0, sizeof(std::atomic<cint>)*ANX*ANY*ANZ);
-	cman.all_foreach_parallel([&](size_t i) {
-		auto&c = cman[i];
+	cman.all_foreach_parallel_native([&](Cell*const RESTRICT& c) {
+		//auto&c = cman[i];
 		cint aix, aiy, aiz;
 		aix = (0.5*LX - p_diff_x(0.5*LX, c->x())) / AREA_GRID;
 		aiy = (0.5*LY - p_diff_y(0.5*LY, c->y())) / AREA_GRID;
@@ -32,7 +32,7 @@ void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY
 	});
 }
 
-void connect_proc(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY][cont::ANZ], Cell*(&area)[cont::ANX][cont::ANY][cont::ANZ][cont::N3]) {
+void connect_proc(CellManager& cman, const std::atomic<cint>(&aindx)[cont::ANX][cont::ANY][cont::ANZ], Cell*const RESTRICT(&area)[cont::ANX][cont::ANY][cont::ANZ][cont::N3]) {
 	
 #define LAT_ARR(axis)\
 struct lat_arr_##axis {\
@@ -55,29 +55,29 @@ struct lat_arr_##axis {\
 
 	using namespace cont;
 	constexpr int ii = 2;
-	cman.non_memb_foreach_parallel([&](size_t i) {
-		auto&c = cman[i];
-		cint anx = (cint)(c->x() / AREA_GRID);
-		cint any = (cint)(c->y() / AREA_GRID);
-		cint anz = (cint)(c->z() / AREA_GRID);
+	cman.non_memb_foreach_parallel_native([&](Cell*const&c) { //cannot restrict
+		
+		const cint anx = (cint)(c->x() / AREA_GRID);
+		const cint any = (cint)(c->y() / AREA_GRID);
+		const cint anz = (cint)(c->z() / AREA_GRID);
 
 		assert(!(anx >= ANX || any >= ANY || anz >= ANZ || anx < 0 || any < 0 || anz < 0));
 
 		for (int j = anx - ii+ANX; j <= anx + ii+ANX; j++) {
-			cint aix = xidx[j];
+			const cint aix = xidx[j];
 			for (int k = any - ii + ANY; k <= any + ii + ANY; k++) {
-				cint aiy = yidx[k];
+				const cint aiy = yidx[k];
 				for (int l = anz - ii + ANZ; l <= anz + ii + ANZ; l++) {
-					cint aiz = zidx[l];
-					cint sz = aindx[aix][aiy][aiz];
+					const cint aiz = zidx[l];
+					const cint sz = aindx[aix][aiy][aiz];
 
 					for (cint m = 0; m < sz; ++m) {
-						Cell* o = area[aix][aiy][aiz][m];
+						Cell*const o = area[aix][aiy][aiz][m];
 						if (c->get_index() <= o->get_index())continue;
-						double diffx = p_diff_x(c->x(), o->x());
-						double diffy = p_diff_y(c->y(), o->y());
-						double diffz = c->z() - o->z();
-						double rad_sum = c->radius + o->radius;
+						const double diffx = p_diff_x(c->x(), o->x());
+						const double diffy = p_diff_y(c->y(), o->y());
+						const double diffz = c->z() - o->z();
+						const double rad_sum = c->radius + o->radius;
 						if (DIST_SQ(diffx, diffy, diffz) <= LJ_THRESH*LJ_THRESH*rad_sum*rad_sum) {
 							c->connected_cell.push_back(o);
 							o->connected_cell.push_back(c);
@@ -92,13 +92,13 @@ struct lat_arr_##axis {\
 
 void gj_refresh(CellManager& cman) {
 
-	cman.all_foreach_parallel_native([](Cell* c) {
+	cman.all_foreach_parallel_native([](Cell*const RESTRICT c) {
 
         for(auto&& it = c->gj.begin(),itend=c->gj.end();it!=itend;++it){
             it->second.uncheck();
         }
 
-        c->connected_cell.foreach([c](Cell* cptr) {
+        c->connected_cell.foreach([&c](Cell*const RESTRICT cptr) {
             c->gj[cptr].check();
         });
 
@@ -127,11 +127,11 @@ void gj_refresh(CellManager& cman) {
 	});
 }
 
-Cell* find_dermis(Cell* c) {
+const Cell*const find_dermis(const Cell*const RESTRICT c) {
 	double d1Sq = cont::LX*cont::LX;
 	double distanceSq = 0;
-	Cell* dermis = nullptr;
-	c->connected_cell.foreach([&](Cell* cptr) {
+	const Cell* dermis = nullptr;
+	c->connected_cell.foreach([&](const Cell*const RESTRICT& cptr) {
 		if (cptr->state == MEMB) {
 			distanceSq = p_cell_dist_sq(c, cptr);
 			if (distanceSq < d1Sq) {//2æ‚É‚È‚Á‚Ä‚È‚©‚Á‚½
@@ -144,8 +144,8 @@ Cell* find_dermis(Cell* c) {
 }
 
 inline void set_dermis(CellManager& cman) {
-	cman.other_foreach_parallel([&](size_t i) {
-		auto&c = cman[i];
+	cman.other_foreach_parallel_native([](Cell*const RESTRICT&c) {
+		
 		if (c->state == FIX || c->state == MUSUME) {
 			c->set_dermis(find_dermis(c));
 		}

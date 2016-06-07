@@ -75,7 +75,7 @@ bool cell_test() {
 	auto q = cells->create(DEAD); auto r = cells->create(DEAD);
 	p->x += 0.1;
 	printf("p idx:%d q idx:%d p prex:%lf\n", p->get_index(), q->get_index(),p->x());
-	cells->pos_swap();
+	pos_copy(*cells);
 	printf("pos swapped p pos:%lf\n", p->x());
 	printf("cell man size:%d\n", cells->size());
 	cells ->add_remove_queue(1);
