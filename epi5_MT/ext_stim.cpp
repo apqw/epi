@@ -34,8 +34,8 @@ void calc_ext_stim(SwapData<Field<double, cont::NX + 1, cont::NY + 1, cont::NZ +
 		a_prev_z[l] = prev_z;
 		a_next_z[l] = next_z;
 	}
-	auto& carr = ext_stim.first()();
-	auto& narr = ext_stim.second()();
+    auto&& carr = ext_stim.first()();
+    auto&& narr = ext_stim.second()();
 
 	tbb::parallel_for(tbb::blocked_range3d<size_t>(0, NX, 0, NY, 0, iz_bound), [&](const tbb::blocked_range3d<size_t>& range) {
 		

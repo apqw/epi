@@ -2,7 +2,7 @@
 #include "define.h"
 #include "utils.h"
 #include "cell.h"
-
+#include "cell_conn_value.h"
 using cint = int_fast16_t;
 
 void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY][cont::ANZ] , Cell*(&area)[cont::ANX][cont::ANY][cont::ANZ][cont::N3]) {
@@ -93,7 +93,22 @@ struct lat_arr_##axis {\
 void gj_refresh(CellManager& cman) {
 
 	cman.all_foreach_parallel_native([](Cell* c) {
-		
+
+        for(auto&& it = c->gj.begin(),itend=c->gj.end();it!=itend;++it){
+            it->second.uncheck();
+        }
+
+        c->connected_cell.foreach([c](Cell* cptr) {
+            c->gj[cptr].check();
+        });
+
+        for(auto&& it = c->gj.begin(),itend=c->gj.end();it!=itend;++it){
+            if(!it->second.is_checked()){
+                it->second.reset();
+            }
+        }
+
+        /*
 		for (auto&& it = c->gj.begin(); it != c->gj.end();) {
 			if (!c->connected_cell.exist(it->first)) {
 				it = c->gj.erase(it);
@@ -108,7 +123,7 @@ void gj_refresh(CellManager& cman) {
 				c->gj.emplace(cptr, cont::gj_init);
 			}
 		});
-	
+    */
 	});
 }
 

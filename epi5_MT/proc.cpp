@@ -56,7 +56,7 @@ void proc(std::string init_data_path,std::string param_path,std::string init_uvp
 	auto cell_map2 = std::make_unique<Field<uint_fast8_t, NX + 1, NY + 1, NZ + 1>>();
 	double zzmax = 0;
 	printf("current cell num:%d\n", cellset->size());
-	for (int i = 0; i < 10000; i++) {
+    for (int i = 0; i < NUM_ITR; i++) {
 		if(i%100==0)printf("loop:%d\n", i);
 			cell_dynamics(*cellset);
 			zzmax = calc_zzmax(*cellset);

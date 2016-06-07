@@ -81,7 +81,7 @@ void _cman_value_init(CellManager & cman)
 		c->ex_inert._set(ex_inert_init);
 		c->IP3._set(IP3_init);
 		c->connected_cell.foreach([&](Cell* conn) {
-			c->gj.emplace(conn, gj_init);
+            c->gj.emplace(conn,gj_init);
 		});
 	});
 	cman.other_foreach_parallel([&](size_t i) {

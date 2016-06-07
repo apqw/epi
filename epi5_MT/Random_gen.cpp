@@ -1,6 +1,7 @@
 #include "Random_gen.h"
 #include <algorithm>
 #include <array>
+#include <functional>
 Random_gen::Random_gen() :dist(0.0, 1.0) {
 	init();
 }

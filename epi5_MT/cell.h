@@ -7,6 +7,7 @@
 #include <memory>
 #include <vector>
 #include <unordered_map>
+#include "cell_conn_value.h"
 #include "DualValue.h"
 
 
@@ -133,7 +134,7 @@ public:
 	/*
 	 * gj
 	 */
-	std::unordered_map<Cell*,double> gj;
+    std::unordered_map<Cell*,gj_value> gj;
 
 	/*
 	 * diff_u

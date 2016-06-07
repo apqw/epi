@@ -10,12 +10,11 @@ class Field
 public:
 
 	Field():_fdata{}{}
-	template<typename T>
 	void parallel_body_proc(T&& lmbd) {
 		tbb::parallel_for(tbb::blocked_range3d<double>(0,X-1,0,Y-1,0,Z-1), lmbd);
 	}
 
-	inline auto& operator()() {
+    inline auto&& operator()() {
 		return _fdata;
 	}
 	//~Field();

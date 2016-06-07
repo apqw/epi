@@ -7,6 +7,8 @@
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_for_each.h>
 #include <tbb/blocked_range.h>
+#include <vector>
+
 
 #define D_CELL_LOOP_ACCESSOR(prefix,start,end)\
 template<class Fn>\

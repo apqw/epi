@@ -4,6 +4,7 @@
 #include <array>
 #include <utility>
 #include <cassert>
+#include <algorithm>
 
 struct atomic_double {
 private:
@@ -74,7 +75,7 @@ protected:
 	Lockfree_push_stack(ITR it,std::index_sequence<I...>):_data{*(it+I)...}{}
 	*/
 public:
-	Lockfree_push_stack() {}
+    Lockfree_push_stack():_next(0) {}
 
 	void push_back(T&& item) {
 		_data[_next++] = item;
@@ -116,7 +117,7 @@ public:
 	template<class Fn>
 	void foreach(const Fn& lmbd) {
 		for (size_t i = 0; i < size(); ++i) {
-			lmbd((*this)[i]);
+            lmbd((*this)[i]);
 		}
 	}
 

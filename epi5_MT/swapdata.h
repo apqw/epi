@@ -13,8 +13,15 @@ public:
         data1=&data1_internal;
         data2=&data2_internal;
     }
-    SwapData(T&& data):data1_internal(data),data2_internal(data),SwapData(){}
-    SwapData(const T& data):data1_internal(data),data2_internal(data),SwapData(){}
+    SwapData(T&& data):data1_internal(data),data2_internal(data)
+    {
+        data1=&data1_internal;
+        data2=&data2_internal;
+    }
+    SwapData(const T& data):data1_internal(data),data2_internal(data){
+        data1=&data1_internal;
+        data2=&data2_internal;
+    }
 
     T& first(){
 return *data1;
@@ -51,7 +58,7 @@ public:
 		auto& data2 = sw.second()[idx];
 
 		for (auto it1 = data1.begin(), it2 = data2.begin(); it1 != data1.end();) {
-			if (cond((const std::unordered_map<Key, Value>::const_iterator)it1)) {
+            if (cond(it1)) {
 				it1 = data1.erase(it1);
 				it2 = data2.erase(it2);
 			}

@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
     atomic_double_test();
     lfpstack_test();
 	cell_test();
-	proc(argv[1], argv[2]);
+    proc(argv[1], "");
 #ifdef _WIN32
 	system("pause");
 #endif
