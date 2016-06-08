@@ -16,14 +16,20 @@ void pos_copy(CellManager& cman)
 	});
 }
 
-void ca2p_swap(CellManager& cman)
+void ATP_swap(CellManager& cman)
 {
-	cman.ca2p_s.swap();
+	cman.ATP_s.swap();
 }
 
 void IP3_swap(CellManager& cman)
 {
 	cman.IP3_s.swap();
+}
+
+void cornificate(CellManager & cman, Cell * const RESTRICT al)
+{
+	al->state = DEAD;
+	printf("sw updated:%d\n", ++cman.sw);
 }
 
 
@@ -246,7 +252,7 @@ CellPtr CellManager::create(CELL_STATE _state, double _x, double _y, double _z, 
 	std::shared_ptr<Cell> cptr = std::make_shared<Cell>(
 		Cell::ctor_cookie(),
 		_state,
-		ca2p_s,
+		ATP_s,
 		IP3_s,
 		_ex_inert,
 		_agek,_ageb,_ex_fat,_in_fat,_spr_nat_len,

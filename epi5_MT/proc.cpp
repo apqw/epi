@@ -11,6 +11,7 @@
 #include "map.h"
 #include "utils.h"
 #include "ext_stim.h"
+#include "ca2p.h"
 #include <tbb/task_group.h>
 
 inline void cell_dynamics(CellManager & cellset) {
@@ -45,18 +46,36 @@ void proc(std::string init_data_path,std::string param_path,std::string init_uvp
 	init_precalc_lat();
 	init_precalc_per();
 
+	bool flg_forced_sc = FORCE_CORNIF;
+	int num_sc = 0;
 	auto ATP=std::make_unique<SwapData<FArr3D<double>>>();
 	auto ext_stim= std::make_unique<SwapData<FArr3D<double>>>();
 	auto cell_map1 = std::make_unique<FArr3D<Cell*>>();
 	auto cell_map2 = std::make_unique<FArr3D<uint_fast8_t>>();
 	double zzmax = 0;
 	printf("current cell num:%d\n", cellset->size());
+	auto& cman = *cellset;
     for (int i = 0; i < NUM_ITR; i++) {
 		if(i%100==0)printf("loop:%d\n", i);
-			cell_dynamics(*cellset);
-			zzmax = calc_zzmax(*cellset);
-			setup_map_lat(*cellset, *cell_map1, *cell_map2);
+			cell_dynamics(cman);
+			zzmax = calc_zzmax(cman);
+			setup_map_lat(cman, *cell_map1, *cell_map2);
 		
 		calc_ext_stim(*ext_stim, *cell_map1, *cell_map2, zzmax);
+		if (i*DT_Cell > T_TURNOVER&&flg_forced_sc) {
+			flg_forced_sc = false;
+			printf("forced cornif\n");
+			initialize_sc(cman);
+			num_sc = NUM_SC_INIT;
+		}
+
+		if (cman.should_calc_ca() || num_sc > 0) {
+			printf("calc ca...\n");
+			calc_ca2p(cman, *ATP, ext_stim->first(), *cell_map1, *cell_map2, zzmax);
+			//cells.all_cell_update();
+			printf("end.\n");
+			if (num_sc>0)num_sc--;
+			cman.ca_calc_condition_reset();
+		}
 	}
 }

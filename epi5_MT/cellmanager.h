@@ -44,7 +44,7 @@ class CellManager :Lockfree_push_stack<CellPtr, cont::MAX_CELL_NUM> {
 
 	std::vector<std::shared_ptr<Cell>> cell_store;
 
-	SwapData<double[cont::MAX_CELL_NUM]>ca2p_s;
+	SwapData<double[cont::MAX_CELL_NUM]>ATP_s;
 	SwapData<double[cont::MAX_CELL_NUM]>IP3_s;
 
 	Lockfree_push_stack<size_t, cont::MAX_CELL_NUM> remove_queue;
@@ -53,13 +53,15 @@ class CellManager :Lockfree_push_stack<CellPtr, cont::MAX_CELL_NUM> {
 	void _memb_init();
 	void _load_from_file(std::string path);
 	void init_internal(std::string init_data_path);
+	std::atomic<uint_fast8_t> sw;
 public:
 	//void pos_swap();
 	//void pos_copy(CellManager& cman);
-	friend void ca2p_swap(CellManager& cman);
+	friend void ATP_swap(CellManager& cman);
 	friend void IP3_swap(CellManager& cman);
 	friend void cman_init(CellManager&cells, std::string init_data_path);
 	friend void cell_pos_periodic_fix(CellManager& cman);
+	friend void cornificate(CellManager& cman, Cell*const RESTRICT c);
 	
 	
 
@@ -82,14 +84,23 @@ public:
 	D_CELL_LOOP_ACCESSOR(other, nder + nmemb, size());
 	D_CELL_LOOP_ACCESSOR(non_memb, nmemb, size());
 
-	std::atomic<uint_fast8_t> sw;
 	inline size_t size()const {
 		return Lockfree_push_stack::size();
+	}
+
+	inline bool should_calc_ca() {
+		return (sw >= cont::SW_THRESH);
+	}
+
+	inline void ca_calc_condition_reset() {
+		sw = 0;
 	}
 };
 
 void cman_init(CellManager&cells, std::string init_data_path);
 void cell_pos_periodic_fix(CellManager& cman);
-void pos_copy(CellManager& cman);
-void ca2p_swap(CellManager& cman);
+void ATP_swap(CellManager& cman);
 void IP3_swap(CellManager& cman);
+void cornificate(CellManager& cman, Cell*const RESTRICT alive_cell);
+
+void pos_copy(CellManager& cman);

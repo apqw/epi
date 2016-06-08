@@ -1,6 +1,6 @@
 #ifndef DEFINE_H
 #define DEFINE_H
-#define NDEBUG
+//#define NDEBUG
 #include <string>
 #include <memory>
 #define cdefd static constexpr double
@@ -239,6 +239,8 @@ cdefui SYSTEM = 0;
 cdefui WHOLE = 0;
 cdefui BASAL = 1;
 static constexpr bool STOCHASTIC = true;
+
+static constexpr bool FORCE_CORNIF = true;
 
 template<typename T, size_t X, size_t Y, size_t Z>
 class Field;

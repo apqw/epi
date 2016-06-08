@@ -81,7 +81,7 @@ inline double fw(double diff, double w)
 															//-1. <-????
 }
 
-inline void supra_calc(CellManager& cman,const FArr3D<double>& ca2p_first, const  FArr3D<double>& ext_stim_first) {
+inline void supra_calc(CellManager& cman,const FArr3D<double>& ATP_first, const  FArr3D<double>& ext_stim_first) {
 	using namespace cont;
 	cman.other_foreach_parallel_native([&](Cell*& c){
 		auto& st = c->state;
@@ -115,7 +115,7 @@ inline void supra_calc(CellManager& cman,const FArr3D<double>& ca2p_first, const
 			});
 
 			c->diff_u= fu(c->ca2p(), c->ex_inert, c->IP3(), grid_avg8(ext_stim_first(), ix, iy, iz))+ca2p_du*IAGv*tmp_diffu;
-			c->IP3 = c->IP3() + DT_Ca*(IP3_default_diff(_Kpa, grid_avg8(ca2p_first(), ix, iy, iz), c->IP3()) + dp*IAGv*tmp_IP3);
+			c->IP3 = c->IP3() + DT_Ca*(IP3_default_diff(_Kpa, grid_avg8(ATP_first(), ix, iy, iz), c->IP3()) + dp*IAGv*tmp_IP3);
 			double cs = c->ca2p() + DT_Ca*c->diff_u;
 			c->ca2p = cs;
 			c->ca2p_avg += cs;
@@ -170,12 +170,12 @@ void init_ca2p_map(RawArr3D<uint_fast8_t>& air_stim_flg, RawArr3D<double*>& cell
 }
 inline double fa(double diffu, double A) {
 	using namespace cont;
-	return STIM11*(diffu > 0 ? diffu : 0) - A*Kaa;
+	return STIM11*min0(diffu) - A*Kaa;
 }
-inline void ca2p_refresh(SwapData<FArr3D<double>>& ca2p, const RawArr3D<double*>& cell_diffu_map, const RawArr3D<uint_fast8_t>& air_stim_flg, const FArr3D<uint_fast8_t>& cmap2,int iz_bound) {
+inline void ATP_refresh(SwapData<FArr3D<double>>& ATP, const RawArr3D<double*>& cell_diffu_map, const RawArr3D<uint_fast8_t>& air_stim_flg, const FArr3D<uint_fast8_t>& cmap2,int iz_bound) {
 	using namespace cont;
-	auto&& carr = ca2p.first()();
-	auto&& narr = ca2p.second()();
+	auto&& carr = ATP.first()();
+	auto&& narr = ATP.second()();
 	auto& cell_map2 = cmap2();
 	tbb::parallel_for(tbb::blocked_range3d<int>(0, NX, 0, NY, 0, iz_bound), [&](const tbb::blocked_range3d<int>& range) {
 		for (int j = range.pages().begin(); j != range.pages().end(); ++j) {
@@ -205,13 +205,13 @@ inline void ca2p_refresh(SwapData<FArr3D<double>>& ca2p, const RawArr3D<double*>
 	}
 }
 
-inline void update_values(CellManager& cman, SwapData<FArr3D<double>>& ca2p) {
-	ca2p_swap(cman);
+inline void update_values(CellManager& cman, SwapData<FArr3D<double>>& ATP) {
+	ATP_swap(cman);
 	IP3_swap(cman);
 	cman.other_foreach([](Cell*& c) {
 		c->diff_u = 0;
 	});
-	ca2p.swap();
+	ATP.swap();
 }
 
 inline void set_cell_ca2p(CellManager& cman) {
@@ -230,7 +230,7 @@ inline void set_cell_ca2p(CellManager& cman) {
 
 ///////////////////////////////////////////////////////////////
 
-void calc_ca2p(CellManager& cman, SwapData<FArr3D<double>>& ca2p,const FArr3D<double>& ext_stim_first, FArr3D<Cell*>& cmap1, FArr3D<uint_fast8_t>& cmap2, double zzmax)
+void calc_ca2p(CellManager& cman, SwapData<FArr3D<double>>& ATP,const FArr3D<double>& ext_stim_first, FArr3D<Cell*>& cmap1, FArr3D<uint_fast8_t>& cmap2, double zzmax)
 {
 	using namespace cont;
 	init_ca2p_avg(cman);
@@ -245,9 +245,9 @@ void calc_ca2p(CellManager& cman, SwapData<FArr3D<double>>& ca2p,const FArr3D<do
 	for (int cstp = 0; cstp < Ca_ITR; cstp++) {
 		
 		dead_IP3_calc(cman);
-		supra_calc(cman, ca2p.first(), ext_stim_first);
-		ca2p_refresh(ca2p, cell_diffu_map, air_stim_flg, cmap2, iz_bound);
-		update_values(cman, ca2p);
+		supra_calc(cman, ATP.first(), ext_stim_first);
+		ATP_refresh(ATP, cell_diffu_map, air_stim_flg, cmap2, iz_bound);
+		update_values(cman, ATP);
 
 	}
 

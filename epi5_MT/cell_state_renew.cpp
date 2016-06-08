@@ -88,6 +88,7 @@ void divide_try(CellManager& cman, Cell*const& div) {
 	div->pair->x -= divx*0.5*delta_L;
 	div->pair->y -= divy*0.5*delta_L;
 	div->pair->z -= divz*0.5*delta_L;
+	printf("new cell detected.\n");
 }
 
 inline double ageb_const(const Cell*const& c) {
@@ -171,8 +172,7 @@ inline void _ALIVE_state_renew(CellManager& cman, Cell*const& al) {
 	using namespace cont;
 
 	if (al->agek >= THRESH_DEAD) {
-		al->state = DEAD;
-		printf("sw updated:%d\n", ++cman.sw);
+		cornificate(cman, al);
 	}
 	else {
 		
@@ -241,5 +241,13 @@ void cell_state_renew(CellManager & cman)
 		if (c->pair != nullptr&&no_double_count(c, c->pair)) {
 			pair_disperse(c);
 		}
+	});
+}
+
+void initialize_sc(CellManager & cman)
+{
+	cman.other_foreach_parallel_native([](Cell*const RESTRICT& c) {
+		c->agek = c->agek > cont::THRESH_DEAD ? c->agek : cont::THRESH_DEAD;
+		c->state = AIR;
 	});
 }
