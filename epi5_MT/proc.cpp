@@ -16,18 +16,19 @@
 
 inline void cell_dynamics(CellManager & cellset) {
 	cell_interaction(cellset);
-	cell_state_renew(cellset);
-
-
-	cell_pos_periodic_fix(cellset);
 	pos_copy(cellset);
+	cell_state_renew(cellset);
+	
+	//does copy
+	cell_pos_periodic_fix(cellset);
+	
 
 	connect_cell(cellset);
 }
 
 double calc_zzmax(CellManager& cman) {
 	double zmax = 0;
-	cman.other_foreach([&zmax](Cell*const&c) {
+	cman.other_foreach([&zmax](Cell*const RESTRICT c) {
 		auto& st = c->state;
 		if (st==DEAD||st==ALIVE||st==MUSUME||st==FIX){//get_state_mask(st)&(DEAD_M | ALIVE_M | MUSUME_M | FIX_M)) {
 			if (zmax < c->z())zmax = c->z();
@@ -41,8 +42,6 @@ void proc(std::string init_data_path,std::string param_path,std::string init_uvp
 	using namespace cont;
 	auto cellset = std::make_unique<CellManager>();
 	cman_init(*cellset, init_data_path);
-	init_cell_interaction(); //matomeru?
-	init_cell_state_renewal();
 	init_precalc_lat();
 	init_precalc_per();
 
@@ -50,7 +49,7 @@ void proc(std::string init_data_path,std::string param_path,std::string init_uvp
 	int num_sc = 0;
 	auto ATP=std::make_unique<SwapData<FArr3D<double>>>();
 	auto ext_stim= std::make_unique<SwapData<FArr3D<double>>>();
-	auto cell_map1 = std::make_unique<FArr3D<Cell*>>();
+	auto cell_map1 = std::make_unique<FArr3D<const Cell*>>();
 	auto cell_map2 = std::make_unique<FArr3D<uint_fast8_t>>();
 	double zzmax = 0;
 	printf("current cell num:%d\n", cellset->size());
@@ -65,7 +64,7 @@ void proc(std::string init_data_path,std::string param_path,std::string init_uvp
 		if (i*DT_Cell > T_TURNOVER&&flg_forced_sc) {
 			flg_forced_sc = false;
 			printf("forced cornif\n");
-			initialize_sc(cman);
+			initialize_sc(cman,zzmax);
 			num_sc = NUM_SC_INIT;
 		}
 

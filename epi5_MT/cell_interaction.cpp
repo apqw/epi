@@ -8,9 +8,9 @@
 #include <tbb/task_group.h>
 
 #define CIFuncCName Coef
-#define CIFuncDecl(name) struct name{static double CIFuncCName(const Cell*const RESTRICT& c1,const Cell*const RESTRICT& c2);}
+#define CIFuncDecl(name) struct name{static double CIFuncCName(const Cell*const RESTRICT c1,const Cell*const RESTRICT c2);}
 template<class Fn>
-inline void cell_interaction_apply(Cell*const RESTRICT& c1, Cell*const RESTRICT& c2) {
+inline void cell_interaction_apply(Cell*const RESTRICT c1, Cell*const RESTRICT c2) {
 	double coef = Fn::CIFuncCName(c1, c2);
 	double dumx = cont::DT_Cell*coef*p_diff_x(c1->x(), c2->x());
 	double dumy = cont::DT_Cell*coef*p_diff_y(c1->y(), c2->y());
@@ -33,11 +33,11 @@ CIFuncDecl(CI_memb_to_memb);
 CIFuncDecl(CI_other);
 CIFuncDecl(CI_pair);
 
-inline bool is_der_near(const Cell*const RESTRICT& der1, const Cell*const RESTRICT& der2) {
+inline bool is_der_near(const Cell*const RESTRICT der1, const Cell*const RESTRICT der2) {
 	return sqrt(p_cell_dist_sq(der1, der2))+ cont::delta_R < der1->radius + der2->radius;
 }
 
-inline double ljmain_der_near(const Cell*const RESTRICT& der1, const Cell*const RESTRICT& der2) {
+inline double ljmain_der_near(const Cell*const RESTRICT der1, const Cell*const RESTRICT der2) {
 	/*
 		距離の2乗だけでは不可
 	*/
@@ -49,12 +49,12 @@ inline double ljmain_der_near(const Cell*const RESTRICT& der1, const Cell*const 
 	return 4.0*cont::eps_m*LJ6*(LJ6 - 1) / (dist*dist2) + cont::para_ljp2;
 }
 
-inline bool is_near(const Cell*const RESTRICT& c1, const Cell*const RESTRICT& c2) {
+inline bool is_near(const Cell*const RESTRICT c1, const Cell*const RESTRICT c2) {
 	//double rad_sum = c1->radius + c2->radius;
 	return p_cell_dist_sq(c1, c2) < (c1->radius + c2->radius)*(c1->radius + c2->radius);
 }
 
-inline double ljmain_der_far(const Cell*const RESTRICT& der1, const Cell*const RESTRICT& der2) {
+inline double ljmain_der_far(const Cell*const RESTRICT der1, const Cell*const RESTRICT der2) {
 	double dist = sqrt(p_cell_dist_sq(der1, der2));
 	double dist2 = dist + cont::delta_R;
 	double rad_sum = der1->radius + der2->radius;
@@ -63,7 +63,7 @@ inline double ljmain_der_far(const Cell*const RESTRICT& der1, const Cell*const R
 	return 4.0*cont::eps_m*LJ6*(LJ6 - 1) / (dist*dist) + cont::para_ljp2;
 }
 
-inline double ljmain(const Cell*const RESTRICT& c1, const  Cell*const RESTRICT& c2) {
+inline double ljmain(const Cell*const RESTRICT c1, const  Cell*const RESTRICT c2) {
 
 	double distSq = p_cell_dist_sq(c1, c2);
 	double rad_sum = c1->radius + c2->radius;
@@ -73,7 +73,7 @@ inline double ljmain(const Cell*const RESTRICT& c1, const  Cell*const RESTRICT& 
 
 }
 
-inline double adhesion(const Cell*const RESTRICT& c1, const  Cell*const RESTRICT& c2,const double spring_const) {
+inline double adhesion(const Cell*const RESTRICT c1, const  Cell*const RESTRICT c2,const double spring_const) {
 	using namespace cont;
 	double distlj = sqrt(p_cell_dist_sq(c1, c2));
 	double rad_sum = c1->radius + c2->radius;
@@ -89,7 +89,7 @@ inline double adhesion(const Cell*const RESTRICT& c1, const  Cell*const RESTRICT
 /////////////////////////////////////////////////////////////////////////
 
 
-double CI_der_to_der::CIFuncCName(const Cell*const RESTRICT& c1, const Cell*const RESTRICT& c2) {
+double CI_der_to_der::CIFuncCName(const Cell*const RESTRICT c1, const Cell*const RESTRICT c2) {
 	if (is_der_near(c1, c2)) {
 		return ljmain_der_near(c1, c2);
 	}
@@ -101,7 +101,7 @@ double CI_der_to_der::CIFuncCName(const Cell*const RESTRICT& c1, const Cell*cons
 	}
 }
 
-double CI_al_air_de_to_al_air_de_fix_mu::CIFuncCName(const Cell*const RESTRICT& c1, const Cell*const RESTRICT& c2) {
+double CI_al_air_de_to_al_air_de_fix_mu::CIFuncCName(const Cell*const RESTRICT c1, const Cell*const RESTRICT c2) {
 	if (is_near(c1, c2)) {
 		return ljmain(c1, c2);
 	}
@@ -114,7 +114,7 @@ double CI_al_air_de_to_al_air_de_fix_mu::CIFuncCName(const Cell*const RESTRICT& 
 	}
 }
 
-double CI_fix_mu_to_fix_mu::CIFuncCName(const Cell*const RESTRICT& c1, const Cell*const RESTRICT& c2) {
+double CI_fix_mu_to_fix_mu::CIFuncCName(const Cell*const RESTRICT c1, const Cell*const RESTRICT c2) {
 	//pairかどうかは外で判定しよう
 	if (is_near(c1, c2)) {
 		return ljmain(c1, c2);
@@ -124,7 +124,7 @@ double CI_fix_mu_to_fix_mu::CIFuncCName(const Cell*const RESTRICT& c1, const Cel
 	}
 }
 
-double CI_mu_to_memb::CIFuncCName(const Cell*const RESTRICT& c1, const Cell*const RESTRICT& c2) {
+double CI_mu_to_memb::CIFuncCName(const Cell*const RESTRICT c1, const Cell*const RESTRICT c2) {
 	//spring_force_to_membが設定されている必要がある
 	if (is_near(c1, c2)) {
 		return ljmain(c1, c2);
@@ -134,7 +134,7 @@ double CI_mu_to_memb::CIFuncCName(const Cell*const RESTRICT& c1, const Cell*cons
 	}
 }
 
-double CI_fix_to_memb::CIFuncCName(const Cell*const RESTRICT& c1, const  Cell*const RESTRICT& c2) {
+double CI_fix_to_memb::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*const RESTRICT c2) {
 	if (is_near(c1, c2)) {
 		return ljmain(c1, c2);
 	}
@@ -145,7 +145,7 @@ double CI_fix_to_memb::CIFuncCName(const Cell*const RESTRICT& c1, const  Cell*co
 	}
 }
 
-double CI_memb_to_memb::CIFuncCName(const Cell*const RESTRICT& c1, const  Cell*const RESTRICT& c2) {
+double CI_memb_to_memb::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*const RESTRICT c2) {
 	using namespace cont;
 	double rad_sum = c1->radius+ c2->radius;
 	double rad_sum_sq = rad_sum*rad_sum;
@@ -175,17 +175,17 @@ double CI_memb_to_memb::CIFuncCName(const Cell*const RESTRICT& c1, const  Cell*c
 	}
 }
 
-inline double CI_other::CIFuncCName(const Cell*const RESTRICT& c1, const  Cell*const RESTRICT& c2) {
+inline double CI_other::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*const RESTRICT c2) {
 	return ljmain(c1, c2);
 }
 
-inline double CI_pair::CIFuncCName(const Cell*const RESTRICT& c1, const  Cell*const RESTRICT& c2) {
+inline double CI_pair::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*const RESTRICT c2) {
 	double dist = sqrt(p_cell_dist_sq(c1, c2));
 	double force = cont::Kspring_division*(dist - c1->spr_nat_len);
 	return -force / dist;
 }
 
-inline void wall_interaction(Cell*const RESTRICT& c) {
+inline void wall_interaction(Cell*const RESTRICT c) {
 	double distlj = 2.0*c->z();
 	double LJ6 = c->radius / c->z();
 	LJ6 = LJ6*LJ6;
@@ -194,7 +194,7 @@ inline void wall_interaction(Cell*const RESTRICT& c) {
 	c->z += cont::DT_Cell* ljm*2.0*c->z();
 }
 ////////////////////////////////////////////////////////////////////
-inline void _memb_bend_calc1(Cell *const RESTRICT& memb)
+inline void _memb_bend_calc1(Cell *const RESTRICT memb)
 {
 	double dn = sqrt(p_cell_dist_sq(memb->md.memb_r, memb));
 
@@ -210,7 +210,7 @@ inline void _memb_bend_calc1(Cell *const RESTRICT& memb)
 	memb->md.dm = dm;
 }
 
-inline void _memb_bend_calc2(Cell *const RESTRICT& memb)
+inline void _memb_bend_calc2(Cell *const RESTRICT memb)
 {
 	memb->md.ipn =
 		memb->md.nv[0] * memb->md.memb_r->md.nv[0]
@@ -223,7 +223,7 @@ inline void _memb_bend_calc2(Cell *const RESTRICT& memb)
 		+ memb->md.mv[2] * memb->md.memb_u->md.mv[2];
 }
 
-inline void _memb_bend_calc3(Cell *const RESTRICT& memb)
+inline void _memb_bend_calc3(Cell *const RESTRICT memb)
 {
 	auto& nvr = memb->md.memb_r->md.nv;
 	auto& nvl = memb->md.memb_l->md.nv;
@@ -278,38 +278,32 @@ inline void _memb_bend_calc3(Cell *const RESTRICT& memb)
 }
 
 inline void memb_bend(CellManager& cman) {
-	cman.memb_foreach_parallel_native([&](Cell*const RESTRICT&c) {
+	cman.memb_foreach_parallel_native([&](Cell*const RESTRICT c) {
 		_memb_bend_calc1(c);
 	});
 
-	cman.memb_foreach_parallel_native([](Cell*const RESTRICT&c) {
+	cman.memb_foreach_parallel_native([](Cell*const RESTRICT c) {
 		_memb_bend_calc2(c);
 	});
 
-	cman.memb_foreach_parallel_native([](Cell*const RESTRICT&c) {
+	cman.memb_foreach_parallel_native([](Cell*const RESTRICT c) {
 		_memb_bend_calc3(c);
 	});
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-inline bool collide_with_wall(const Cell*const RESTRICT& c) {
+inline bool collide_with_wall(const Cell*const RESTRICT c) {
 	return c->z() < c->radius;
 }
 
 
 
-inline void _MEMB_interaction(Cell*const RESTRICT& memb) {
+inline void _MEMB_interaction(Cell*const RESTRICT memb) {
 	if (collide_with_wall(memb)) {
 		wall_interaction(memb);
 	}
-	/*
-	memb->connected_cell.foreach([&memb](Cell*const conn) {
-		if (conn->state == MEMB && no_double_count(memb,conn)) {
-			
-		}
-	});
-	*/
+
 	size_t sz = memb->connected_cell.size();
 	for (size_t i = 0; i < sz; i++) {
 		if (memb->connected_cell[i]->state == MEMB&&no_double_count(memb, memb->connected_cell[i])) {
@@ -318,11 +312,11 @@ inline void _MEMB_interaction(Cell*const RESTRICT& memb) {
 	}
 }
 
-void _DER_interaction(Cell*const RESTRICT& der) {
+void _DER_interaction(Cell*const RESTRICT der) {
 	if (collide_with_wall(der)) {
 		wall_interaction(der);
 	}
-	der->connected_cell.foreach([&](Cell*const RESTRICT& conn) {
+	der->connected_cell.foreach([&](Cell*const RESTRICT conn) {
 		if (conn->state == DER && no_double_count(der, conn)) {
 			cell_interaction_apply<CI_der_to_der>(der, conn);
 		}
@@ -332,8 +326,8 @@ void _DER_interaction(Cell*const RESTRICT& der) {
 	});
 }
 
-void _AL_AIR_DE_interaction(Cell*const RESTRICT& aad) {
-	aad->connected_cell.foreach([&](Cell*const RESTRICT& conn) {
+void _AL_AIR_DE_interaction(Cell*const RESTRICT aad) {
+	aad->connected_cell.foreach([&](Cell*const RESTRICT conn) {
 		switch (conn->state) {
 		case ALIVE:case AIR:case DEAD:
 			if (no_double_count(aad, conn)) {
@@ -350,8 +344,8 @@ void _AL_AIR_DE_interaction(Cell*const RESTRICT& aad) {
 	});
 }
 
-void _FIX_interaction(Cell*const RESTRICT& fix) {
-	fix->connected_cell.foreach([&](Cell*const RESTRICT& conn) {
+inline void _FIX_interaction(Cell*const RESTRICT fix) {
+	fix->connected_cell.foreach([&](Cell*const RESTRICT conn) {
 		switch (conn->state) {
 		case FIX:
 			if (fix->pair!=conn&&no_double_count(fix, conn)) {
@@ -376,7 +370,7 @@ void _FIX_interaction(Cell*const RESTRICT& fix) {
 }
 
 
-inline bool paired_with_fix(const Cell*const RESTRICT& c) {
+inline bool paired_with_fix(const Cell*const RESTRICT c) {
 	return c->pair != nullptr&&c->pair->state == FIX;
 }
 void _MUSUME_interaction(Cell*const RESTRICT& musume) {
@@ -387,7 +381,7 @@ void _MUSUME_interaction(Cell*const RESTRICT& musume) {
 	else if (musume->rest_div_times > 0) {
 		musume->spring_force_to_memb = cont::Kspring_d;
 	}
-	musume->connected_cell.foreach([&](Cell*const RESTRICT& conn) {
+	musume->connected_cell.foreach([&](Cell*const RESTRICT conn) {
 		if (conn->state == MEMB) {
 			if (musume->dermis() == conn) {
 				cell_interaction_apply<CI_mu_to_memb>(musume, conn);
@@ -402,48 +396,25 @@ void _MUSUME_interaction(Cell*const RESTRICT& musume) {
 	});
 }
 
-void _NULL_interaction(Cell* n) {
 
-}
-
-inline void _pair_interaction(Cell*const RESTRICT& paired) {
+inline void _pair_interaction(Cell*const RESTRICT paired) {
 	if (no_double_count(paired, paired->pair)) {
 		cell_interaction_apply<CI_pair>(paired, paired->pair);
 	}
-}
-
-void(*interaction_table[cont::STATE_NUM])(Cell*);
-
-void _init_interaction_table(void(*i_tbl[cont::STATE_NUM])(Cell*)) {
-	/*
-	i_tbl[ALIVE] = _AL_AIR_DE_interaction;
-	i_tbl[DEAD] = _AL_AIR_DE_interaction;
-	i_tbl[DISA] = _NULL_interaction;
-	i_tbl[UNUSED] = _NULL_interaction;
-	i_tbl[FIX] = _FIX_interaction;
-	i_tbl[BLANK] = _NULL_interaction;
-	i_tbl[DER] = _DER_interaction;
-	i_tbl[MUSUME] = _MUSUME_interaction;
-	i_tbl[AIR] = _AL_AIR_DE_interaction;
-	i_tbl[MEMB] = _MEMB_interaction;
-	*/
 }
 
 
 //////////////////////////////////////////////////////////////////////////////////////
 
 
-void init_cell_interaction() {
-	//_init_interaction_table(interaction_table);
-}
 
 void cell_interaction(CellManager & cman)
 {
 		memb_bend(cman);
-		cman.memb_foreach_parallel_native([](Cell*const RESTRICT& c) {
+		cman.memb_foreach_parallel_native([](Cell*const RESTRICT c) {
 			_MEMB_interaction(c);
 		});
-		cman.non_memb_foreach_parallel_native([](Cell*const RESTRICT& c) {
+		cman.non_memb_foreach_parallel_native([](Cell*const RESTRICT c) {
 			switch (c->state) {
 				/*
 			case MEMB:

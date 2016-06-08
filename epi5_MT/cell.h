@@ -164,7 +164,7 @@ public:
 	ctor_cookie‚ªprivate‚È‚Ì‚Å©•ª©g‚à‚µ‚­‚Ífriend‚Èclass‚©‚ç‚Ì‚İ¶¬‚Å‚«‚é
 	*/
 	Cell(ctor_cookie,CELL_STATE _state,
-		SwapData<double[cont::MAX_CELL_NUM]>&ATP_s,
+		SwapData<double[cont::MAX_CELL_NUM]>&ca2p_s,
 		SwapData<double[cont::MAX_CELL_NUM]>&IP3_s,
 		double _ex_inert=0,
 		double _agek = 0,double _ageb = 0,double _ex_fat=0,double _in_fat=0,double _spr_nat_len=0,
@@ -175,12 +175,12 @@ public:
 
 };
 
-inline double p_cell_dist_sq(const Cell*const& c1, const Cell*const& c2)
+inline double p_cell_dist_sq(const Cell*const RESTRICT c1, const Cell*const RESTRICT c2)
 {
 	return p_dist_sq(c1->x(), c1->y(), c1->z(), c2->x(), c2->y(), c2->z());
 }
 
-inline bool no_double_count(const Cell*const& c1,const Cell*const& c2) {
+inline bool no_double_count(const Cell*const RESTRICT c1,const Cell*const RESTRICT c2) {
 	return c1->get_index() > c2->get_index();
 }
 

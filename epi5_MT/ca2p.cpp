@@ -23,7 +23,7 @@ inline void init_ca2p_avg(CellManager& cman) {
 
 inline void dead_IP3_calc(CellManager& cman) {
 	using namespace cont;
-	cman.other_foreach_parallel_native([&](Cell*& c) {
+	cman.other_foreach_parallel_native([&](Cell*const RESTRICT c) {
 		if (c->state == DEAD) {
 
 			int count = 0;
@@ -83,7 +83,7 @@ inline double fw(double diff, double w)
 
 inline void supra_calc(CellManager& cman,const FArr3D<double>& ATP_first, const  FArr3D<double>& ext_stim_first) {
 	using namespace cont;
-	cman.other_foreach_parallel_native([&](Cell*& c){
+	cman.other_foreach_parallel_native([&](Cell*const RESTRICT c){
 		auto& st = c->state;
 		if (st == ALIVE || st == FIX || st == MUSUME) {
 			//aliasing
@@ -91,15 +91,10 @@ inline void supra_calc(CellManager& cman,const FArr3D<double>& ATP_first, const 
 			int& iy = c->lat[1];
 			int& iz = c->lat[2];
 
-			double _th = thpri;
-			double _Kpa = Kpri;
-			double IAGv = iage_kitei;
-
-			if (c->state == ALIVE) {
-				_th = ALIVE_th(c->agek);
-				_Kpa = ALIVE_Kpa(c->agek);
-				IAGv = ALIVE_IAG(c->agek);
-			}
+			const bool is_alive = c->state == ALIVE;
+			const double _th = is_alive? ALIVE_th(c->agek) :thpri;
+			const double _Kpa = is_alive? ALIVE_Kpa(c->agek): Kpri;
+			const double IAGv = is_alive? ALIVE_IAG(c->agek):iage_kitei;
 
 			double tmp_diffu = 0;
 			double tmp_IP3 = 0;
@@ -116,7 +111,7 @@ inline void supra_calc(CellManager& cman,const FArr3D<double>& ATP_first, const 
 
 			c->diff_u= fu(c->ca2p(), c->ex_inert, c->IP3(), grid_avg8(ext_stim_first(), ix, iy, iz))+ca2p_du*IAGv*tmp_diffu;
 			c->IP3 = c->IP3() + DT_Ca*(IP3_default_diff(_Kpa, grid_avg8(ATP_first(), ix, iy, iz), c->IP3()) + dp*IAGv*tmp_IP3);
-			double cs = c->ca2p() + DT_Ca*c->diff_u;
+			const double cs = c->ca2p() + DT_Ca*c->diff_u;
 			c->ca2p = cs;
 			c->ca2p_avg += cs;
 
@@ -127,14 +122,14 @@ inline void supra_calc(CellManager& cman,const FArr3D<double>& ATP_first, const 
 }
 
 
-void init_ca2p_map(RawArr3D<uint_fast8_t>& air_stim_flg, RawArr3D<double*>& cell_diffu_map,const FArr3D<Cell*>& cmap1,int iz_bound,double*const default_diffu_ptr) {
+void init_ca2p_map(RawArr3D<uint_fast8_t>& air_stim_flg, RawArr3D<const double*>& cell_diffu_map,const FArr3D<const Cell*>& cmap1,int iz_bound,const double*const default_diffu_ptr) {
 	using namespace cont;
 
 	tbb::parallel_for(tbb::blocked_range3d<int>(0, NX, 0, NY, 0, iz_bound), [&](const tbb::blocked_range3d<int>& range) {
 		for (int j = range.pages().begin(); j != range.pages().end(); ++j) {
 			for (int k = range.rows().begin(); k < range.rows().end(); k++) {
 				for (int l = range.cols().begin(); l < range.cols().end(); l++) {
-					double* tmp = default_diffu_ptr;
+					const double* tmp = default_diffu_ptr;
 					uint_fast8_t asf = 0;
 					auto& c = cmap1()[j][k][l];
 					if (c != nullptr) {
@@ -172,20 +167,21 @@ inline double fa(double diffu, double A) {
 	using namespace cont;
 	return STIM11*min0(diffu) - A*Kaa;
 }
-inline void ATP_refresh(SwapData<FArr3D<double>>& ATP, const RawArr3D<double*>& cell_diffu_map, const RawArr3D<uint_fast8_t>& air_stim_flg, const FArr3D<uint_fast8_t>& cmap2,int iz_bound) {
+inline void ATP_refresh(SwapData<FArr3D<double>>& ATP, const RawArr3D<const double*>& cell_diffu_map, const RawArr3D<uint_fast8_t>& air_stim_flg, const FArr3D<uint_fast8_t>& cmap2,int iz_bound) {
 	using namespace cont;
 	auto&& carr = ATP.first()();
 	auto&& narr = ATP.second()();
 	auto& cell_map2 = cmap2();
 	tbb::parallel_for(tbb::blocked_range3d<int>(0, NX, 0, NY, 0, iz_bound), [&](const tbb::blocked_range3d<int>& range) {
 		for (int j = range.pages().begin(); j != range.pages().end(); ++j) {
-			int prev_x = precalc_per_prev_x()[j];
-			int next_x = precalc_per_next_x()[j];
+			const int prev_x = precalc_per_prev_x()[j];
+			const int next_x = precalc_per_next_x()[j];
 			for (int k = range.rows().begin(); k != range.rows().end(); ++k) {
-				int prev_y = precalc_per_prev_y()[k];
-				int next_y = precalc_per_next_y()[k];
+				const int prev_y = precalc_per_prev_y()[k];
+				const int next_y = precalc_per_next_y()[k];
 				for (int l = range.cols().begin(); l != range.cols().end(); ++l) {
-					int prev_z = precalc_per_prev_z()[l]; int next_z = precalc_per_next_z()[l];
+					const int prev_z = precalc_per_prev_z()[l];
+					const int next_z = precalc_per_next_z()[l];
 					double& catp = carr[j][k][l];
 					narr[j][k][l] = catp + DT_Ca*(Da * (cell_map2[prev_x][k][l] * (carr[prev_x][k][l] - catp)
 						+ cell_map2[next_x][k][l] * (carr[next_x][k][l] - catp)
@@ -200,13 +196,13 @@ inline void ATP_refresh(SwapData<FArr3D<double>>& ATP, const RawArr3D<double*>& 
 	});
 
 	for (int l = 0; l <= iz_bound; l++) {
-		for (int j = 0; j < NX; j++) narr[j][NY][l] = narr[j][0][l];
+		for (int j = 0; j <= NX; j++) narr[j][NY][l] = narr[j][0][l];
 		for (int k = 0; k <= NY; k++) narr[NX][k][l] = narr[0][k][l];
 	}
 }
 
 inline void update_values(CellManager& cman, SwapData<FArr3D<double>>& ATP) {
-	ATP_swap(cman);
+	ca2p_swap(cman);
 	IP3_swap(cman);
 	cman.other_foreach([](Cell*& c) {
 		c->diff_u = 0;
@@ -230,7 +226,7 @@ inline void set_cell_ca2p(CellManager& cman) {
 
 ///////////////////////////////////////////////////////////////
 
-void calc_ca2p(CellManager& cman, SwapData<FArr3D<double>>& ATP,const FArr3D<double>& ext_stim_first, FArr3D<Cell*>& cmap1, FArr3D<uint_fast8_t>& cmap2, double zzmax)
+void calc_ca2p(CellManager& cman, SwapData<FArr3D<double>>& ATP,const FArr3D<double>& ext_stim_first,const FArr3D<const Cell*>& cmap1,const FArr3D<uint_fast8_t>& cmap2, double zzmax)
 {
 	using namespace cont;
 	init_ca2p_avg(cman);
@@ -238,8 +234,8 @@ void calc_ca2p(CellManager& cman, SwapData<FArr3D<double>>& ATP,const FArr3D<dou
 
 	int iz_bound = (int)((zzmax + FAC_MAP*R_max) / dz);
 	static RawArr3D<uint_fast8_t> air_stim_flg;
-	static RawArr3D<double*> cell_diffu_map;
-	double dummy_diffu = 0;
+	static RawArr3D<const double*> cell_diffu_map;
+	const double dummy_diffu = 0;
 	init_ca2p_map(air_stim_flg, cell_diffu_map, cmap1, iz_bound, &dummy_diffu);
 
 	for (int cstp = 0; cstp < Ca_ITR; cstp++) {

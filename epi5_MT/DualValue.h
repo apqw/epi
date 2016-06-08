@@ -47,5 +47,10 @@ public:
 		d1 = d2;
 	}
 
+	inline void _set(double v) {
+		d1 = v;
+		d2 = v;
+	}
+
 };
 #endif // DV_H

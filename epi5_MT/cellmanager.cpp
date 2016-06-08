@@ -16,9 +16,9 @@ void pos_copy(CellManager& cman)
 	});
 }
 
-void ATP_swap(CellManager& cman)
+void ca2p_swap(CellManager& cman)
 {
-	cman.ATP_s.swap();
+	cman.ca2p_s.swap();
 }
 
 void IP3_swap(CellManager& cman)
@@ -252,7 +252,7 @@ CellPtr CellManager::create(CELL_STATE _state, double _x, double _y, double _z, 
 	std::shared_ptr<Cell> cptr = std::make_shared<Cell>(
 		Cell::ctor_cookie(),
 		_state,
-		ATP_s,
+		ca2p_s,
 		IP3_s,
 		_ex_inert,
 		_agek,_ageb,_ex_fat,_in_fat,_spr_nat_len,
@@ -292,20 +292,20 @@ CellPtr CellManager::create(CELL_STATE _state, double _x, double _y, double _z, 
 
 void cell_pos_periodic_fix(CellManager& cman) {
 	
-	cman.all_foreach_parallel_native([&](Cell* c) {
+	cman.all_foreach_parallel_native([&](Cell*const c) {
 		using namespace cont;
 		if (c->x._next() > LX) {
-			c->x._next() -= LX;
+			c->x._set(c->x._next()-LX);
 		}
 		else if (c->x._next() < 0) {
-			c->x._next() += LX;
+			c->x._set(c->x._next() + LX);
 		}
 
 		if (c->y._next() > LY) {
-			c->y._next() -= LY;
+			c->y._set(c->y._next() - LY);
 		}
 		else if (c->y._next() < 0) {
-			c->y._next() += LY;
+			c->y._set(c->y._next() + LY);
 		}
 	});
 	

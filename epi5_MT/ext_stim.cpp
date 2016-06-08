@@ -10,7 +10,7 @@ inline double fB(double age, double B, bool cornif) {
 	return (cornif&&age > THRESH_DEAD - DUR_ALIVE&&age <= THRESH_DEAD + DUR_DEAD ? 1 : 0) - kb*B;
 }
 
-void calc_ext_stim(SwapData<FArr3D<double>>& ext_stim, FArr3D<Cell*>& cmap1, const FArr3D<uint_fast8_t>& cmap2, double zzmax)
+void calc_ext_stim(SwapData<FArr3D<double>>& ext_stim,const FArr3D<const Cell*>& cmap1, const FArr3D<uint_fast8_t>& cmap2, double zzmax)
 {
 	using namespace cont;
 	const int iz_bound = (int)((zzmax + FAC_MAP*R_max) *inv_dz);
