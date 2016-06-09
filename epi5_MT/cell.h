@@ -28,6 +28,9 @@ class Cell:public std::enable_shared_from_this<Cell>
 
 public:
 	friend class CellManager;
+
+        CELL_STATE state;
+
 	/*
 	 * 位置
 	 * 並列で加算など可能
@@ -52,11 +55,7 @@ public:
 	 */
 	CellPtr pair=nullptr;
 
-	/*
-	 * 半径
-	 * 書き換えないので並列への対応は無し
-	 */
-	const double radius;
+
 
 	/*
 	 * Ca2+濃度(平均化されていない)
@@ -107,6 +106,12 @@ public:
 
 	double spr_nat_len;
 
+    /*
+     * 半径
+     * 書き換えないので並列への対応は無し
+     */
+    const double radius;
+
 	/*
 	 * 分裂開始年齢のしきい値
 	 *
@@ -134,7 +139,7 @@ public:
 	/*
 	 * gj
 	 */
-    std::unordered_map<Cell*,gj_value> gj;
+    std::unordered_map<const Cell*,gj_value> gj;
 
 	/*
 	 * diff_u
@@ -155,7 +160,7 @@ public:
 
 	void migrate(size_t dest_idx);
 
-	CELL_STATE state;
+
 
 	double spring_force_to_memb;
 	Memb_data md;

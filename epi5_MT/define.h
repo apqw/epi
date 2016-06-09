@@ -202,7 +202,7 @@ namespace cont {
 	cdefd kg = 0.1;//ok
 	cdefd beta_zero = 0.02;//ok
 	cdefd CA_OUT = 1.0;//ok
-	defd beta = CA_OUT*beta_zero;//ok
+    cdefd beta = CA_OUT*beta_zero;//ok
 	//void set_beta(double _CA_OUT, double _beta_zero);
 	cdefd kbc = 0.4*1.2;//1.0->0.4 //ok //0.6
 	cdefd Hb = 0.01;//ok

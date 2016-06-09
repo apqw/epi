@@ -5,6 +5,7 @@
 #include "utils.h"
 #include "cell.h"
 #include "cellmanager.h"
+#include <cmath>
 
 template<typename ArrTy>
 inline auto grid_avg8(const ArrTy& grd,int ix,int iy,int iz) {
@@ -13,7 +14,7 @@ inline auto grid_avg8(const ArrTy& grd,int ix,int iy,int iz) {
 		+ grd[ix][iy + 1][iz + 1] + grd[ix + 1][iy + 1][iz + 1]);
 }
 inline void init_ca2p_avg(CellManager& cman) {
-	cman.other_foreach([](Cell*& c) {
+    cman.other_foreach([](Cell* const RESTRICT c) {
 		auto& st = c->state;
 		if (st == ALIVE || st == FIX || st == MUSUME) {
 			c->ca2p_avg = 0;
@@ -98,7 +99,7 @@ inline void supra_calc(CellManager& cman,const FArr3D<double>& ATP_first, const 
 
 			double tmp_diffu = 0;
 			double tmp_IP3 = 0;
-			c->connected_cell.foreach([&c, &tmp_diffu, &tmp_IP3, IAGv](Cell* conn) {
+            c->connected_cell.foreach([&c, &tmp_diffu, &tmp_IP3, IAGv](Cell*const RESTRICT conn) {
 				auto& st = conn->state;
 				if (st==ALIVE||st==DEAD||st==FIX||st==MUSUME) {
 					tmp_diffu += c->gj.at(conn)()*(conn->ca2p() - c->ca2p());
@@ -195,16 +196,16 @@ inline void ATP_refresh(SwapData<FArr3D<double>>& ATP, const RawArr3D<const doub
 		}
 	});
 
-	for (int l = 0; l <= iz_bound; l++) {
-		for (int j = 0; j <= NX; j++) narr[j][NY][l] = narr[j][0][l];
-		for (int k = 0; k <= NY; k++) narr[NX][k][l] = narr[0][k][l];
+    for (int l = 0; l <= iz_bound; l++) {
+        for (size_t j = 0; j <= NX; j++) narr[j][NY][l] = narr[j][0][l];
+        for (size_t k = 0; k <= NY; k++) narr[NX][k][l] = narr[0][k][l];
 	}
 }
 
 inline void update_values(CellManager& cman, SwapData<FArr3D<double>>& ATP) {
 	ca2p_swap(cman);
 	IP3_swap(cman);
-	cman.other_foreach([](Cell*& c) {
+    cman.other_foreach([](Cell* const RESTRICT c) {
 		c->diff_u = 0;
 	});
 	ATP.swap();
@@ -212,7 +213,7 @@ inline void update_values(CellManager& cman, SwapData<FArr3D<double>>& ATP) {
 
 inline void set_cell_ca2p(CellManager& cman) {
 	using namespace cont;
-	cman.other_foreach_parallel_native([](Cell*& c) {
+    cman.other_foreach_parallel_native([](Cell*const RESTRICT c) {
 		auto& st = c->state;
 		if (st==ALIVE||st==FIX||st==MUSUME) {
 			c->ca2p_avg /= Ca_ITR;

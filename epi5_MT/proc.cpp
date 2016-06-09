@@ -52,10 +52,10 @@ void proc(std::string init_data_path,std::string param_path,std::string init_uvp
 	auto cell_map1 = std::make_unique<FArr3D<const Cell*>>();
 	auto cell_map2 = std::make_unique<FArr3D<uint_fast8_t>>();
 	double zzmax = 0;
-	printf("current cell num:%d\n", cellset->size());
+    printf("current cell num:%zd\n", cellset->size());
 	auto& cman = *cellset;
-    for (int i = 0; i < NUM_ITR; i++) {
-		if(i%100==0)printf("loop:%d\n", i);
+    for (size_t i = 0; i < NUM_ITR; i++) {
+        if(i%100==0)printf("loop:%zd\n", i);
 			cell_dynamics(cman);
 			zzmax = calc_zzmax(cman);
 			setup_map_lat(cman, *cell_map1, *cell_map2);

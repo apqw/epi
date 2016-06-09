@@ -58,6 +58,7 @@ Cell::Cell(ctor_cookie,CELL_STATE _state,
 	y(_y),
 	z(_z),
 	ca2p(ca2p_s),
+    ca2p_avg(_ca2p_avg),
 	IP3(IP3_s),
 	ex_inert(_ex_inert),
 	agek(_agek),
@@ -65,5 +66,5 @@ Cell::Cell(ctor_cookie,CELL_STATE _state,
 	ex_fat(_ex_fat),
 	in_fat(_in_fat),
 	spr_nat_len(_spr_nat_len),
-	radius(_radius), ca2p_avg(_ca2p_avg), div_age_thresh(_div_age_thresh), is_malignant(_is_malignant), diff_u(0) {
+    radius(_radius),  div_age_thresh(_div_age_thresh), is_malignant(_is_malignant), diff_u(0) {
 }

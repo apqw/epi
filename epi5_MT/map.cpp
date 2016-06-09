@@ -43,7 +43,7 @@ void setup_map_lat(CellManager & cman, FArr3D<const Cell*>& cmap1, FArr3D<uint_f
 		const int z_b = clat[2] - _irz;
 		const int z_u = clat[2] + _irz;
 		const int zmin = z_b >= 1 ? z_b : 1;
-		const int zmax = z_u < NZ ? z_u : NZ - 1;
+        const int zmax = z_u < (int)NZ ? z_u : (int)NZ - 1;
 
 		static thread_local double a_diffySq[_iry * 2 + 1];
 		static thread_local double a_diffzSq[_irz * 2 + 1];
@@ -90,12 +90,12 @@ void setup_map_lat(CellManager & cman, FArr3D<const Cell*>& cmap1, FArr3D<uint_f
 		}
 	});
 	tbb::parallel_for<size_t>(0, NZ, [&cmap1, &cmap2](size_t l) {
-		for (int j = 0; j<=NX; j++) {
+        for (size_t j = 0; j<=NX; j++) {
 			cmap2()[j][NY][l] = cmap2()[j][0][l];
 			cmap1()[j][NY][l] = cmap1()[j][0][l];
 		}
 
-		for (int k = 0; k <= NY; k++) {
+        for (size_t k = 0; k <= NY; k++) {
 			cmap2()[NX][k][l] = cmap2()[0][k][l];
 			cmap1()[NX][k][l] = cmap1()[0][k][l];
 		}

@@ -145,7 +145,7 @@ void _FIX_state_renew(CellManager& cman, Cell*const RESTRICT fix) {
 	if (fix->dermis() == nullptr) {
 		printf("err\n");
 		printf("x:%lf,y:%lf,z:%lf\n", fix->x(), fix->y(), fix->z());
-		printf("connected_num:%d\n", fix->connected_cell.size());
+        printf("connected_num:%zd\n", fix->connected_cell.size());
 		assert(fix->dermis() != nullptr);
 		return;
 	}

@@ -148,7 +148,7 @@ void CellManager::_load_from_file(std::string path)
 	while (std::getline(dstrm, line)) {
 
 		sscanf(line.c_str(), "%*d %" SCNuFAST8 " %lf %lf %lf %*f %lf %lf %lf %*f %d %lf %lf %d %lf %d %d",
-			&state, &rad, &ageb, &agek, &x, &y, &z, &div_times, &ex_fat, &fat, &touch, &spr_len, &pair_cell_id, &stem_orig_id);
+            (uint_fast8_t*)&state, &rad, &ageb, &agek, &x, &y, &z, &div_times, &ex_fat, &fat, &touch, &spr_len, &pair_cell_id, &stem_orig_id);
 
 		/*
 		BLANK‚É‚½‚Ç‚è’…‚¢‚½‚çI—¹

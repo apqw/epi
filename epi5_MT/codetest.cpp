@@ -59,11 +59,11 @@ a.push_back(0.1);
 a.push_back(0.1);
 a.push_back(0.1);
 a.push_back(0.1);
-printf("lfps size:%d pushed:%lf ok\n",a.size(),(double)a[0]);
+printf("lfps size:%zd pushed:%lf ok\n",a.size(),(double)a[0]);
 
 a.clear();
 
-printf("lfps size:%d pushed:%lf ok\n",a.size(),(double)a[0]);
+printf("lfps size:%zd pushed:%lf ok\n",a.size(),(double)a[0]);
 
 return true;
 
@@ -72,16 +72,16 @@ return true;
 bool cell_test() {
 	auto cells = std::make_unique<CellManager>();
 	auto p = cells ->create(ALIVE);
-	auto q = cells->create(DEAD); auto r = cells->create(DEAD);
+    auto q = cells->create(DEAD); //auto r = cells->create(DEAD);
 	p->x += 0.1;
-	printf("p idx:%d q idx:%d p prex:%lf\n", p->get_index(), q->get_index(),p->x());
+    printf("p idx:%zd q idx:%zd p prex:%lf\n", p->get_index(), q->get_index(),p->x());
 	pos_copy(*cells);
 	printf("pos swapped p pos:%lf\n", p->x());
-	printf("cell man size:%d\n", cells->size());
+    printf("cell man size:%zd\n", cells->size());
 	cells ->add_remove_queue(1);
 	cells ->remove_exec();
-	printf("cell man size:%d\n", cells->size());
+    printf("cell man size:%zd\n", cells->size());
 	cells->remove_exec();
-	printf("cell man size:%d\n", cells->size());
+    printf("cell man size:%zd\n", cells->size());
 	return true;
 }

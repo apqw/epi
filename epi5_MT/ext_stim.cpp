@@ -44,7 +44,7 @@ void calc_ext_stim(SwapData<FArr3D<double>>& ext_stim,const FArr3D<const Cell*>&
 			for (size_t k = range.rows().begin(); k < range.rows().end(); ++k) {
 				const int prev_y = per_y_prev_idx[k];
 				const int next_y = per_y_next_idx[k];
-				for (int l = range.cols().begin(); l < range.cols().end(); ++l) {
+                for (size_t l = range.cols().begin(); l < range.cols().end(); ++l) {
 					const int prev_z = a_prev_z[l], next_z = a_next_z[l];
 					double dum_age = 0;
 					bool flg_cornified = false;
@@ -72,9 +72,9 @@ void calc_ext_stim(SwapData<FArr3D<double>>& ext_stim,const FArr3D<const Cell*>&
 		}
 	});
 
-	for (int l = 0; l <= iz_bound; l++) {
-		for (int j = 0; j < NX; j++) narr[j][NY][l] = narr[j][0][l];
-		for (int k = 0; k <= NY; k++)narr[NX][k][l] = narr[0][k][l];
+    for (int l = 0; l <= iz_bound; l++) {
+        for (size_t j = 0; j < NX; j++) narr[j][NY][l] = narr[j][0][l];
+        for (size_t k = 0; k <= NY; k++)narr[NX][k][l] = narr[0][k][l];
 	}
 
 	ext_stim.swap();

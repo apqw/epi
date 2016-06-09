@@ -3,7 +3,9 @@
 #include "utils.h"
 #include "cell.h"
 #include "cell_conn_value.h"
+#include <cinttypes>
 using cint = int_fast16_t;
+#define CINT_F SCNiFAST16
 
 void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY][cont::ANZ] , Cell* RESTRICT(&area)[cont::ANX][cont::ANY][cont::ANZ][cont::N3]) {
 	using namespace cont;
@@ -15,10 +17,10 @@ void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY
 		aiy = (0.5*LY - p_diff_y(0.5*LY, c->y())) / AREA_GRID;
 		aiz = (min0(c->z())) / AREA_GRID;
 
-		if ((aix >= ANX || aiy >= ANY || aiz >= ANZ || aix < 0 || aiy < 0 || aiz < 0)) {
+        if ((aix >= (cint)ANX || aiy >= (cint)ANY || aiz >= (cint)ANZ || aix < 0 || aiy < 0 || aiz < 0)) {
 			printf("err\n");
 			printf("cx:%lf cy:%lf cz:%lf\n", c->x(), c->y(), c->z());
-			printf("aix:%d aiy:%d aiz:%d\n", aix, aiy, aiz);
+            printf("aix:%" CINT_F " aiy:%" CINT_F " aiz:%" CINT_F "\n", aix, aiy, aiz);
 			assert(false);
 		}
 
@@ -38,7 +40,7 @@ void connect_proc(CellManager& cman, const std::atomic<cint>(&aindx)[cont::ANX][
 struct lat_arr_##axis {\
 	cint idx[cont::AN##axis * 3];\
 	lat_arr_##axis() {\
-		for (int i = 0; i < cont::AN##axis * 3; i++) {\
+        for (size_t i = 0; i < cont::AN##axis * 3; i++) {\
 			idx[i] = i%cont::AN##axis;\
 		}\
 	}\
@@ -54,20 +56,20 @@ struct lat_arr_##axis {\
 	
 
 	using namespace cont;
-	constexpr int ii = 2;
+    constexpr cint ii = 2;
 	cman.non_memb_foreach_parallel_native([&](Cell*const&c) { //cannot restrict
 		
 		const cint anx = (cint)(c->x() / AREA_GRID);
 		const cint any = (cint)(c->y() / AREA_GRID);
 		const cint anz = (cint)(c->z() / AREA_GRID);
 
-		assert(!(anx >= ANX || any >= ANY || anz >= ANZ || anx < 0 || any < 0 || anz < 0));
+        assert(!(anx >= (cint)ANX || any >= (cint)ANY || anz >= (cint)ANZ || anx < 0 || any < 0 || anz < 0));
 
-		for (int j = anx - ii+ANX; j <= anx + ii+ANX; j++) {
+        for (cint j = anx - ii+(cint)ANX; j <= anx + ii+(cint)ANX; j++) {
 			const cint aix = xidx[j];
-			for (int k = any - ii + ANY; k <= any + ii + ANY; k++) {
+            for (cint k = any - ii + (cint)ANY; k <= any + ii + (cint)ANY; k++) {
 				const cint aiy = yidx[k];
-				for (int l = anz - ii + ANZ; l <= anz + ii + ANZ; l++) {
+                for (cint l = anz - ii + (cint)ANZ; l <= anz + ii + (cint)ANZ; l++) {
 					const cint aiz = zidx[l];
 					const cint sz = aindx[aix][aiy][aiz];
 
@@ -127,7 +129,7 @@ void gj_refresh(CellManager& cman) {
 	});
 }
 
-const Cell*const find_dermis(const Cell*const RESTRICT c) {
+const Cell* find_dermis(const Cell*const RESTRICT c) {
 	double d1Sq = cont::LX*cont::LX;
 	double distanceSq = 0;
 	const Cell* dermis = nullptr;

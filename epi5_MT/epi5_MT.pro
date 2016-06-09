@@ -17,7 +17,8 @@ SOURCES += main.cpp \
     map.cpp \
     proc.cpp \
     Random_gen.cpp \
-    utils.cpp
+    utils.cpp \
+    ca2p.cpp
 
 HEADERS += \
     cell.h \
@@ -37,11 +38,12 @@ HEADERS += \
     proc.h \
     Random_gen.h \
     utils.h \
-    cell_conn_value.h
+    cell_conn_value.h \
+    ca2p.h
 QMAKE_INCDIR+=/opt/intel/tbb44_20160413oss/include
 QMAKE_CXXFLAGS_RELEASE-=-O2
-#QMAKE_CXXFLAGS+=-std=c++14 -O3 -ipo -xCORE-AVX2 -static-intel -no-prec-div
-#QMAKE_LFLAGS+=-O3  -ipo -xCORE-AVX2 -static-intel -no-prec-div -L/opt/intel/tbb44_20160413oss/intel64/gcc4.4 -L/home/yasu7890v/opt/intel/lib/intel64 -ltbb
+QMAKE_CXXFLAGS+=-std=c++14 -O3 -ipo -xCORE-AVX2 -static-intel -no-prec-div
+QMAKE_LFLAGS+=-O3  -ipo -xCORE-AVX2 -static-intel -no-prec-div -L/opt/intel/tbb44_20160413oss/intel64/gcc4.4 -L/home/yasu7890v/opt/intel/lib/intel64 -ltbb
 
-QMAKE_CXXFLAGS+=-std=c++14 -Ofast
-QMAKE_LFLAGS+=-Ofast -L/opt/intel/tbb44_20160413oss/intel64/gcc4.4 -L/home/yasu7890v/opt/intel/lib/intel64 -ltbb
+#QMAKE_CXXFLAGS+=-std=c++14 -Ofast
+#QMAKE_LFLAGS+=-Ofast -L/opt/intel/tbb44_20160413oss/intel64/gcc4.4 -L/home/yasu7890v/opt/intel/lib/intel64 -ltbb
