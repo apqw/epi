@@ -10,7 +10,7 @@
 bool atomic_double_test(){
     double dval=0.1;
 atomic_double a(dval);
-atomic_double b(a); atomic_double c(atomic_double(dval));
+atomic_double b(a); //atomic_double c(atomic_double(dval));
 assert(dval==a&&dval==b&&(double)a==(double)b);
 printf("define test:a %lf == %lf b %lf == %lf\n",(double)a,dval,(double)b,dval);
 a=0.2;

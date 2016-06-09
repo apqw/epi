@@ -13,9 +13,9 @@ void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY
 	cman.all_foreach_parallel_native([&](Cell*const RESTRICT& c) {
 		//auto&c = cman[i];
 		cint aix, aiy, aiz;
-		aix = (0.5*LX - p_diff_x(0.5*LX, c->x())) / AREA_GRID;
-		aiy = (0.5*LY - p_diff_y(0.5*LY, c->y())) / AREA_GRID;
-		aiz = (min0(c->z())) / AREA_GRID;
+		aix = (cint)((0.5*LX - p_diff_x(0.5*LX, c->x())) / AREA_GRID);
+		aiy = (cint)((0.5*LY - p_diff_y(0.5*LY, c->y())) / AREA_GRID);
+		aiz = (cint)((min0(c->z())) / AREA_GRID);
 
         if ((aix >= (cint)ANX || aiy >= (cint)ANY || aiz >= (cint)ANZ || aix < 0 || aiy < 0 || aiz < 0)) {
 			printf("err\n");
@@ -28,7 +28,7 @@ void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY
 		/*
 		‚±‚Ìassert‚ÍÁ‚µ‚Ä‚æ‚¢
 		*/
-		assert(aindx[aix][aiy][aiz] < N3);
+		assert(aindx[aix][aiy][aiz] < (cint)N3);
 		c->connected_cell.force_set_count(c->state == MEMB ? 4 : 0);
 
 	});

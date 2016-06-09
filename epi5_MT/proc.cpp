@@ -41,7 +41,7 @@ double calc_zzmax(CellManager& cman) {
 	return zmax;
 }
 
-void output_cell_data(CellManager& cman,int index){
+void output_cell_data(CellManager& cman,size_t index){
     std::cout<<"logging..."<<std::endl;
     std::ostringstream _fname;
     _fname<<OUTPUTDIR<<"/"<<index;
@@ -65,7 +65,7 @@ void output_w(CellManager& cman){
     cman.all_foreach([fw_alt](Cell* c){
     std::fprintf(fw_alt,"%d %d\n",(int)(c->get_index()),(int)(c->gj.size()));
     for(auto& gjv:c->gj){
-    std::fprintf(fw_alt,"%d %1.14e\n",gjv.first->get_index(),gjv.second());
+    std::fprintf(fw_alt,"%d %1.14e\n",(int)(gjv.first->get_index()),(double)(gjv.second()));
     }
     });
     std::fclose(fw_alt);

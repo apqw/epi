@@ -45,8 +45,8 @@ void CellManager::_memb_init()
 	using namespace cont;
 	auto&cells = *this;
 	cells.memb_foreach_with_index([&](CellPtr& cptr, size_t j) {
-		int jj = j%NMX;
-		int kk = j / NMX;
+		size_t jj = j%NMX;
+		size_t kk = j / NMX;
 		if (jj == 0) {
 			cptr->md.memb_l = cells[j + NMX - 1];
 		}

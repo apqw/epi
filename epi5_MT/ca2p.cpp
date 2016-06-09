@@ -147,8 +147,8 @@ void init_ca2p_map(RawArr3D<uint_fast8_t>& air_stim_flg, RawArr3D<const double*>
 						/*
 							connected with air
 						*/
-						int c_count = c->connected_cell.size();
-						for (int cc = 0; cc < c_count; ++cc) {
+						size_t c_count = c->connected_cell.size();
+						for (size_t cc = 0; cc < c_count; ++cc) {
 							if (c->connected_cell[cc]->state == AIR) {
 								asf = 1;
 								break;
