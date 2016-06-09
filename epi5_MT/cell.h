@@ -26,6 +26,7 @@ class Cell:public std::enable_shared_from_this<Cell>
 
 	struct ctor_cookie{};
 
+    bool removed=false;
 public:
 	friend class CellManager;
 
@@ -130,6 +131,8 @@ public:
 	 * ˆ««‚©‚Ç‚¤‚©
 	 */
 	bool is_malignant;
+
+    bool is_touch;
 
 	/*
 	 * Šiq‚Æ‚µ‚Ä‚ÌˆÊ’u

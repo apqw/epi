@@ -34,13 +34,6 @@ void Cell::migrate(size_t dest_idx)
 	size_t _index = get_index();
 	ca2p._migrate(_index);
 	IP3._migrate(_index);
-	//ex_inert._migrate(_index);
-//	agek._migrate(_index);
-//	ageb._migrate(_index);
-//	in_fat._migrate(_index);
-//	ex_fat._migrate(_index);
-//	spr_nat_len._migrate(_index);
-	//rest_div_times._migrate(_index);
 }
 
 

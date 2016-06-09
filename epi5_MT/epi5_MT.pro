@@ -18,7 +18,8 @@ SOURCES += main.cpp \
     proc.cpp \
     Random_gen.cpp \
     utils.cpp \
-    ca2p.cpp
+    ca2p.cpp \
+    fsys.cpp
 
 HEADERS += \
     cell.h \
@@ -39,7 +40,8 @@ HEADERS += \
     Random_gen.h \
     utils.h \
     cell_conn_value.h \
-    ca2p.h
+    ca2p.h \
+    fsys.h
 QMAKE_INCDIR+=/opt/intel/tbb44_20160413oss/include
 QMAKE_CXXFLAGS_RELEASE-=-O2
 QMAKE_CXXFLAGS+=-std=c++14 -O3 -ipo -xCORE-AVX2 -static-intel -no-prec-div

@@ -1,3 +1,4 @@
 #pragma once
 #include <string>
-void proc(std::string init_data_path, std::string param_path, std::string init_uvp_data = "", std::string init_ATP_data = "", std::string init_ext_stim_data = "");
+void proc(const std::string& init_data_path,bool use_last=false,const std::string& init_uvp_data="",const std::string& init_w_data="",const std::string& init_ATP_data="",
+          const std::string& init_ext_stim_data="");

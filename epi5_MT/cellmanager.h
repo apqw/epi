@@ -42,7 +42,7 @@ inline void prefix##_foreach_parallel_native(const Fn& lmbd) {\
 */
 class CellManager :Lockfree_push_stack<CellPtr, cont::MAX_CELL_NUM> {
 
-	std::vector<std::shared_ptr<Cell>> cell_store;
+    //std::vector<std::shared_ptr<Cell>> cell_store;
 
 	SwapData<double[cont::MAX_CELL_NUM]>ca2p_s;
 	SwapData<double[cont::MAX_CELL_NUM]>IP3_s;
@@ -52,6 +52,7 @@ class CellManager :Lockfree_push_stack<CellPtr, cont::MAX_CELL_NUM> {
 	size_t register_cell(const CellPtr& c);
 	void _memb_init();
 	void _load_from_file(std::string path);
+    void _load_from_file_bin(std::string path);
 	void init_internal(std::string init_data_path);
 	std::atomic<uint_fast8_t> sw;
 public:
@@ -59,11 +60,15 @@ public:
 	//void pos_copy(CellManager& cman);
 	friend void ca2p_swap(CellManager& cman);
 	friend void IP3_swap(CellManager& cman);
-	friend void cman_init(CellManager&cells, std::string init_data_path);
+    friend void cman_init(CellManager& cells,const std::string& init_data_path,
+                          bool use_last,const std::string& ld_uvp,const std::string& ld_w);
+    friend void load_w(CellManager& cman,const std::string& ld_w);
+    friend void load_uvp(CellManager& cman,const std::string& ld_uvp);
 	friend void cell_pos_periodic_fix(CellManager& cman);
 	friend void cornificate(CellManager& cman, Cell*const RESTRICT c);
 	
-	
+    void output(const std::string& filename,bool binary_mode=false);
+    void clean_up();
 
 	CellPtr create(CELL_STATE _state, double _x = 0, double _y = 0, double _z = 0,
 		double _radius = cont::R_max, double _ca2p = cont::ca2p_init, double _ca2p_avg = cont::ca2p_init,
@@ -97,10 +102,12 @@ public:
 	}
 };
 
-void cman_init(CellManager&cells, std::string init_data_path);
+void cman_init(CellManager& cells,const std::string& init_data_path,
+               bool use_last=false,const std::string& ld_uvp="",const std::string& ld_w="");
 void cell_pos_periodic_fix(CellManager& cman);
 void ca2p_swap(CellManager& cman);
 void IP3_swap(CellManager& cman);
 void cornificate(CellManager& cman, Cell*const RESTRICT alive_cell);
-
+void load_w(CellManager& cman,const std::string& ld_w);
+void load_uvp(CellManager& cman,const std::string& ld_uvp);
 void pos_copy(CellManager& cman);

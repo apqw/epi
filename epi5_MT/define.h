@@ -238,6 +238,15 @@ namespace cont {
 cdefui SYSTEM = 0;
 cdefui WHOLE = 0;
 cdefui BASAL = 1;
+cdefui CUT=1000;
+static constexpr auto OUTPUTDIR="output";
+
+static constexpr auto last_data_uvp_name="last_data_uvp";
+static constexpr auto last_data_cell_name="last_data_cell";
+static constexpr auto last_data_w_name="last_data_w_alt";
+static constexpr auto last_data_a_name="last_data_a_alt";
+static constexpr auto last_data_B_name="last_data_B_alt";
+
 static constexpr bool STOCHASTIC = true;
 
 static constexpr bool FORCE_CORNIF = true;

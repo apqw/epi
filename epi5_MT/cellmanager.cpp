@@ -7,6 +7,7 @@
 #include <cinttypes>
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
+#include <iomanip>
 void pos_copy(CellManager& cman)
 {
 	cman.all_foreach_parallel_native([](Cell* c) {
@@ -92,13 +93,6 @@ void CellManager::_memb_init()
 		cptr->connected_cell.push_back(cptr->md.memb_r);
 		cptr->connected_cell.push_back(cptr->md.memb_b);
 		cptr->connected_cell.push_back(cptr->md.memb_u);
-		//test
-		/*
-		cptr->gj._emplace(cptr->md.memb_l, 0);
-		cptr->gj._emplace(cptr->md.memb_r, 0);
-		cptr->gj._emplace(cptr->md.memb_b, 0);
-		cptr->gj._emplace(cptr->md.memb_u, 0);
-		*/
 	});
 }
 
@@ -233,8 +227,11 @@ void CellManager::add_remove_queue(size_t idx)
 void CellManager::remove_exec()
 {
 	for (size_t i = 0; i < remove_queue.size(); ++i) {
-		_data[i] = _data[--_next];
-		_data[i]->migrate(i);
+        size_t remove_idx=remove_queue[i];
+       // _data[remove_idx]->removed=true;
+        delete _data[remove_idx];
+        _data[remove_idx] = _data[--_next];
+        _data[remove_idx]->migrate(remove_idx);
 	}
 	remove_queue.clear();
 }
@@ -248,7 +245,7 @@ void CellManager::init_internal(std::string init_data_path)
 
 CellPtr CellManager::create(CELL_STATE _state, double _x, double _y, double _z, double _radius, double _ca2p, double _ca2p_avg, double _IP3, double _ex_inert, double _agek, double _ageb, double _ex_fat, double _in_fat, double _spr_nat_len, double _div_age_thresh, int _rest_div_times, bool _is_malignant)
 {
-	
+    /*
 	std::shared_ptr<Cell> cptr = std::make_shared<Cell>(
 		Cell::ctor_cookie(),
 		_state,
@@ -259,34 +256,31 @@ CellPtr CellManager::create(CELL_STATE _state, double _x, double _y, double _z, 
 	_x,_y,_z,
 		
 		_radius, _ca2p_avg, _div_age_thresh, _is_malignant);
-	cell_store.push_back(cptr);
-	cptr->set_index(this->register_cell(cptr.get()));
+        */
+    //
+    //use smart ptr
+    Cell* cptr = new Cell(
+                Cell::ctor_cookie(),
+                _state,
+                ca2p_s,
+                IP3_s,
+                _ex_inert,
+                _agek,_ageb,_ex_fat,_in_fat,_spr_nat_len,
+            _x,_y,_z,
+
+                _radius, _ca2p_avg, _div_age_thresh, _is_malignant);
+
+    //cell_store.push_back(cptr);
+    cptr->set_index(this->register_cell(cptr));
 	size_t _index = cptr->get_index();
 	cptr->ca2p.init(_index);
 	cptr->IP3.init(_index);
-	//cptr->ex_inert.init(_index);
-	/*
-	cptr->agek.init(_index);
-	cptr->ageb.init(_index);
-	cptr->in_fat.init(_index);
-	cptr->ex_fat.init(_index);
-	cptr->spr_nat_len.init(_index);
-	*/
-	//cptr->rest_div_times.init(_index);
 
 	cptr->ca2p._set(_ca2p);
 	cptr->IP3._set(_IP3);
-	//cptr->ex_inert._set(_ex_inert);
-	/*
-	cptr->agek._set(_agek);
-	cptr->ageb._set(_ageb);
-	cptr->in_fat._set(_in_fat);
-	cptr->ex_fat._set(_ex_fat);
-	cptr->spr_nat_len._set(_spr_nat_len);
-	*/
 	cptr->rest_div_times = _rest_div_times;
 
-	return cptr.get();
+    return cptr;
 }
 
 
@@ -311,3 +305,146 @@ void cell_pos_periodic_fix(CellManager& cman) {
 	
 }
 
+template<typename T>
+void bin_write(std::ofstream& ofs,T* ptr){
+ofs.write(reinterpret_cast<const char*>(ptr),sizeof(T));
+}
+
+template<typename First,typename Second,typename... T>
+void bin_write(std::ofstream& ofs,First* fptr,Second* sptr,T*... ptr){
+    bin_write<First>(ofs,fptr);
+    bin_write<Second,T...>(ofs,sptr,ptr...);
+}
+
+void check_localization(CellManager&cman){
+    cman.all_foreach_parallel_native([](Cell* c){
+        bool touch=false;
+        if(c->state==ALIVE){
+            for(int i=0;i<c->connected_cell.size();i++){
+                if(c->connected_cell[i]->state==DEAD){
+                    touch=true;
+                    break;
+                }
+            }
+        }
+        c->is_touch=touch;
+
+    });
+}
+
+void CellManager::output(const std::string &filename,bool binary_mode)
+{
+    std::ofstream wfile;
+    if(binary_mode){
+    wfile.open(filename,std::ios_base::out|std::ios_base::binary|std::ios_base::trunc);
+    }else{
+        wfile.open(filename);
+    }
+    if(!wfile){
+        std::cout<<"Output file creation error. Filename:"<<filename<<std::endl;
+        exit(1);
+    }
+
+
+    check_localization(*this);
+
+    /*
+     *  File Format:
+     *
+     *  integer         ->signed 32bit
+     *  floating point  ->double 64bit (IEEE754)
+     *  bool            ->char 8bit
+     */
+
+
+    if(binary_mode){
+    this->all_foreach([&](Cell* c){ //no parallel
+        //data casting
+        double ca2p=(double)(c->ca2p());
+        int state=(int)(c->state);
+        double x=(double)(c->x());
+        double y=(double)(c->y());
+        double z=(double)(c->z());
+        int index=(int)(c->index);
+        double radius=(double)(c->radius);
+        double ageb=(double)(c->ageb);
+        double agek=(double)(c->agek);
+        double ca2p_avg=(double)(c->ca2p_avg);
+        int rest_div_times=(int)(c->rest_div_times);
+        double ex_fat=(double)(c->ex_fat);
+        double in_fat=(double)(c->in_fat);
+        char is_touch=c->is_touch?1:0;
+        double spr_nat_len=(double)(c->spr_nat_len);
+        int pair_index=c->pair==nullptr?(int)-1:(int)(c->pair->index);
+        int fix_origin_idx=0;
+        bin_write(wfile,
+                  &index,
+                  &state,
+                  &radius,
+                  &ageb,
+                  &agek,
+                  &ca2p,
+                  &x,
+                  &y,
+                  &z,
+                  &ca2p_avg,
+                  &rest_div_times,
+                  &ex_fat,
+                  &in_fat,
+                  &is_touch,
+                  &spr_nat_len,
+                  &pair_index,
+                  &fix_origin_idx);
+
+    });
+    }else{
+        using namespace std;
+        this->all_foreach([&](Cell* c){
+            wfile<<c->index<<" "
+                <<c->state<<" "
+               <<fixed<<setprecision(15)<<c->radius<<" "
+              <<fixed<<setprecision(15)<<c->ageb<<" "
+             <<fixed<<setprecision(15)<<c->agek<<" "
+                <<fixed<<setprecision(15)<<c->ca2p()<<" "
+               <<fixed<<setprecision(15)<<c->x()<<" "
+              <<fixed<<setprecision(15)<<c->y()<<" "
+             <<fixed<<setprecision(15)<<c->z()<<" "
+            <<fixed<<setprecision(15)<<c->ca2p_avg<<" "
+               <<c->rest_div_times<<" "
+              <<fixed<<setprecision(15)<<c->ex_fat<<" "
+             <<fixed<<setprecision(15)<<c->in_fat<<" "
+            <<(c->is_touch?1:0)<<" "
+               <<fixed<<setprecision(15)<<c->spr_nat_len<<" "
+              <<(int)(c->pair==nullptr?(int)-1:(int)(c->pair->index))<<" "
+                                                      <<0<<std::endl;
+        });
+    }
+}
+
+void CellManager::clean_up(){
+    /*
+    fprintf(stdout,"removing unused cell...\n");
+    fflush(stdout);
+    auto rit = std::remove_if(cell_store.begin(),cell_store.end(),[&](std::shared_ptr<Cell>& c)->bool{
+        return c->removed;
+    });
+    fprintf(stdout,"remove_if done.\n");
+    fflush(stdout);
+    cell_store.erase(rit,cell_store.end());
+    fprintf(stdout,"erase done.\n");
+    fflush(stdout);
+    */
+    fprintf(stdout,"gj cleaning...\n");
+    fflush(stdout);
+    this->all_foreach_parallel_native([](Cell* const RESTRICT c){
+        for(auto it=c->gj.begin();it!=c->gj.end();){
+            if(!it->second.is_checked()){
+                it=c->gj.erase(it);
+            }else{
+                ++it;
+            }
+        }
+    });
+    fprintf(stdout,"done.\n");
+    fflush(stdout);
+}
