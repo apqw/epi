@@ -42,10 +42,10 @@ HEADERS += \
     cell_conn_value.h \
     ca2p.h \
     fsys.h
-QMAKE_INCDIR+=/opt/intel/tbb44_20160413oss/include
+QMAKE_INCDIR+=/opt/intel/tbb44_20160526oss/include
 QMAKE_CXXFLAGS_RELEASE-=-O2
-QMAKE_CXXFLAGS+=-std=c++14 -O3 -ipo -xCORE-AVX2 -static-intel -no-prec-div
-QMAKE_LFLAGS+=-O3  -ipo -xCORE-AVX2 -static-intel -no-prec-div -L/opt/intel/tbb44_20160413oss/intel64/gcc4.4 -L/home/yasu7890v/opt/intel/lib/intel64 -ltbb
+QMAKE_CXXFLAGS+=-std=c++14 -O3 -ipo -xHost -no-prec-div
+QMAKE_LFLAGS+=-std=c++14 -O3 -ipo -xHost -no-prec-div -L/opt/intel/tbb44_20160526oss/intel64/gcc4.4  -L/home/yasu7890v/opt/intel/lib/intel64 -ltbb
 
 #QMAKE_CXXFLAGS+=-std=c++14 -Ofast
 #QMAKE_LFLAGS+=-Ofast -L/opt/intel/tbb44_20160413oss/intel64/gcc4.4 -L/home/yasu7890v/opt/intel/lib/intel64 -ltbb

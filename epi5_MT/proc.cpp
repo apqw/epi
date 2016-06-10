@@ -17,6 +17,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <chrono>
 
 inline void cell_dynamics(CellManager & cellset) {
 	cell_interaction(cellset);
@@ -108,9 +109,13 @@ void proc(const std::string& init_data_path,bool use_last,const std::string& ini
     printf("current cell num:%zd\n", cellset->size());
 	auto& cman = *cellset;
 
-
+auto start=std::chrono::system_clock::now();
     for (size_t i = 0; i < NUM_ITR; i++) {
-        if(i%100==0)printf("loop:%zd\n", i);
+        if(i%100==0){
+
+            auto dur=std::chrono::system_clock::now()-start;
+            printf("loop:%d elapsed[sec]:%lf\n", i,0.001*std::chrono::duration_cast<std::chrono::milliseconds>(dur).count());
+        }
         if(i%CUT==0){
             output_cell_data(cman,i/CUT);
         }

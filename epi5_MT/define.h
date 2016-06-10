@@ -98,7 +98,7 @@ namespace cont {
 	cdefd DER_DER_CONST = 0.2; //ok
 	cdefd THRESH_SP = 3.0; //ok 3.0->1.0
 	cdefd K_TOTAL = 3.0;//ok
-	cdefd K_DESMOSOME_RATIO = 0.01;//ok
+    cdefd K_DESMOSOME_RATIO = 0.01;//ok
 	cdefd K_DESMOSOME = K_TOTAL*K_DESMOSOME_RATIO;//ok
 	//void set_K_DESMOSOME(double _K_TOTAL,double _K_DESMOSOME_RATIO);
 	cdefd LJ_THRESH = 1.2;//ok
@@ -119,7 +119,7 @@ namespace cont {
 	cdefd agki_max_fix = fac*agki_max;//ok
 	//void set_agki_max_fix(double _fac, double _agki_max);
 	cdefd stoch_div_time_ratio = 0.25;//ok
-	cdefui div_max = 15;//ok
+    cdefui div_max = 20;//ok
 	cdefd accel_div = 1.0;
 	cdefd eps_kb = 0.1;//ok
 
