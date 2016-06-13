@@ -29,7 +29,7 @@ void IP3_swap(CellManager& cman)
 
 void cornificate(CellManager & cman, Cell * const RESTRICT al)
 {
-	al->state = DEAD;
+	al->set_state(DEAD);
 	printf("sw updated:%d\n", ++cman.sw);
 }
 
@@ -319,9 +319,9 @@ void bin_write(std::ofstream& ofs,First* fptr,Second* sptr,T*... ptr){
 void check_localization(CellManager&cman){
     cman.all_foreach_parallel_native([](Cell* c){
         bool touch=false;
-        if(c->state==ALIVE){
+        if(c->state()==ALIVE){
             for(int i=0;i<c->connected_cell.size();i++){
-                if(c->connected_cell[i]->state==DEAD){
+                if(c->connected_cell[i]->state()==DEAD){
                     touch=true;
                     break;
                 }
@@ -361,7 +361,7 @@ void CellManager::output(const std::string &filename,bool binary_mode)
     this->all_foreach([&](Cell* c){ //no parallel
         //data casting
         double ca2p=(double)(c->ca2p());
-        int state=(int)(c->state);
+        int state=(int)(c->state());
         double x=(double)(c->x());
         double y=(double)(c->y());
         double z=(double)(c->z());
@@ -401,7 +401,7 @@ void CellManager::output(const std::string &filename,bool binary_mode)
         using namespace std;
         this->all_foreach([&](Cell* c){
             wfile<<c->index<<" "
-                <<c->state<<" "
+                <<c->state()<<" "
                <<fixed<<setprecision(15)<<c->radius<<" "
               <<fixed<<setprecision(15)<<c->ageb<<" "
              <<fixed<<setprecision(15)<<c->agek<<" "

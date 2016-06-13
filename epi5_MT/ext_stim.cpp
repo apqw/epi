@@ -10,7 +10,7 @@ inline double fB(double age, double B, bool cornif) {
 	return (cornif&&age > THRESH_DEAD - DUR_ALIVE&&age <= THRESH_DEAD + DUR_DEAD ? 1 : 0) - kb*B;
 }
 
-void calc_ext_stim(SwapData<FArr3D<double>>& ext_stim,const FArr3D<const Cell*>& cmap1, const FArr3D<uint_fast8_t>& cmap2, double zzmax)
+void calc_ext_stim(SwapData<FArr3D<double>>& ext_stim,const FArr3D<const Cell*>& cmap1, const FArr3D<cmask_ty>& cmap2, double zzmax)
 {
 	using namespace cont;
 	const int iz_bound = (int)((zzmax + FAC_MAP*R_max) *inv_dz);
@@ -50,7 +50,7 @@ void calc_ext_stim(SwapData<FArr3D<double>>& ext_stim,const FArr3D<const Cell*>&
 					bool flg_cornified = false;
 
 					if (cmap1()[j][k][l] != nullptr) {
-						if (cmap1()[j][k][l]->state==DEAD|| cmap1()[j][k][l]->state==ALIVE) {
+						if (cmap1()[j][k][l]->state_mask()&(DEAD_M|ALIVE_M)) {
 							dum_age = cmap1()[j][k][l]->agek;
 							flg_cornified = true;
 						}
@@ -58,14 +58,16 @@ void calc_ext_stim(SwapData<FArr3D<double>>& ext_stim,const FArr3D<const Cell*>&
 					
 					auto& cext = carr[j][k][l];
 
-					narr[j][k][l] = carr[j][k][l]
+					narr[j][k][l] = cext
 						+ DT_Ca*(DB *
 							(cmap2()[prev_x][k][l] * (carr[prev_x][k][l] - cext)
 								+ cmap2()[j][prev_y][l] * (carr[j][prev_y][l] - cext)
 								+ cmap2()[j][k][prev_z] * (carr[j][k][prev_z] - cext)
-								+ cmap2()[next_x][k][l] * (carr[next_x][k][l] - cext)
+								+ cmap2()[j][k][next_z] * (carr[j][k][next_z] - cext)
 								+ cmap2()[j][next_y][l] * (carr[j][next_y][l] - cext)
-								+ cmap2()[j][k][next_z] * (carr[j][k][next_z] - cext)) *inv_dz*inv_dz
+								+ cmap2()[next_x][k][l] * (carr[next_x][k][l] - cext)
+								
+								) *inv_dz*inv_dz
 							+ fB(dum_age, cext, flg_cornified));
 				}
 			}

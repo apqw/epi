@@ -29,7 +29,7 @@ void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY
 		Ç±ÇÃassertÇÕè¡ÇµÇƒÇÊÇ¢
 		*/
 		assert(aindx[aix][aiy][aiz] < (cint)N3);
-		c->connected_cell.force_set_count(c->state == MEMB ? 4 : 0);
+		c->connected_cell.force_set_count(c->state() == MEMB ? 4 : 0);
         c->memb_touching=false;
 	});
 }
@@ -57,25 +57,28 @@ struct lat_arr_##axis {\
 
 	using namespace cont;
     constexpr cint ii = 2;
-	cman.non_memb_foreach_parallel_native([&](Cell*const&c) { //cannot restrict
+	cman.non_memb_foreach_parallel_native([&](Cell*const c) { //cannot restrict
 		
 		const cint anx = (cint)(c->x() / AREA_GRID);
 		const cint any = (cint)(c->y() / AREA_GRID);
 		const cint anz = (cint)(c->z() / AREA_GRID);
 
         assert(!(anx >= (cint)ANX || any >= (cint)ANY || anz >= (cint)ANZ || anx < 0 || any < 0 || anz < 0));
-
-        for (cint j = anx - ii+(cint)ANX; j <= anx + ii+(cint)ANX; j++) {
+		const size_t my_index = c->get_index();
+		const cint xend = anx + ii + (cint)ANX;
+		const cint yend = any + ii + (cint)ANY;
+		const cint zend = anz + ii + (cint)ANZ;
+        for (cint j = anx - ii+(cint)ANX; j <= xend; j++) {
 			const cint aix = xidx[j];
-            for (cint k = any - ii + (cint)ANY; k <= any + ii + (cint)ANY; k++) {
+            for (cint k = any - ii + (cint)ANY; k <= yend; k++) {
 				const cint aiy = yidx[k];
-                for (cint l = anz - ii + (cint)ANZ; l <= anz + ii + (cint)ANZ; l++) {
+                for (cint l = anz - ii + (cint)ANZ; l <= zend; l++) {
 					const cint aiz = zidx[l];
 					const cint sz = aindx[aix][aiy][aiz];
 
 					for (cint m = 0; m < sz; ++m) {
 						Cell*const o = area[aix][aiy][aiz][m];
-						if (c->get_index() <= o->get_index())continue;
+						if (my_index <= o->get_index())continue;
 						const double diffx = p_diff_x(c->x(), o->x());
 						const double diffy = p_diff_y(c->y(), o->y());
 						const double diffz = c->z() - o->z();
@@ -83,7 +86,7 @@ struct lat_arr_##axis {\
 						if (DIST_SQ(diffx, diffy, diffz) <= LJ_THRESH*LJ_THRESH*rad_sum*rad_sum) {
 							c->connected_cell.push_back(o);
 							o->connected_cell.push_back(c);
-                            if(o->state==MEMB){
+                            if(o->state()==MEMB){
                                 c->memb_touching=true;
                             }
 							assert(c->connected_cell.size() < N2);
@@ -137,7 +140,7 @@ const Cell* find_dermis(const Cell*const RESTRICT c) {
 	double distanceSq = 0;
 	const Cell* dermis = nullptr;
 	c->connected_cell.foreach([&](const Cell*const RESTRICT& cptr) {
-		if (cptr->state == MEMB) {
+		if (cptr->state() == MEMB) {
 			distanceSq = p_cell_dist_sq(c, cptr);
 			if (distanceSq < d1Sq) {//2èÊÇ…Ç»Ç¡ÇƒÇ»Ç©Ç¡ÇΩ
 				d1Sq = distanceSq;
@@ -149,9 +152,9 @@ const Cell* find_dermis(const Cell*const RESTRICT c) {
 }
 
 inline void set_dermis(CellManager& cman) {
-	cman.other_foreach_parallel_native([](Cell*const RESTRICT&c) {
+	cman.other_foreach_parallel_native([](Cell*const RESTRICT c) {
 		
-		if (c->state == FIX || c->state == MUSUME) {
+		if (c->state_mask()&(FIX_M | MUSUME_M)) {
 			c->set_dermis(find_dermis(c));
 		}
 	});

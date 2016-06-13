@@ -3,5 +3,5 @@
 #include "Field.h"
 class CellManager;
 void setup_map_lat(CellManager& cman,
-	Field<const Cell*,cont::NX + 1, cont::NY + 1, cont::NZ + 1>& cmap1,
-	Field<uint_fast8_t,cont::NX + 1, cont::NY + 1, cont::NZ + 1>& cmap2 );
+	FArr3D<const Cell*>& cmap1,
+	FArr3D<cmask_ty>& cmap2 );

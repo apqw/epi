@@ -34,8 +34,8 @@ inline void cell_dynamics(CellManager & cellset) {
 double calc_zzmax(CellManager& cman) {
 	double zmax = 0;
 	cman.other_foreach([&zmax](Cell*const RESTRICT c) {
-		auto& st = c->state;
-		if (st==DEAD||st==ALIVE||st==MUSUME||st==FIX){//get_state_mask(st)&(DEAD_M | ALIVE_M | MUSUME_M | FIX_M)) {
+		//auto& st = c->state;
+		if (c->state_mask()&(ALIVE_M | FIX_M | MUSUME_M|DEAD_M)){//get_state_mask(st)&(DEAD_M | ALIVE_M | MUSUME_M | FIX_M)) {
 			if (zmax < c->z())zmax = c->z();
 		}
 	});
@@ -91,7 +91,7 @@ void proc(const std::string& init_data_path,bool use_last,const std::string& ini
     auto ATP=std::make_unique<SwapData<FArr3D<double>>>();
     auto ext_stim= std::make_unique<SwapData<FArr3D<double>>>();
     auto cell_map1 = std::make_unique<FArr3D<const Cell*>>();
-    auto cell_map2 = std::make_unique<FArr3D<uint_fast8_t>>();
+    auto cell_map2 = std::make_unique<FArr3D<cmask_ty>>();
     cman_init(*cellset, init_data_path,use_last,init_uvp_data,init_w_data);
     if(use_last){
         ATP->first().read_binary(init_ATP_data);

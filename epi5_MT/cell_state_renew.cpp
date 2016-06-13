@@ -73,7 +73,7 @@ void divide_try(CellManager& cman, Cell*const RESTRICT div) {
 	div->pair->pair = div;
 	div->spr_nat_len=delta_L;
 	div->ageb = 0;
-	if (div->state == MUSUME) {
+	if (div->state() == MUSUME) {
 		div->rest_div_times--;
 		div->pair->rest_div_times--;
 	}
@@ -100,7 +100,7 @@ inline double ageb_const(const Cell*const RESTRICT c) {
 inline double agek_const(const Cell*const RESTRICT c) {
 	using namespace cont;
 	//assert(state() == DEAD || state() == AIR || state() == ALIVE);
-	if (c->state==DEAD || c->state==AIR) {
+	if (c->state_mask()&(DEAD_M|AIR_M)) {
 		return eps_kk*ca2p_init;
 	}
 	else {
@@ -125,9 +125,9 @@ void _MUSUME_state_renew(CellManager& cman,Cell*const RESTRICT musume) {
 	if (musume->dermis() == nullptr && musume->pair == nullptr) {
 		if (SYSTEM == WHOLE) {
 			printf("ALIVE detected\n");
-			musume->state = ALIVE;
+			musume->set_state(ALIVE);
 		}else if (SYSTEM == BASAL) {
-			musume->state = DISA;
+			musume->set_state(DISA);
 			cman.add_remove_queue(musume->get_index());
 		}
 		return;
@@ -161,7 +161,7 @@ void _FIX_state_renew(CellManager& cman, Cell*const RESTRICT fix) {
 void _DEAD_AIR_state_renew(CellManager& cman, Cell*const RESTRICT da) {
 	using namespace cont;
 	if (da->agek >= ADHE_CONST&&da->connected_cell.size() <= DISA_conn_num_thresh) {
-		da->state = DISA;
+		da->set_state(DISA);
 		cman.add_remove_queue(da->get_index());
 	}
 	else {
@@ -211,7 +211,7 @@ void cell_state_renew(CellManager & cman)
 {
 	cman.other_foreach_parallel_native([&](Cell*const RESTRICT c) {
 		//auto&c = cman[i];
-		switch (c->state) {
+		switch (c->state()) {
 		case ALIVE:
 			_ALIVE_state_renew(cman, c);
 			break;
@@ -240,9 +240,9 @@ void cell_state_renew(CellManager & cman)
 void initialize_sc(CellManager & cman,double zzmax)
 {
 	cman.other_foreach_parallel_native([zzmax](Cell*const RESTRICT c) {
-		if (c->state == ALIVE&&zzmax - c->z() < 8 * cont::R_max) {
+		if (c->state() == ALIVE&&zzmax - c->z() < 8 * cont::R_max) {
 			c->agek = c->agek > cont::THRESH_DEAD ? c->agek : cont::THRESH_DEAD;
-			c->state = AIR;
+			c->set_state(AIR);
 		}
 	});
 }

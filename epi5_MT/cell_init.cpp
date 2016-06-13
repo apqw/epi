@@ -24,7 +24,7 @@ void _cman_value_init(CellManager & cman)
 	});
 	cman.other_foreach_parallel_native([](Cell*&c) {
 	
-		if (c->state == DEAD) {
+		if (c->state() == DEAD) {
 			c->ca2p_avg = 0;
 			c->ca2p._set(0.0);
 		}

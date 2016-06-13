@@ -121,21 +121,21 @@ public:
 	template<class Fn>
 	void foreach(const Fn& lmbd) {
 		for (size_t i = 0; i < size(); ++i) {
-            lmbd((*this)[i]);
+            lmbd(_data[i]);
 		}
 	}
 
 	template<class Fn>
 	void foreach(const Fn& lmbd)const {
 		for (size_t i = 0; i < size(); ++i) {
-			lmbd((*this)[i]);
+			lmbd(_data[i]);
 		}
 	}
 
 	template<class Fn>
 	void foreach_with_index(const Fn& lmbd) {
 		for (size_t i = 0; i < size(); ++i) {
-			lmbd((*this)[i],i);
+			lmbd(_data[i],i);
 		}
 	}
 

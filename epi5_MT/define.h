@@ -26,12 +26,13 @@
 class Cell;
 using CellPtr = Cell*;//std::shared_ptr<Cell>;
 
-
+using cmask_ty = uint_fast8_t;
+using CELL_STATE_internal = uint_fast8_t;
 
 /*
 	DO NOT CHANGE 
 */
-enum CELL_STATE:uint_fast8_t {
+enum CELL_STATE:CELL_STATE_internal {
     ALIVE = 0,
     DEAD = 1,
     DISA = 2,

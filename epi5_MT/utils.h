@@ -23,9 +23,9 @@ inline double p_diff_y(const double y1, const double y2)
 
 inline double p_dist_sq(const double x1, const double y1, const double z1, const double x2, const double y2, const double z2)
 {
-	double diffx = p_diff_x(x1, x2);
-	double diffy = p_diff_y(y1, y2);
-	double diffz = z1 - z2;
+	const double diffx = p_diff_x(x1, x2);
+	const double diffy = p_diff_y(y1, y2);
+	const double diffz = z1 - z2;
 	return diffx*diffx + diffy*diffy + diffz*diffz;
 }
 

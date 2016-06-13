@@ -15,8 +15,8 @@ inline auto grid_avg8(const ArrTy& grd,int ix,int iy,int iz) {
 }
 inline void init_ca2p_avg(CellManager& cman) {
     cman.other_foreach([](Cell* const RESTRICT c) {
-		auto& st = c->state;
-		if (st == ALIVE || st == FIX || st == MUSUME) {
+		//auto&& st = c->state();
+		if (c->state_mask()&(ALIVE_M|FIX_M|MUSUME_M)){//st == ALIVE || st == FIX || st == MUSUME) {
 			c->ca2p_avg = 0;
 		}
 	});
@@ -25,12 +25,12 @@ inline void init_ca2p_avg(CellManager& cman) {
 inline void dead_IP3_calc(CellManager& cman) {
 	using namespace cont;
 	cman.other_foreach_parallel_native([&](Cell*const RESTRICT c) {
-		if (c->state == DEAD) {
+		if (c->state() == DEAD) {
 
 			int count = 0;
 			double tmp = 0;
 			c->connected_cell.foreach([&count, &c, &tmp](Cell* conn) {
-				if (conn->state == ALIVE) {
+				if (conn->state() == ALIVE) {
 					tmp += conn->IP3();
 					count++;
 				}
@@ -85,14 +85,14 @@ inline double fw(double diff, double w)
 inline void supra_calc(CellManager& cman,const FArr3D<double>& ATP_first, const  FArr3D<double>& ext_stim_first) {
 	using namespace cont;
 	cman.other_foreach_parallel_native([&](Cell*const RESTRICT c){
-		auto& st = c->state;
-		if (st == ALIVE || st == FIX || st == MUSUME) {
+		//auto& st = c->state;
+		if (c->state_mask()&(ALIVE_M | FIX_M | MUSUME_M)) {
 			//aliasing
 			int& ix = c->lat[0];
 			int& iy = c->lat[1];
 			int& iz = c->lat[2];
 
-			const bool is_alive = c->state == ALIVE;
+			const bool is_alive = c->state() == ALIVE;
 			const double _th = is_alive? ALIVE_th(c->agek) :thpri;
 			const double _Kpa = is_alive? ALIVE_Kpa(c->agek): Kpri;
 			const double IAGv = is_alive? ALIVE_IAG(c->agek):iage_kitei;
@@ -100,11 +100,11 @@ inline void supra_calc(CellManager& cman,const FArr3D<double>& ATP_first, const 
 			double tmp_diffu = 0;
 			double tmp_IP3 = 0;
             c->connected_cell.foreach([&c, &tmp_diffu, &tmp_IP3, IAGv](Cell*const RESTRICT conn) {
-				auto& st = conn->state;
-				if (st==ALIVE||st==DEAD||st==FIX||st==MUSUME) {
+				//auto& st = conn->state;
+				if (c->state_mask()&(ALIVE_M |DEAD_M| FIX_M | MUSUME_M)) {
 					tmp_diffu += c->gj.at(conn)()*(conn->ca2p() - c->ca2p());
 					tmp_IP3 += c->gj.at(conn)()*(conn->IP3() - c->IP3());
-					if (st == ALIVE) {
+					if (c->state() == ALIVE) {
 						c->gj.at(conn)() += DT_Ca*fw(fabs(conn->ca2p() - c->ca2p()), c->gj.at(conn)());
 					}
 				}
@@ -138,8 +138,8 @@ void init_ca2p_map(RawArr3D<uint_fast8_t>& air_stim_flg, RawArr3D<const double*>
 						/*
 							ptr to diffu
 						*/
-						auto& st = c->state;
-						if (st == ALIVE || st == FIX || st == MUSUME) {
+						//auto& st = c->state;
+						if (c->state_mask()&(ALIVE_M | FIX_M | MUSUME_M)) {
 							tmp = &(c->diff_u);
 						}
 
@@ -149,7 +149,7 @@ void init_ca2p_map(RawArr3D<uint_fast8_t>& air_stim_flg, RawArr3D<const double*>
 						*/
 						size_t c_count = c->connected_cell.size();
 						for (size_t cc = 0; cc < c_count; ++cc) {
-							if (c->connected_cell[cc]->state == AIR) {
+							if (c->connected_cell[cc]->state() == AIR) {
 								asf = 1;
 								break;
 							}
@@ -168,7 +168,7 @@ inline double fa(double diffu, double A) {
 	using namespace cont;
 	return STIM11*min0(diffu) - A*Kaa;
 }
-inline void ATP_refresh(SwapData<FArr3D<double>>& ATP, const RawArr3D<const double*>& cell_diffu_map, const RawArr3D<uint_fast8_t>& air_stim_flg, const FArr3D<uint_fast8_t>& cmap2,int iz_bound) {
+inline void ATP_refresh(SwapData<FArr3D<double>>& ATP, const RawArr3D<const double*>& cell_diffu_map, const RawArr3D<uint_fast8_t>& air_stim_flg, const FArr3D<cmask_ty>& cmap2,int iz_bound) {
 	using namespace cont;
 	auto&& carr = ATP.first()();
 	auto&& narr = ATP.second()();
@@ -214,8 +214,8 @@ inline void update_values(CellManager& cman, SwapData<FArr3D<double>>& ATP) {
 inline void set_cell_ca2p(CellManager& cman) {
 	using namespace cont;
     cman.other_foreach_parallel_native([](Cell*const RESTRICT c) {
-		auto& st = c->state;
-		if (st==ALIVE||st==FIX||st==MUSUME) {
+		//auto& st = c->state;
+		if (c->state_mask()&(ALIVE_M | FIX_M | MUSUME_M)) {
 			c->ca2p_avg /= Ca_ITR;
 		}
 		else {
@@ -227,7 +227,7 @@ inline void set_cell_ca2p(CellManager& cman) {
 
 ///////////////////////////////////////////////////////////////
 
-void calc_ca2p(CellManager& cman, SwapData<FArr3D<double>>& ATP,const FArr3D<double>& ext_stim_first,const FArr3D<const Cell*>& cmap1,const FArr3D<uint_fast8_t>& cmap2, double zzmax)
+void calc_ca2p(CellManager& cman, SwapData<FArr3D<double>>& ATP,const FArr3D<double>& ext_stim_first,const FArr3D<const Cell*>& cmap1,const FArr3D<cmask_ty>& cmap2, double zzmax)
 {
 	using namespace cont;
 	init_ca2p_avg(cman);
