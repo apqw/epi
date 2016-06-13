@@ -94,7 +94,7 @@ void divide_try(CellManager& cman, Cell*const RESTRICT div) {
 
 inline double ageb_const(const Cell*const RESTRICT c) {
 	using namespace cont;
-    return (c->is_malignant ? accel_div : 1)*eps_kb*(S0 + alpha_b*min0(c->ca2p_avg - ca2p_init));
+    return (c->is_malignant ? accel_div : 1)*eps_kb*(ca2p_init + alpha_b*min0(c->ca2p_avg - ca2p_init));
 }
 
 inline double agek_const(const Cell*const RESTRICT c) {

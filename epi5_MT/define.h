@@ -96,7 +96,7 @@ namespace cont {
 	cdefd P_MEMB = 1. / COMPRESS_FACTOR;//ok
 	cdefd eps_m = 0.01; //ok
 	cdefd DER_DER_CONST = 0.2; //ok
-	cdefd THRESH_SP = 3.0; //ok 3.0->1.0
+    cdefd THRESH_SP = 1.0; //ok 3.0->1.0
 	cdefd K_TOTAL = 3.0;//ok
     cdefd K_DESMOSOME_RATIO = 0.01;//ok
 	cdefd K_DESMOSOME = K_TOTAL*K_DESMOSOME_RATIO;//ok
@@ -119,7 +119,7 @@ namespace cont {
 	cdefd agki_max_fix = fac*agki_max;//ok
 	//void set_agki_max_fix(double _fac, double _agki_max);
 	cdefd stoch_div_time_ratio = 0.25;//ok
-    cdefui div_max = 20;//ok
+    cdefui div_max = 10;//ok
 	cdefd accel_div = 1.0;
 	cdefd eps_kb = 0.1;//ok
 
@@ -136,7 +136,7 @@ namespace cont {
 	cdefd accel_diff = 1.0;
 	cdefd lipid_rel = 0.05*2.0;//ok
 	cdefd ubar = 0.25;//ok
-	cdefd delta_lipid = 0.05;//ok
+    cdefd delta_lipid = 0.01;//ok0.05->0.01
 	cdefd lipid = 0.032*2.0;//ok
 
 #ifdef UNPAIR_DBG
@@ -249,7 +249,7 @@ static constexpr auto last_data_B_name="last_data_B_alt";
 
 static constexpr bool STOCHASTIC = true;
 
-static constexpr bool FORCE_CORNIF = true;
+static constexpr bool FORCE_CORNIF = false;
 
 template<typename T, size_t X, size_t Y, size_t Z>
 class Field;
