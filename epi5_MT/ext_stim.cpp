@@ -14,6 +14,7 @@ void calc_ext_stim(SwapData<FArr3D<double>>& ext_stim,const FArr3D<const Cell*>&
 {
 	using namespace cont;
 	const int iz_bound = (int)((zzmax + FAC_MAP*R_max) *inv_dz);
+	/*
 	static int a_prev_z[cont::NZ];
 	static int a_next_z[cont::NZ];
 	for (int l = 0; l < iz_bound; l++) {
@@ -33,6 +34,7 @@ void calc_ext_stim(SwapData<FArr3D<double>>& ext_stim,const FArr3D<const Cell*>&
 		a_prev_z[l] = prev_z;
 		a_next_z[l] = next_z;
 	}
+	*/
     auto&& carr = ext_stim.first()();
     auto&& narr = ext_stim.second()();
 
@@ -45,7 +47,7 @@ void calc_ext_stim(SwapData<FArr3D<double>>& ext_stim,const FArr3D<const Cell*>&
 				const int prev_y = per_y_prev_idx[k];
 				const int next_y = per_y_next_idx[k];
                 for (size_t l = range.cols().begin(); l < range.cols().end(); ++l) {
-					const int prev_z = a_prev_z[l], next_z = a_next_z[l];
+					const int prev_z = per_z_prev_idx[l], next_z = per_z_next_idx[l];
 					double dum_age = 0;
 					bool flg_cornified = false;
 
@@ -73,11 +75,10 @@ void calc_ext_stim(SwapData<FArr3D<double>>& ext_stim,const FArr3D<const Cell*>&
 			}
 		}
 	});
-
-    for (int l = 0; l <= iz_bound; l++) {
-        for (size_t j = 0; j < NX; j++) narr[j][NY][l] = narr[j][0][l];
-        for (size_t k = 0; k <= NY; k++)narr[NX][k][l] = narr[0][k][l];
-	}
+	tbb::parallel_for(0, iz_bound, [&](int l) {
+		for (size_t j = 0; j < NX; j++) narr[j][NY][l] = narr[j][0][l];
+		for (size_t k = 0; k <= NY; k++)narr[NX][k][l] = narr[0][k][l];
+	});
 
 	ext_stim.swap();
 }

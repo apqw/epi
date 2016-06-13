@@ -410,14 +410,18 @@ inline void _pair_interaction(Cell*const RESTRICT paired) {
 
 void cell_interaction(CellManager & cman)
 {
-		memb_bend(cman);
+	tbb::task_group t;
+	t.run([&]{memb_bend(cman); });
+	t.run([&] {
 		cman.memb_foreach_parallel_native([](Cell*const RESTRICT c) {
 			_MEMB_interaction(c);
 		});
+	});
+	t.run([&] {
 		cman.non_memb_foreach_parallel_native([](Cell*const RESTRICT c) {
 			switch (c->state) {
 				/*
-			case MEMB:
+				case MEMB:
 				_MEMB_interaction(c);
 				break;
 				*/
@@ -438,6 +442,10 @@ void cell_interaction(CellManager & cman)
 			}
 			if (c->pair != nullptr)_pair_interaction(c);
 		});
+	});
+	t.wait();
+		
+		
 		
 
 	
