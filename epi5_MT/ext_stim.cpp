@@ -50,7 +50,7 @@ void calc_ext_stim(SwapData<FArr3D<double>>& ext_stim,const FArr3D<const Cell*>&
 					bool flg_cornified = false;
 
 					if (cmap1()[j][k][l] != nullptr) {
-						if (cmap1()[j][k][l]->state_mask()&(DEAD_M|ALIVE_M)) {
+						if (cmap1()[j][k][l]->state==DEAD|| cmap1()[j][k][l]->state==ALIVE) {
 							dum_age = cmap1()[j][k][l]->agek;
 							flg_cornified = true;
 						}

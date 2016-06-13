@@ -306,7 +306,7 @@ inline void _MEMB_interaction(Cell*const RESTRICT memb) {
 
 	size_t sz = memb->connected_cell.size();
 	for (size_t i = 0; i < sz; i++) {
-		if (memb->connected_cell[i]->state() == MEMB&&no_double_count(memb, memb->connected_cell[i])) {
+		if (memb->connected_cell[i]->state == MEMB&&no_double_count(memb, memb->connected_cell[i])) {
 			cell_interaction_apply<CI_memb_to_memb>(memb, memb->connected_cell[i]);
 		}
 	}
@@ -317,7 +317,7 @@ void _DER_interaction(Cell*const RESTRICT der) {
 		wall_interaction(der);
 	}
 	der->connected_cell.foreach([&](Cell*const RESTRICT conn) {
-		if (conn->state() == DER && no_double_count(der, conn)) {
+		if (conn->state == DER && no_double_count(der, conn)) {
 			cell_interaction_apply<CI_der_to_der>(der, conn);
 		}
 		else {
@@ -328,7 +328,7 @@ void _DER_interaction(Cell*const RESTRICT der) {
 
 void _AL_AIR_DE_interaction(Cell*const RESTRICT aad) {
 	aad->connected_cell.foreach([&](Cell*const RESTRICT conn) {
-		switch (conn->state()) {
+		switch (conn->state) {
 		case ALIVE:case AIR:case DEAD:
 			if (no_double_count(aad, conn)) {
 				cell_interaction_apply<CI_al_air_de_to_al_air_de_fix_mu>(aad, conn);
@@ -346,7 +346,7 @@ void _AL_AIR_DE_interaction(Cell*const RESTRICT aad) {
 
 inline void _FIX_interaction(Cell*const RESTRICT fix) {
 	fix->connected_cell.foreach([&](Cell*const RESTRICT conn) {
-		switch (conn->state()) {
+		switch (conn->state) {
 		case FIX:
 			if (fix->pair!=conn&&no_double_count(fix, conn)) {
 				cell_interaction_apply<CI_fix_mu_to_fix_mu>(fix, conn);
@@ -371,7 +371,7 @@ inline void _FIX_interaction(Cell*const RESTRICT fix) {
 
 
 inline bool paired_with_fix(const Cell*const RESTRICT c) {
-	return c->pair != nullptr&&c->pair->state() == FIX;
+	return c->pair != nullptr&&c->pair->state == FIX;
 }
 void _MUSUME_interaction(Cell*const RESTRICT& musume) {
 	musume->spring_force_to_memb = 0;
@@ -382,7 +382,7 @@ void _MUSUME_interaction(Cell*const RESTRICT& musume) {
 		musume->spring_force_to_memb = cont::Kspring_d;
 	}
 	musume->connected_cell.foreach([&](Cell*const RESTRICT conn) {
-		if (conn->state() == MEMB) {
+		if (conn->state == MEMB) {
 			if (musume->dermis() == conn) {
 				cell_interaction_apply<CI_mu_to_memb>(musume, conn);
 			}
@@ -390,7 +390,7 @@ void _MUSUME_interaction(Cell*const RESTRICT& musume) {
 				cell_interaction_apply<CI_other>(musume, conn);
 			}
 		}
-		else if (conn->state() == MUSUME &&musume->pair!=conn&& no_double_count(musume, conn)) {
+		else if (conn->state == MUSUME &&musume->pair!=conn&& no_double_count(musume, conn)) {
 			cell_interaction_apply<CI_fix_mu_to_fix_mu>(musume, conn);
 		}
 	});
@@ -415,7 +415,7 @@ void cell_interaction(CellManager & cman)
 			_MEMB_interaction(c);
 		});
 		cman.non_memb_foreach_parallel_native([](Cell*const RESTRICT c) {
-			switch (c->state()) {
+			switch (c->state) {
 				/*
 			case MEMB:
 				_MEMB_interaction(c);

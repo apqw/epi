@@ -34,8 +34,8 @@ inline void cell_dynamics(CellManager & cellset) {
 double calc_zzmax(CellManager& cman) {
 	double zmax = 0;
 	cman.other_foreach([&zmax](Cell*const RESTRICT c) {
-		//auto& st = c->state;
-		if (c->state_mask()&(ALIVE_M | FIX_M | MUSUME_M|DEAD_M)){//get_state_mask(st)&(DEAD_M | ALIVE_M | MUSUME_M | FIX_M)) {
+		auto& st = c->state;
+		if (st==DEAD||st==ALIVE||st==MUSUME||st==FIX){//get_state_mask(st)&(DEAD_M | ALIVE_M | MUSUME_M | FIX_M)) {
 			if (zmax < c->z())zmax = c->z();
 		}
 	});

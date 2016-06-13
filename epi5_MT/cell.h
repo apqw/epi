@@ -27,25 +27,10 @@ class Cell:public std::enable_shared_from_this<Cell>
 	struct ctor_cookie{};
 
     bool removed=false;
-	CELL_STATE _state;
-	CELL_STATE_MASK state_m;
-
 public:
 	friend class CellManager;
 
-	inline void set_state(CELL_STATE st) {
-		_state = st;
-		state_m = (CELL_STATE_MASK)(1u << st);
-	}
-
-	inline CELL_STATE state()const{
-		return _state;
-	}
-
-	inline CELL_STATE_MASK state_mask()const {
-		return state_m;
-	}
-
+        CELL_STATE state;
 
 	/*
 	 * ˆÊ’u

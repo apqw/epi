@@ -29,7 +29,7 @@ void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY
 		Ç±ÇÃassertÇÕè¡ÇµÇƒÇÊÇ¢
 		*/
 		assert(aindx[aix][aiy][aiz] < (cint)N3);
-		c->connected_cell.force_set_count(c->state() == MEMB ? 4 : 0);
+		c->connected_cell.force_set_count(c->state == MEMB ? 4 : 0);
         c->memb_touching=false;
 	});
 }
@@ -86,7 +86,7 @@ struct lat_arr_##axis {\
 						if (DIST_SQ(diffx, diffy, diffz) <= LJ_THRESH*LJ_THRESH*rad_sum*rad_sum) {
 							c->connected_cell.push_back(o);
 							o->connected_cell.push_back(c);
-                            if(o->state()==MEMB){
+                            if(o->state==MEMB){
                                 c->memb_touching=true;
                             }
 							assert(c->connected_cell.size() < N2);
@@ -140,7 +140,7 @@ const Cell* find_dermis(const Cell*const RESTRICT c) {
 	double distanceSq = 0;
 	const Cell* dermis = nullptr;
 	c->connected_cell.foreach([&](const Cell*const RESTRICT& cptr) {
-		if (cptr->state() == MEMB) {
+		if (cptr->state == MEMB) {
 			distanceSq = p_cell_dist_sq(c, cptr);
 			if (distanceSq < d1Sq) {//2èÊÇ…Ç»Ç¡ÇƒÇ»Ç©Ç¡ÇΩ
 				d1Sq = distanceSq;
@@ -152,9 +152,9 @@ const Cell* find_dermis(const Cell*const RESTRICT c) {
 }
 
 inline void set_dermis(CellManager& cman) {
-	cman.other_foreach_parallel_native([](Cell*const RESTRICT c) {
+	cman.other_foreach_parallel_native([](Cell*const RESTRICT&c) {
 		
-		if (c->state_mask()&(FIX_M | MUSUME_M)) {
+		if (c->state == FIX || c->state == MUSUME) {
 			c->set_dermis(find_dermis(c));
 		}
 	});

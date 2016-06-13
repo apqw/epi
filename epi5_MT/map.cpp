@@ -31,7 +31,7 @@ void setup_map_lat(CellManager & cman, FArr3D<const Cell*>& cmap1, FArr3D<cmask_
 		int  k, l, m, ipx, ipy, ipz;
 		double mx, my, mz;
 		*/
-		const bool afm_cell = (c->state_mask()&(ALIVE_M | FIX_M | MUSUME_M))!=0u;
+		const bool afm_cell = c->state == ALIVE || c->state == FIX || c->state == MUSUME;
 		
 		 if (!afm_cell) {
 			constexpr int _irx = irx;

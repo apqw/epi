@@ -37,7 +37,7 @@ void Cell::migrate(size_t dest_idx)
 }
 
 
-Cell::Cell(ctor_cookie,CELL_STATE __state, 
+Cell::Cell(ctor_cookie,CELL_STATE _state, 
 	SwapData<double[cont::MAX_CELL_NUM]>&ca2p_s,
 	SwapData<double[cont::MAX_CELL_NUM]>&IP3_s,
 	double _ex_inert,
@@ -46,8 +46,7 @@ Cell::Cell(ctor_cookie,CELL_STATE __state,
 	double _radius , double _ca2p_avg ,
 	double _div_age_thresh ,
 	bool _is_malignant ) :
-	_state(__state), 
-	state_m((CELL_STATE_MASK)(1u<<__state)),
+	state(_state), 
 	x(_x),
 	y(_y),
 	z(_z),
