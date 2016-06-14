@@ -183,6 +183,9 @@ public:
 		double _div_age_thresh = 0,
 		bool _is_malignant = false);
 
+    void* operator new(size_t s);
+    void operator delete(void* p);
+
 };
 
 inline double p_cell_dist_sq(const Cell*const RESTRICT c1, const Cell*const RESTRICT c2)

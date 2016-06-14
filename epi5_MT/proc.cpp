@@ -114,7 +114,7 @@ auto start=std::chrono::system_clock::now();
         if(i%100==0){
 
             auto dur=std::chrono::system_clock::now()-start;
-            printf("loop:%d elapsed[sec]:%lf\n", i,0.001*std::chrono::duration_cast<std::chrono::milliseconds>(dur).count());
+            printf("loop:%zd elapsed[sec]:%lf\n", i,0.001*std::chrono::duration_cast<std::chrono::milliseconds>(dur).count());
         }
         if(i%CUT==0){
             output_cell_data(cman,i/CUT);

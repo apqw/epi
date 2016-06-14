@@ -317,10 +317,10 @@ void bin_write(std::ofstream& ofs,First* fptr,Second* sptr,T*... ptr){
 }
 
 void check_localization(CellManager&cman){
-    cman.all_foreach_parallel_native([](Cell* c){
+    cman.all_foreach_parallel_native([](Cell*const RESTRICT c){
         bool touch=false;
         if(c->state==ALIVE){
-            for(int i=0;i<c->connected_cell.size();i++){
+            for(size_t i=0;i<c->connected_cell.size();i++){
                 if(c->connected_cell[i]->state==DEAD){
                     touch=true;
                     break;

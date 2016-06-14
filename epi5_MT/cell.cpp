@@ -5,7 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <cinttypes>
-
+#include <tbb/scalable_allocator.h>
 
 
 
@@ -60,4 +60,12 @@ Cell::Cell(ctor_cookie,CELL_STATE _state,
 	in_fat(_in_fat),
 	spr_nat_len(_spr_nat_len),
     radius(_radius),  div_age_thresh(_div_age_thresh), is_malignant(_is_malignant), diff_u(0) {
+}
+
+void* Cell::operator new(size_t s){
+    return scalable_malloc(s);
+}
+
+void Cell::operator delete(void* p){
+    scalable_free(p);
 }

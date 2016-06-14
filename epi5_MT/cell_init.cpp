@@ -40,7 +40,7 @@ void load_uvp(CellManager& cman,const std::string& ld_uvp){
         exit(1);
     }
     std::string ln;
-    int lcount=0;
+    size_t lcount=0;
     int cidx=0;
     double ca2p,ex_inert,IP3;
     while(std::getline(fuvp,ln)){
@@ -68,7 +68,7 @@ void load_w(CellManager& cman,const std::string& ld_w){
     }
 
 std::string ln;
-    int lcount=0,cidx=0;
+    size_t lcount=0;int cidx=0;
     int gj_len=0;
     while(std::getline(fw_alt,ln)){
         if(std::sscanf(ln.c_str(),"%d %d",&cidx,&gj_len)!=2){

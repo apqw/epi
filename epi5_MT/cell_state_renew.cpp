@@ -101,7 +101,7 @@ inline double agek_const(const Cell*const RESTRICT c) {
 	using namespace cont;
 	//assert(state() == DEAD || state() == AIR || state() == ALIVE);
 	if (c->state==DEAD || c->state==AIR) {
-		return eps_kk*ca2p_init;
+        return eps_kk*S1;
 	}
 	else {
 		return (c->is_malignant ? accel_diff : 1.0)*eps_ks*
@@ -160,7 +160,7 @@ void _FIX_state_renew(CellManager& cman, Cell*const RESTRICT fix) {
 
 void _DEAD_AIR_state_renew(CellManager& cman, Cell*const RESTRICT da) {
 	using namespace cont;
-	if (da->agek >= ADHE_CONST&&da->connected_cell.size() <= DISA_conn_num_thresh) {
+    if (da->agek >= ADHE_CONST&&da->connected_cell.size() <= DISA_conn_num_thresh) {
 		da->state = DISA;
 		cman.add_remove_queue(da->get_index());
 	}
