@@ -120,7 +120,7 @@ namespace cont {
 	cdefd agki_max_fix = fac*agki_max;//ok
 	//void set_agki_max_fix(double _fac, double _agki_max);
 	cdefd stoch_div_time_ratio = 0.25;//ok
-    cdefui div_max = 15;//ok
+    cdefui div_max = 10;//ok
 	cdefd accel_div = 1.0;
 	cdefd eps_kb = 0.1;//ok
 

@@ -30,7 +30,6 @@ void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY
 		*/
 		assert(aindx[aix][aiy][aiz] < (cint)N3);
 		c->connected_cell.force_set_count(c->state == MEMB ? 4 : 0);
-        c->memb_touching=false;
 	});
 }
 
@@ -86,9 +85,6 @@ struct lat_arr_##axis {\
 						if (DIST_SQ(diffx, diffy, diffz) <= LJ_THRESH*LJ_THRESH*rad_sum*rad_sum) {
 							c->connected_cell.push_back(o);
 							o->connected_cell.push_back(c);
-                            if(o->state==MEMB){
-                                c->memb_touching=true;
-                            }
 							assert(c->connected_cell.size() < N2);
 						}
 					}

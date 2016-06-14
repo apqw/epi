@@ -176,13 +176,12 @@ inline void _ALIVE_state_renew(CellManager& cman, Cell*const RESTRICT al) {
 		cornificate(cman, al);
 	}
 	else {
-        if(!al->memb_touching){
 		const double tmp = k_lipid_release(al)*al->in_fat;
 		al->in_fat+=DT_Cell*(k_lipid(al)*(1.0 - al->in_fat) - tmp);
 		al->ex_fat += DT_Cell*tmp;
 
 		al->agek += DT_Cell*agek_const(al); //update last
-        }
+
 	}
 }
 

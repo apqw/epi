@@ -150,7 +150,6 @@ public:
 	 */
 	double diff_u;
 
-    bool memb_touching=false;
 
 	
 
