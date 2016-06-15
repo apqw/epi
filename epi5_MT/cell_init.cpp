@@ -104,8 +104,10 @@ void cman_init(CellManager& cells,const std::string& init_data_path,
                bool use_last,const std::string& ld_uvp,const std::string& ld_w) {
 	cells.init_internal(init_data_path);
 	connect_cell(cells);
-	_cman_value_init(cells);
+
     if(use_last){
         load_from_last(cells,ld_uvp,ld_w);
+    }else{
+    _cman_value_init(cells);
     }
 }

@@ -111,12 +111,12 @@ inline double agek_const(const Cell*const RESTRICT c) {
 
 inline double k_lipid_release(const Cell*const RESTRICT c) {
 	using namespace cont;
-	return 0.25*lipid_rel*(1 + tanh((c->ca2p_avg - ubar) / 0.01))*(1 + tanh((c->agek - THRESH_SP) / delta_lipid));
+    return 0.25*lipid_rel*(1 + tanh((c->ca2p_avg - ubar) / delta_sig_r1))*(1 + tanh((c->agek - THRESH_SP) / delta_lipid));
 }
 
 inline double k_lipid(const Cell*const RESTRICT c) {
 	using namespace cont;
-	return 0.25*lipid*(1 + tanh((ubar - c->ca2p_avg) / 0.01))*(1 + tanh((c->agek - THRESH_SP) / delta_lipid));
+    return 0.25*lipid*(1 + tanh((ubar - c->ca2p_avg) / delta_sig_r1))*(1 + tanh((c->agek - THRESH_SP) / delta_lipid));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -171,18 +171,20 @@ void _DEAD_AIR_state_renew(CellManager& cman, Cell*const RESTRICT da) {
 
 inline void _ALIVE_state_renew(CellManager& cman, Cell*const RESTRICT al) {
 	using namespace cont;
+    //test
+
+
+
+
 
 	if (al->agek >= THRESH_DEAD) {
 		cornificate(cman, al);
-	}
-	else {
-		const double tmp = k_lipid_release(al)*al->in_fat;
-		al->in_fat+=DT_Cell*(k_lipid(al)*(1.0 - al->in_fat) - tmp);
-		al->ex_fat += DT_Cell*tmp;
-
-		al->agek += DT_Cell*agek_const(al); //update last
-
-	}
+    }else{
+        const double tmp = k_lipid_release(al)*al->in_fat;
+        al->in_fat+=DT_Cell*(k_lipid(al)*(1.0 - al->in_fat) - tmp);
+        al->ex_fat += DT_Cell*tmp;
+        al->agek += DT_Cell*agek_const(al); //update last
+    }
 }
 
 void pair_disperse(Cell*const RESTRICT c) {

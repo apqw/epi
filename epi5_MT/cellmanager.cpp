@@ -119,7 +119,7 @@ void CellManager::_load_from_file(std::string path)
 	CELL_STATE state = UNUSED;
 	std::string line;
 	int div_times = 0, touch = 0, pair_cell_id = 0, stem_orig_id = 0;
-	double rad, ageb, agek, x, y, z, fat, spr_len, ex_fat;
+    double rad, ageb, agek, x, y, z, fat, spr_len, ex_fat,ca2p_avg,ca2p;
 
 	/*
 	細胞のインデックスのカウント
@@ -141,8 +141,8 @@ void CellManager::_load_from_file(std::string path)
 
 	while (std::getline(dstrm, line)) {
 
-		sscanf(line.c_str(), "%*d %" SCNuFAST8 " %lf %lf %lf %*f %lf %lf %lf %*f %d %lf %lf %d %lf %d %d",
-            (uint_fast8_t*)&state, &rad, &ageb, &agek, &x, &y, &z, &div_times, &ex_fat, &fat, &touch, &spr_len, &pair_cell_id, &stem_orig_id);
+        sscanf(line.c_str(), "%*d %" SCNuFAST8 " %lf %lf %lf %lf %lf %lf %lf %lf %d %lf %lf %d %lf %d %d",
+            (uint_fast8_t*)&state, &rad, &ageb, &agek,&ca2p, &x, &y, &z, &ca2p_avg,&div_times, &ex_fat, &fat, &touch, &spr_len, &pair_cell_id, &stem_orig_id);
 
 		/*
 		BLANKにたどり着いたら終了
@@ -191,7 +191,7 @@ void CellManager::_load_from_file(std::string path)
 			state,
 			x, y, z,
 			rad,
-			ca2p_init, ca2p_init,
+            ca2p, ca2p_avg,
 			IP3_init,
 			ex_inert_init,
 			agek, ageb,
