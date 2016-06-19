@@ -7,6 +7,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <cassert>
+#include <iostream>
 inline void calc_dermis_normal(const Cell*const RESTRICT me, const Cell*const RESTRICT dermis, double& outx, double& outy, double& outz) {
 	double nvx = p_diff_x(me->x(), dermis->x());
 	double nvy = p_diff_y(me->y(), dermis->y());
@@ -49,7 +50,7 @@ void div_direction(const Cell*const RESTRICT me, const Cell*const RESTRICT dermi
 void divide_try(CellManager& cman, Cell*const RESTRICT div) {
 	using namespace cont;
 	if (div->pair != nullptr)return;
-	const double div_gamma= stoch_corr_coef*DT_Cell*(div->is_malignant ? accel_div : 1)*eps_kb*ca2p_init / (div->div_age_thresh*stoch_div_time_ratio);
+    const double div_gamma= stoch_corr_coef*DT_Cell*(div->is_malignant ? accel_div : 1)*eps_kb*S2 / (div->div_age_thresh*stoch_div_time_ratio);
 
 	if (STOCHASTIC&&genrand_real() > div_gamma) {
 		return ;
@@ -77,8 +78,11 @@ void divide_try(CellManager& cman, Cell*const RESTRICT div) {
 		div->rest_div_times--;
 		div->pair->rest_div_times--;
 	}
-
-	assert(div->dermis() != nullptr);
+    if(div->dermis()==nullptr){
+        std::cout<<"No dermis found in divide_try."<<std::endl;
+        exit(1);
+    }
+    //assert(div->dermis() != nullptr);
 	double divx, divy, divz;
 	div_direction(div, div->dermis(), &divx, &divy, &divz);
 	//!set value
@@ -94,7 +98,7 @@ void divide_try(CellManager& cman, Cell*const RESTRICT div) {
 
 inline double ageb_const(const Cell*const RESTRICT c) {
 	using namespace cont;
-    return (c->is_malignant ? accel_div : 1)*eps_kb*(ca2p_init + alpha_b*min0(c->ca2p_avg - ca2p_init));
+    return (c->is_malignant ? accel_div : 1)*eps_kb*(S2 + alpha_b*min0(c->ca2p_avg - ca2p_init));
 }
 
 inline double agek_const(const Cell*const RESTRICT c) {
@@ -147,6 +151,7 @@ void _FIX_state_renew(CellManager& cman, Cell*const RESTRICT fix) {
 		printf("x:%lf,y:%lf,z:%lf\n", fix->x(), fix->y(), fix->z());
         printf("connected_num:%zd\n", fix->connected_cell.size());
 		assert(fix->dermis() != nullptr);
+        exit(1);
 		return;
 	}
 
@@ -187,7 +192,7 @@ inline void _ALIVE_state_renew(CellManager& cman, Cell*const RESTRICT al) {
     }
 }
 
-void pair_disperse(Cell*const RESTRICT c) {
+void pair_disperse(Cell*const c) {//cannot restrict due to c->pair->pair (== c)
 	using namespace cont;
 	assert(c->pair != nullptr);
 	assert(c->pair->pair == c);
@@ -232,7 +237,7 @@ void cell_state_renew(CellManager & cman)
 	cman.remove_exec();
 	cman.other_foreach_parallel_native([](Cell*const RESTRICT c) {
 		//auto&c = cman[i];
-		if (c->pair != nullptr&&no_double_count(c, c->pair)) {
+        if (c->pair != nullptr)if(no_double_count(c, c->pair)) {
 			pair_disperse(c);
 		}
 	});

@@ -92,12 +92,12 @@ namespace cont {
 	cdefd dz = LZ / NZ; cdefd inv_dz = NZ / LZ;
 
 	cdefd dh = 0.5; //ok
-	cdefd COMPRESS_FACTOR = 4;//ok
+    cdefd COMPRESS_FACTOR = 6;//ok
 	//void set_P_MEMB(double _COMPRESS_FACTOR);
 	cdefd P_MEMB = 1. / COMPRESS_FACTOR;//ok
 	cdefd eps_m = 0.01; //ok
 	cdefd DER_DER_CONST = 0.2; //ok
-    cdefd THRESH_SP = 1.5; //ok 3.0->1.0
+    cdefd THRESH_SP = 1.0; //ok 3.0->1.0
 	cdefd K_TOTAL = 3.0;//ok
     cdefd K_DESMOSOME_RATIO = 0.01;//ok
 	cdefd K_DESMOSOME = K_TOTAL*K_DESMOSOME_RATIO;//ok
@@ -120,7 +120,7 @@ namespace cont {
 	cdefd agki_max_fix = fac*agki_max;//ok
 	//void set_agki_max_fix(double _fac, double _agki_max);
 	cdefd stoch_div_time_ratio = 0.25;//ok
-    cdefui div_max = 15;//ok
+    cdefui div_max = 20;//ok
 	cdefd accel_div = 1.0;
 	cdefd eps_kb = 0.1;//ok
 
@@ -132,13 +132,13 @@ namespace cont {
 	cdefd THRESH_DEAD = 22.0;//ok
 	cdefd eps_kk = 0.10*0.5;//ok
 	cdefd eps_ks = 0.10*0.5;//ok
-	cdefd S0 = 0.122*0.2;//u0*0.2; ok
+    cdefd S0 = 0.1*0.2;//u0*0.2; ok
 	cdefd alpha_k = 2.0;//ok
 	cdefd accel_diff = 1.0;
-	cdefd lipid_rel = 0.05*2.0;//ok
-	cdefd ubar = 0.25;//ok
+    cdefd lipid_rel = 0.05*2.0;//ok
+    cdefd ubar = 0.3;//ok 0.25->0.3
     cdefd delta_lipid = 0.1;//ok0.05->0.01
-    cdefd lipid = 0.032*10.0;//ok *2.0->*10.0
+    cdefd lipid = 0.6;//ok *2.0->*10.0->0.6
 
 #ifdef UNPAIR_DBG
 	cdefd eps_L = 1;
@@ -155,10 +155,10 @@ namespace cont {
 	cdefui N3 = 200; //max grid cell num //ok
 	cdefui N2 = 400; //max conn num //ok
 								   //memb seat size NMX*NMY
-	cdefui NMX = 100;//ok
-	cdefui NMY = 100;//ok
+    cdefui NMX = 150;//ok
+    cdefui NMY = 150;//ok
     cdefui NUM_ITR = 4 * ((int)1e6); //twice
-	cdefd KBEND = 0.5;
+    cdefd KBEND = 0.25;//0.5->0.25
 
 	cdefd Ca_avg_time = 10.0;
 	cdefi Ca_ITR = (int)(Ca_avg_time / DT_Ca);//Ca_N ok
@@ -234,8 +234,9 @@ namespace cont {
 	cdefd T_TURNOVER = 6000.0;//
 	cdefi NUM_SC_INIT = 1;//ok ha/???->19->1
 	cdefd stoch_corr_coef = 1;
-    cdefd S1 = 0.122;
+    cdefd S1 = 0.1;
     cdefd delta_sig_r1=0.1;
+    cdefd S2 = 0.1;
 }
 
 cdefui SYSTEM = 0;
