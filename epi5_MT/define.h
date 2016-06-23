@@ -122,7 +122,7 @@ namespace cont {
 	cdefd stoch_div_time_ratio = 0.25;//ok
     cdefui div_max = 20;//ok
 	cdefd accel_div = 1.0;
-	cdefd eps_kb = 0.1;//ok
+    cdefd eps_kb = 0.12;//ok
 
 	
 	cdefd alpha_b = 5.0;//ok
