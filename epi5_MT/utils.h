@@ -1,7 +1,26 @@
 #pragma once
 #include <memory>
+#include <type_traits>
 #include "define.h"
 #define DIST_SQ(x,y,z) ((x)*(x)+(y)*(y)+(z)*(z))
+
+/**
+*  8近傍の平均を計算
+*  @param [in] grd 対象となる3次元配列状のオブジェクト(grd[l][m][n]でアクセスできるオブジェクト)
+*  @param [in] ix x座標のインデックス
+*  @param [in] iy y座標のインデックス
+*  @param [in] iz z座標のインデックス
+*  @return (計算できた場合)平均の値
+*
+*  @note テンプレート関数なのでgrdの型、返り値の型は推定される。
+*  ここで平均というのは8つ足して1/8を掛けるだけなので、operator+,operator*が定義されていないと計算できない。
+*/
+template<typename ArrTy>
+inline auto grid_avg8(ArrTy&& grd, int ix, int iy, int iz)->typename std::remove_reference<decltype(grd[ix][iy][iz])>::type { //for c++11
+    return 0.125*(grd[ix][iy][iz] + grd[ix + 1][iy][iz] + grd[ix][iy + 1][iz]
+        + grd[ix][iy][iz + 1] + grd[ix + 1][iy + 1][iz] + grd[ix + 1][iy][iz + 1]
+        + grd[ix][iy + 1][iz + 1] + grd[ix + 1][iy + 1][iz + 1]);
+}
 
 inline double p_diff_x(const double x1, const double x2)
 {

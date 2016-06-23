@@ -6,20 +6,19 @@
 #include "cell.h"
 #include "cellmanager.h"
 #include <cmath>
+/**
+ *  @file カルシウム濃度、ATPの計算
+ */
 
-static constexpr unsigned Ca_ITR = (int)(cont::Ca_avg_time / cont::DT_Ca);//Ca_N ok
-/*
-	Each constant is defined in each function (because there are too many constants)
-*/
-static constexpr double Kpp		= 0.3;//ok
-static constexpr double dp		= 0.1;//ha? 0.9->0.1 //ok
+/** カルシウムの平均化に使うイテレーション回数 */
+static constexpr unsigned Ca_ITR = (int)(cont::Ca_avg_time / cont::DT_Ca);
 
-template<typename ArrTy>
-inline auto grid_avg8(const ArrTy& grd,int ix,int iy,int iz) {
-	return 0.125*(grd[ix][iy][iz] + grd[ix + 1][iy][iz] + grd[ix][iy + 1][iz]
-		+ grd[ix][iy][iz + 1] + grd[ix + 1][iy + 1][iz] + grd[ix + 1][iy][iz + 1]
-		+ grd[ix][iy + 1][iz + 1] + grd[ix + 1][iy + 1][iz + 1]);
-}
+/** @todo 分かりやすい命名 */                                      
+static constexpr double Kpp		= 0.3;
+/** @todo 分かりやすい命名 */
+static constexpr double dp		= 0.1;
+
+
 inline void init_ca2p_avg(CellManager& cman) {
     cman.other_foreach([](Cell* const RESTRICT c) {
 		auto& st = c->state;
@@ -29,6 +28,11 @@ inline void init_ca2p_avg(CellManager& cman) {
 	});
 }
 
+
+/**
+ *  角層のIP3の値の次の値を計算する。
+ *  @attention CellManager側でswapしない限り現在の値は更新されない。
+ */
 inline void dead_IP3_calc(CellManager& cman) {
 	using namespace cont;
 	cman.other_foreach_parallel_native([&](Cell*const RESTRICT c) {
@@ -43,12 +47,12 @@ inline void dead_IP3_calc(CellManager& cman) {
 				}
 			});
 			tmp = DT_Ca*(dp*(tmp - count*c->IP3()) - Kpp*c->IP3());
-			c->IP3 = c->IP3() + tmp;
+			c->IP3.set_next(c->IP3() + tmp);
 		}
 	});
 }
 
-
+/** @todo 分かりやすい命名 */
 inline double fu(double u, double v, double p, double B)
 {
 	static constexpr double kf		= 8.1;
@@ -75,6 +79,7 @@ inline double fu(double u, double v, double p, double B)
 
 }
 
+/** @todo 分かりやすい命名 */
 inline double calc_th(bool is_alive,double agek) {
 	
 	static constexpr double thgra		= 0.2;
@@ -88,6 +93,7 @@ inline double calc_th(bool is_alive,double agek) {
 		thpri;
 }
 
+/** @todo 分かりやすい命名 */
 inline double calc_Kpa(bool is_alive,double agek) {
 	
 	static constexpr double kpa			= 4.0;
@@ -101,6 +107,7 @@ inline double calc_Kpa(bool is_alive,double agek) {
 		Kpri;
 }
 
+/** @todo 分かりやすい命名 */
 inline double calc_IAG(bool is_alive,double agek) {
 	static constexpr double delta_I = 1.5;
 	static constexpr double iage_kitei = 0;//ok
@@ -110,12 +117,14 @@ inline double calc_IAG(bool is_alive,double agek) {
 		iage_kitei;
 }
 
+/** @todo 分かりやすい命名 */
 inline double ex_inert_diff(double ca2p, double current_ex_inert,double _th) {
 	static constexpr double para_k2 = 0.7;
 	using namespace cont;
 	return ((para_k2*para_k2 / (para_k2*para_k2 + ca2p*ca2p) - current_ex_inert) / _th);
 }
 
+/** @todo 分かりやすい命名 */
 inline double IP3_default_diff(double _Kpa,double a_avg,double current_IP3) {
 	static constexpr double H0 = 0.5;
 
@@ -123,6 +132,7 @@ inline double IP3_default_diff(double _Kpa,double a_avg,double current_IP3) {
 	return (_Kpa*a_avg / (H0 + a_avg) - Kpp*current_IP3);
 }
 
+/** @todo 分かりやすい命名 */
 inline double fw(double diff, double w)
 {
 	static constexpr double wd = 0.1;//ok
@@ -131,6 +141,13 @@ inline double fw(double diff, double w)
 															//-1. <-????
 }
 
+/**
+ *  角層以外のIP3、カルシウム濃度の値の次の値を計算する。
+ *  @param cman CellManager
+ *  @param [in] ATP_first ATPの場の値
+ *  @param [in] ext_stim_first ext_stimの場の値
+ *  @attention CellManager側でswapしない限り現在の値は更新されない。
+ */
 inline void supra_calc(CellManager& cman,const FArr3D<double>& ATP_first, const  FArr3D<double>& ext_stim_first) {
 	static constexpr double ca2p_du = 0.01;
 	
@@ -162,9 +179,9 @@ inline void supra_calc(CellManager& cman,const FArr3D<double>& ATP_first, const 
 			});
 
 			c->diff_u= fu(c->ca2p(), c->ex_inert, c->IP3(), grid_avg8(ext_stim_first(), ix, iy, iz))+ca2p_du*IAGv*tmp_diffu;
-			c->IP3 = c->IP3() + DT_Ca*(IP3_default_diff(_Kpa, grid_avg8(ATP_first(), ix, iy, iz), c->IP3()) + dp*IAGv*tmp_IP3);
+			c->IP3.set_next(c->IP3() + DT_Ca*(IP3_default_diff(_Kpa, grid_avg8(ATP_first(), ix, iy, iz), c->IP3()) + dp*IAGv*tmp_IP3));
 			const double cs = c->ca2p() + DT_Ca*c->diff_u;
-			c->ca2p = cs;
+			c->ca2p.set_next(cs);
 			c->ca2p_avg += cs;
 
 			c->ex_inert += DT_Ca*ex_inert_diff(c->ca2p(), c->ex_inert, _th); //update last
@@ -173,7 +190,14 @@ inline void supra_calc(CellManager& cman,const FArr3D<double>& ATP_first, const 
 	});
 }
 
-
+/**
+ *  場全体に渡るマップを作成。平均化ごとに1度だけ計算する。
+ *  @param [out] air_stim_flg 各座標について、空気による刺激が有効かどうかのマップ
+ *  @param [out] cell_diffu_map 各座標について、その位置にある細胞の、カルシウム差分への参照を割り当てる。
+ *  @param [in] cmap1 各座標について、細胞が存在するかどうかのマップ
+ *  @param [in] iz_bound 細胞が存在する上限(z座標) (半径も含む)
+ *  @param [in] default_diffu_ptr 細胞が存在しない座標におけるcell_diffu_mapの参照先。
+ */
 void init_ca2p_map(RawArr3D<uint_fast8_t>& air_stim_flg, RawArr3D<const double*>& cell_diffu_map,const FArr3D<const Cell*>& cmap1,int iz_bound,const double*const default_diffu_ptr) {
 	using namespace cont;
 
@@ -215,12 +239,24 @@ void init_ca2p_map(RawArr3D<uint_fast8_t>& air_stim_flg, RawArr3D<const double*>
 	});
 
 }
+
+/** @todo 分かりやすい命名 */
 inline double fa(double diffu, double A) {
 	static constexpr double STIM11 = 0.002;//ok
 	static constexpr double Kaa = 0.5;//ok
 	using namespace cont;
 	return STIM11*min0(diffu) - A*Kaa;
 }
+
+/**
+ * ATPの次の値を計算。
+ * @param ATP ATPの場の値(現在の値と次の値の格納先のセット)
+ * @param [in] cell_diffu_map 各座標に存在する細胞のカルシウム差分への参照
+ * @param [in] air_stim_flg 各座標について、空気による刺激が有効かどうかのマップ
+ * @param [in] cmap2 差分用マップ
+ * @param [in] iz_bound 細胞が存在する上限(z座標) (半径も含む)
+ * @attention ATPをswapしない限り現在の値は更新されない。
+ */
 inline void ATP_refresh(SwapData<FArr3D<double>>& ATP, const RawArr3D<const double*>& cell_diffu_map, const RawArr3D<uint_fast8_t>& air_stim_flg, const FArr3D<cmask_ty>& cmap2,int iz_bound) {
 	static constexpr double Da = 1.0;
 	static constexpr double AIR_STIM = 0.1;
@@ -258,7 +294,10 @@ inline void ATP_refresh(SwapData<FArr3D<double>>& ATP, const RawArr3D<const doub
         for (size_t k = 0; k <= NY; k++) narr[NX][k][l] = narr[0][k][l];
 	}
 }
-
+/**
+ *  値の更新。
+ *  swap等を行う。
+ */
 inline void update_values(CellManager& cman, SwapData<FArr3D<double>>& ATP) {
 	ca2p_swap(cman);
 	IP3_swap(cman);
@@ -268,6 +307,9 @@ inline void update_values(CellManager& cman, SwapData<FArr3D<double>>& ATP) {
 	ATP.swap();
 }
 
+/**
+ *  細胞にカルシウム濃度の平均値をセットする。
+ */
 inline void set_cell_ca2p(CellManager& cman) {
 	using namespace cont;
     cman.other_foreach_parallel_native([](Cell*const RESTRICT c) {
@@ -284,6 +326,15 @@ inline void set_cell_ca2p(CellManager& cman) {
 
 ///////////////////////////////////////////////////////////////
 
+/**
+ *  細胞のカルシウム濃度を計算。
+ * @param cman CellManager
+ * @param ATP ATPの場の値(現在の値と次の値の格納先のセット)
+ * @param [in] ext_stim_first ext_stimの場の値
+ * @param [in] cmap1 細胞が存在するかどうかのマップ
+ * @param [in] cmap2 差分用マップ
+ * @param [in] zzmax 細胞が存在する上限(z座標) (半径は含まない)
+ */
 void calc_ca2p(CellManager& cman, SwapData<FArr3D<double>>& ATP,const FArr3D<double>& ext_stim_first,const FArr3D<const Cell*>& cmap1,const FArr3D<cmask_ty>& cmap2, double zzmax)
 {
 	using namespace cont;
