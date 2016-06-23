@@ -345,7 +345,7 @@ void _AL_AIR_DE_interaction(Cell*const RESTRICT aad) {
 }
 
 inline void _FIX_interaction(Cell*const RESTRICT fix) {
-	fix->connected_cell.foreach([&](Cell*const RESTRICT conn) {
+    fix->connected_cell.foreach([&](Cell*const conn) { //cannot be restricted due to fix->pair
 		switch (conn->state) {
 		case FIX:
 			if (fix->pair!=conn&&no_double_count(fix, conn)) {
@@ -371,7 +371,10 @@ inline void _FIX_interaction(Cell*const RESTRICT fix) {
 
 
 inline bool paired_with_fix(const Cell*const RESTRICT c) {
-	return c->pair != nullptr&&c->pair->state == FIX;
+    if(c->pair==nullptr){
+        return false;
+    }
+    return c->pair->state == FIX;
 }
 void _MUSUME_interaction(Cell*const RESTRICT& musume) {
 	musume->spring_force_to_memb = 0;
@@ -381,7 +384,7 @@ void _MUSUME_interaction(Cell*const RESTRICT& musume) {
 	else if (musume->rest_div_times > 0) {
 		musume->spring_force_to_memb = cont::Kspring_d;
 	}
-	musume->connected_cell.foreach([&](Cell*const RESTRICT conn) {
+    musume->connected_cell.foreach([&](Cell*const conn) { //cannot be restricted due to musume->pair
 		if (conn->state == MEMB) {
 			if (musume->dermis() == conn) {
 				cell_interaction_apply<CI_mu_to_memb>(musume, conn);

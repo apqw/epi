@@ -7,10 +7,10 @@
 using cint = int_fast16_t;
 #define CINT_F SCNiFAST16
 
-void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY][cont::ANZ] , Cell* RESTRICT(&area)[cont::ANX][cont::ANY][cont::ANZ][cont::N3]) {
+void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY][cont::ANZ] , Cell* (&area)[cont::ANX][cont::ANY][cont::ANZ][cont::N3]) { //DO NOT RESTRICT ptrs in area
 	using namespace cont;
 	std::memset(aindx, 0, sizeof(std::atomic<cint>)*ANX*ANY*ANZ);
-	cman.all_foreach_parallel_native([&](Cell*const RESTRICT& c) {
+    cman.all_foreach_parallel_native([&](Cell*const c) {//cannot restrict
 		//auto&c = cman[i];
 		cint aix, aiy, aiz;
 		aix = (cint)((0.5*LX - p_diff_x(0.5*LX, c->x())) / AREA_GRID);
@@ -33,7 +33,7 @@ void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY
 	});
 }
 
-void connect_proc(CellManager& cman, const std::atomic<cint>(&aindx)[cont::ANX][cont::ANY][cont::ANZ], Cell*const RESTRICT(&area)[cont::ANX][cont::ANY][cont::ANZ][cont::N3]) {
+void connect_proc(CellManager& cman, const std::atomic<cint>(&aindx)[cont::ANX][cont::ANY][cont::ANZ], Cell*const (&area)[cont::ANX][cont::ANY][cont::ANZ][cont::N3]) {
 	
 #define LAT_ARR(axis)\
 struct lat_arr_##axis {\
@@ -135,7 +135,7 @@ const Cell* find_dermis(const Cell*const RESTRICT c) {
 	double d1Sq = cont::LX*cont::LX;
 	double distanceSq = 0;
 	const Cell* dermis = nullptr;
-	c->connected_cell.foreach([&](const Cell*const RESTRICT& cptr) {
+    c->connected_cell.foreach([&](const Cell*const RESTRICT cptr) {
 		if (cptr->state == MEMB) {
 			distanceSq = p_cell_dist_sq(c, cptr);
 			if (distanceSq < d1Sq) {//2æ‚É‚È‚Á‚Ä‚È‚©‚Á‚½
@@ -148,7 +148,7 @@ const Cell* find_dermis(const Cell*const RESTRICT c) {
 }
 
 inline void set_dermis(CellManager& cman) {
-	cman.other_foreach_parallel_native([](Cell*const RESTRICT&c) {
+    cman.other_foreach_parallel_native([](Cell*const RESTRICT c) {
 		
 		if (c->state == FIX || c->state == MUSUME) {
 			c->set_dermis(find_dermis(c));

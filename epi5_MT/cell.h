@@ -192,7 +192,7 @@ inline double p_cell_dist_sq(const Cell*const RESTRICT c1, const Cell*const REST
 	return p_dist_sq(c1->x(), c1->y(), c1->z(), c2->x(), c2->y(), c2->z());
 }
 
-inline bool no_double_count(const Cell*const RESTRICT c1,const Cell*const RESTRICT c2) {
+inline bool no_double_count(const Cell*const c1,const Cell*const c2) {
 	return c1->get_index() > c2->get_index();
 }
 

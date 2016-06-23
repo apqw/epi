@@ -24,7 +24,7 @@ enum CELL_STATE:int {
 };
 
 bool count_cond(int state) {
-	return state == FIX || state == MUSUME || state == ALIVE || state == DEAD;
+    return state == FIX || state == MUSUME || state == ALIVE || state == DEAD;
 }
 
 void draw_polygon(FILE *fp, vector<int> &f_vert, vector<double> &v, int j) {
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     }
 	ifs.clear();
 	ifs.seekg(0, ios::beg);
-	voro::container con(0, LX, 0, LY, zmin, zmax, comp_nx, comp_ny, comp_nz, true, true, false, 8);
+    voro::container con(0, LX, 0, LY, zmin, zmax, comp_nx, comp_ny, comp_nz, false, false, true, 8);
 
 	while (getline(ifs, str)) {
 		int index = 0;
