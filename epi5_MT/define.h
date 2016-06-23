@@ -91,152 +91,49 @@ namespace cont {
 	cdefd dy = LY / NY; cdefd inv_dy = NY / LY;
 	cdefd dz = LZ / NZ; cdefd inv_dz = NZ / LZ;
 
-	cdefd dh = 0.5; //ok
     cdefd COMPRESS_FACTOR = 6;//ok
-	//void set_P_MEMB(double _COMPRESS_FACTOR);
-	cdefd P_MEMB = 1. / COMPRESS_FACTOR;//ok
-	cdefd eps_m = 0.01; //ok
-	cdefd DER_DER_CONST = 0.2; //ok
+	
     cdefd THRESH_SP = 1.0; //ok 3.0->1.0
-	cdefd K_TOTAL = 3.0;//ok
-    cdefd K_DESMOSOME_RATIO = 0.01;//ok
-	cdefd K_DESMOSOME = K_TOTAL*K_DESMOSOME_RATIO;//ok
-	//void set_K_DESMOSOME(double _K_TOTAL,double _K_DESMOSOME_RATIO);
+	
 	cdefd LJ_THRESH = 1.2;//ok
-	cdefd Kspring = 25.0;//ok
-	cdefd Kspring_d = 5.0;//ok
+	
 	cdefd R_max = 1.4;//ok
 	cdefd R_der = 1.4;//ok
 	cdefd R_memb = 1.0;//ok
-	cdefd delta_L = 0.01*R_max;//ok
-	//void set_delta_L(double _R_max);
-
-	cdefd delta_R= 0.4*R_der;//ok
-	//void set_delta_R(double _R_der);
-	cdefd para_ljp2 = 0.005;//ok
-	cdefd Kspring_division = 5.0;//ok
-	cdefd agki_max = 6.0;//ok
-	cdefd fac = 1;//ok
-	cdefd agki_max_fix = fac*agki_max;//ok
-	//void set_agki_max_fix(double _fac, double _agki_max);
-	cdefd stoch_div_time_ratio = 0.25;//ok
-    cdefui div_max = 20;//ok
-	cdefd accel_div = 1.0;
-    cdefd eps_kb = 0.12;//ok
-
 	
-	cdefd alpha_b = 5.0;//ok
-	cdefd ADHE_CONST = 31.3;//ok
-	cdefui DISA_conn_num_thresh = 11; //Nc ok
-	//rdefui Nc = DISA_conn_num_thresh;
 	cdefd THRESH_DEAD = 22.0;//ok
-	cdefd eps_kk = 0.10*0.5;//ok
-	cdefd eps_ks = 0.10*0.5;//ok
-    cdefd S0 = 0.1*0.2;//u0*0.2; ok
-	cdefd alpha_k = 2.0;//ok
-	cdefd accel_diff = 1.0;
-    cdefd lipid_rel = 0.05*2.0;//ok
-    cdefd ubar = 0.3;//ok 0.25->0.3
-    cdefd delta_lipid = 0.1;//ok0.05->0.01
-    cdefd lipid = 0.6;//ok *2.0->*10.0->0.6
 
-#ifdef UNPAIR_DBG
-	cdefd eps_L = 1;
-	cdefd unpair_dist_coef = 0.9;
-#else
-	cdefd eps_L = 0.14;//ok
-	cdefd unpair_dist_coef = 0.9;
-#endif
-	cdefd AREA_GRID_ORIGINAL = 2.0;//ok
-	cdefd AREA_GRID = AREA_GRID_ORIGINAL + 1e-7;//ok
-	cdefs ANX = (size_t)((double)LX / AREA_GRID_ORIGINAL + 0.5);//ok
-	cdefs ANY = (size_t)((double)LY / AREA_GRID_ORIGINAL + 0.5);//ok
-	cdefs ANZ = (size_t)((double)LZ / AREA_GRID_ORIGINAL);//ok
-	cdefui N3 = 200; //max grid cell num //ok
-	cdefui N2 = 400; //max conn num //ok
-								   //memb seat size NMX*NMY
-    cdefui NMX = 150;//ok
-    cdefui NMY = 150;//ok
-    cdefui NUM_ITR = 4 * ((int)1e6); //twice
-    cdefd KBEND = 0.25;//0.5->0.25
+	cdefui NUM_ITR = 4 * ((int)1e6); //twice
+
+    
 
 	cdefd Ca_avg_time = 10.0;
-	cdefi Ca_ITR = (int)(Ca_avg_time / DT_Ca);//Ca_N ok
-	//void set_Ca_ITR(double _Ca_avg_time, double _DT_Ca);
+	
 
 	cdefd ca2p_init = 0.122;
-	//rdefd u0 = ca2p_init;//ok
 
 	cdefd ex_inert_init = 0.97;
-	//rdefd v0 = ex_inert_init;//ok
 
 	cdefd IP3_init = 0;
-	//rdefd p0 = IP3_init;//ok
 
 	cdefd gj_init = 0.99;
-	//rdefd w0 = gj_init;//ok //0.99->0.1
 
 	cdefd ATP_init = 0;
-	//rdefd a0 = ATP_init;//ok
 
 	cdefd ext_stim_init = 0;
-	//rdefd B0 = ext_stim_init;//ok
 
-	cdefd Rad = 1.4;
-	//void set_ir(double _Rad);
 	
-	cdefi irx = (int)(Rad*NX / LX);
-	cdefi iry= (int)(Rad*NY / LY);
-	cdefi irz = (int)(Rad*NZ / LZ);
 
 	cdefd FAC_MAP = 2.0;//ok
-	cdefd Kpp = 0.3;//ok
-	cdefd dp = 0.1;//ha? 0.9->0.1 //ok
-	cdefd kf = 8.1;//ok
-	cdefd mu0 = 0.567;//ok
-	cdefd mu1 = 0.1;//ok
-	cdefd kmu = 0.05;//ok
-	cdefd para_b = 0.11;//ok
-	cdefd para_bb = 0.89;//ok
-	cdefd para_k1 = 0.7;//ok
-	cdefd gamma = 2.0;//ok
-	cdefd kg = 0.1;//ok
-	cdefd beta_zero = 0.02;//ok
-	cdefd CA_OUT = 1.0;//ok
-    cdefd beta = CA_OUT*beta_zero;//ok
-	//void set_beta(double _CA_OUT, double _beta_zero);
-	cdefd kbc = 0.4*1.2;//1.0->0.4 //ok //0.6
-	cdefd Hb = 0.01;//ok
-	cdefd Cout = 1.0;//ha?? 0.4->1.0 //ok
-	cdefd para_k2 = 0.7;//ok
-	cdefd thpri = 1.0;//ok
-	cdefd thgra = 0.2;//ok
-	cdefd delta_th = 1.0;//ok
-	cdefd kpa = 4.0;//ok
-	cdefd Kgra = kpa;//ok
-	//void set_Kgra(double _kpa);
-	cdefd Kpri = 6.0;//ok
-	cdefd delta_K = 1.0;//ok
-	cdefd H0 = 0.5;//ok
-	cdefd ca2p_du = 0.01; //ha? 0.03->0.01 //ok
-	cdefd iage_kitei = 0;//ok
-	cdefd delta_I = 1.5;//ok
-	cdefd wd = 0.1;//ok
-	cdefd Da = 1;//ok
-	cdefd STIM11 = 0.002;//ok
-	cdefd Kaa = 0.5;//ok
-	cdefd AIR_STIM = 0.1;//ok
+	
 	cdefi SW_THRESH = 20;//ok
-	cdefd DB = 0.0009;//ok
-	cdefd DUR_ALIVE = 0.5;//ok
-	cdefd DUR_DEAD = 2.0;//ok
-	cdefd kb = 0.025;//0.03->0.025
+
 	cdefd T_TURNOVER = 6000.0;//
 	cdefi NUM_SC_INIT = 1;//ok ha/???->19->1
 	cdefd stoch_corr_coef = 1;
-    cdefd S1 = 0.1;
-    cdefd delta_sig_r1=0.1;
-    cdefd S2 = 0.1;
+    
+    
+    
 }
 
 cdefui SYSTEM = 0;

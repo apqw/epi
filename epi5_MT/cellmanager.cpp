@@ -8,6 +8,11 @@
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
 #include <iomanip>
+
+//memb seat size NMX*NMY
+static constexpr unsigned int NMX = 150;//ok
+static constexpr unsigned int NMY = 150;//ok
+
 void pos_copy(CellManager& cman)
 {
 	cman.all_foreach_parallel_native([](Cell* c) {
@@ -197,8 +202,7 @@ void CellManager::_load_from_file(std::string path)
 			agek, ageb,
 			ex_fat, fat,
 			spr_len,
-			state == FIX ? agki_max_fix : state == MUSUME ? agki_max : 0,
-			state == FIX ? div_max : div_times,
+			div_times,
 			stem_orig_id < MALIG_NUM
 			);
 
@@ -243,21 +247,8 @@ void CellManager::init_internal(std::string init_data_path)
 
 }
 
-CellPtr CellManager::create(CELL_STATE _state, double _x, double _y, double _z, double _radius, double _ca2p, double _ca2p_avg, double _IP3, double _ex_inert, double _agek, double _ageb, double _ex_fat, double _in_fat, double _spr_nat_len, double _div_age_thresh, int _rest_div_times, bool _is_malignant)
+CellPtr CellManager::create(CELL_STATE _state, double _x, double _y, double _z, double _radius, double _ca2p, double _ca2p_avg, double _IP3, double _ex_inert, double _agek, double _ageb, double _ex_fat, double _in_fat, double _spr_nat_len, int _rest_div_times, bool _is_malignant)
 {
-    /*
-	std::shared_ptr<Cell> cptr = std::make_shared<Cell>(
-		Cell::ctor_cookie(),
-		_state,
-		ca2p_s,
-		IP3_s,
-		_ex_inert,
-		_agek,_ageb,_ex_fat,_in_fat,_spr_nat_len,
-	_x,_y,_z,
-		
-		_radius, _ca2p_avg, _div_age_thresh, _is_malignant);
-        */
-    //
     //use smart ptr
     Cell* cptr = new Cell(
                 Cell::ctor_cookie(),
@@ -266,9 +257,9 @@ CellPtr CellManager::create(CELL_STATE _state, double _x, double _y, double _z, 
                 IP3_s,
                 _ex_inert,
                 _agek,_ageb,_ex_fat,_in_fat,_spr_nat_len,
-            _x,_y,_z,
+            _x,_y,_z, _rest_div_times,
 
-                _radius, _ca2p_avg, _div_age_thresh, _is_malignant);
+                _radius, _ca2p_avg, _is_malignant);
 
     //cell_store.push_back(cptr);
     cptr->set_index(this->register_cell(cptr));
@@ -278,7 +269,7 @@ CellPtr CellManager::create(CELL_STATE _state, double _x, double _y, double _z, 
 
 	cptr->ca2p._set(_ca2p);
 	cptr->IP3._set(_IP3);
-	cptr->rest_div_times = _rest_div_times;
+	//cptr->rest_div_times = _rest_div_times;
 
     return cptr;
 }

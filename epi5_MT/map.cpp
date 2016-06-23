@@ -14,6 +14,13 @@ inline void set_lattice(Cell*const RESTRICT c) {
 
 void setup_map_lat(CellManager & cman, FArr3D<const Cell*>& cmap1, FArr3D<cmask_ty>& cmap2)
 {
+
+	static constexpr double Rad = 1.4;
+
+	static constexpr int irx = (int)(Rad*cont::NX / cont::LX);
+	static constexpr int iry = (int)(Rad*cont::NY / cont::LY);
+	static constexpr int irz = (int)(Rad*cont::NZ / cont::LZ);
+
 	
 	using namespace cont;
 	tbb::parallel_for(tbb::blocked_range<int>(0, NX + 1), [&cmap1,&cmap2](const tbb::blocked_range< int >& range) {

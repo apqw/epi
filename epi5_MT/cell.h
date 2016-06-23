@@ -13,6 +13,15 @@
 
 class Cell:public std::enable_shared_from_this<Cell>
 {
+	static constexpr double agki_max		= 6.0;
+	static constexpr double fac				= 1;
+	static constexpr double agki_max_fix	= fac*agki_max;
+	static constexpr int	div_max			= 20;
+
+
+	static double get_div_age_thresh(CELL_STATE state);
+	static int correct_div_times(CELL_STATE state, int given_times);
+
 	size_t index;
 	const Cell* _dermis=nullptr;
 
@@ -177,9 +186,8 @@ public:
 		SwapData<double[cont::MAX_CELL_NUM]>&IP3_s,
 		double _ex_inert=0,
 		double _agek = 0,double _ageb = 0,double _ex_fat=0,double _in_fat=0,double _spr_nat_len=0,
-		double _x=0, double _y = 0, double _z = 0,
+		double _x=0, double _y = 0, double _z = 0,int _rest_div_time=0,
 		double _radius = cont::R_max, double _ca2p_avg = cont::ca2p_init,
-		double _div_age_thresh = 0,
 		bool _is_malignant = false);
 
     void* operator new(size_t s);

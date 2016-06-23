@@ -76,7 +76,6 @@ public:
 		double _agek = 0, double _ageb = 0,
 		double _ex_fat = 0, double _in_fat = 0,
 		double _spr_nat_len = 0,
-		double _div_age_thresh = 0,
 		int _rest_div_times = 0,
 		bool _is_malignant = false);
 

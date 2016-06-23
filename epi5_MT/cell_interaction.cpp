@@ -10,6 +10,33 @@
 #define POW3(x) ((x)*(x)*(x))
 #define CIFuncCName Coef
 #define CIFuncDecl(name) struct name{static double CIFuncCName(const Cell*const RESTRICT c1,const Cell*const RESTRICT c2);}
+
+
+static constexpr double eps_m				= 0.01; //ok
+
+/*
+	MEMB_calc
+*/
+static constexpr double P_MEMB				= 1. / cont::COMPRESS_FACTOR;
+static constexpr double DER_DER_CONST		= 0.2;
+static constexpr double K_TOTAL				= 3.0;
+static constexpr double K_DESMOSOME_RATIO	= 0.01;
+static constexpr double K_DESMOSOME			= K_TOTAL*K_DESMOSOME_RATIO;
+static constexpr double Kspring				= 25.0;
+static constexpr double Kspring_d			= 5.0;
+
+
+static constexpr double KBEND = 0.25;//0.5->0.25
+
+/*
+	DER_calc
+*/
+static constexpr double delta_R				= 0.4*cont::R_der;
+
+static constexpr double para_ljp2			= 0.005;
+static constexpr double Kspring_division	= 5.0;
+
+
 template<class Fn>
 inline void cell_interaction_apply(Cell*const RESTRICT c1, Cell*const RESTRICT c2) {
 	const double coef = Fn::CIFuncCName(c1, c2);
@@ -35,7 +62,7 @@ CIFuncDecl(CI_other);
 CIFuncDecl(CI_pair);
 
 inline bool is_der_near(const Cell*const RESTRICT der1, const Cell*const RESTRICT der2) {
-	return sqrt(p_cell_dist_sq(der1, der2))+ cont::delta_R < der1->radius + der2->radius;
+	return sqrt(p_cell_dist_sq(der1, der2))+ delta_R < der1->radius + der2->radius;
 }
 
 inline double ljmain_der_near(const Cell*const RESTRICT der1, const Cell*const RESTRICT der2) {
@@ -43,11 +70,11 @@ inline double ljmain_der_near(const Cell*const RESTRICT der1, const Cell*const R
 		‹——£‚Ì2æ‚¾‚¯‚Å‚Í•s‰Â
 	*/
 	const double dist = sqrt(p_cell_dist_sq(der1, der2));
-	const double dist2 = dist + cont::delta_R;
+	const double dist2 = dist + delta_R;
 	const double rad_sum = der1->radius + der2->radius;
 	const double LJ6 = POW6(rad_sum) / POW6(dist2);
 	//LJ6 = LJ6*LJ6*LJ6;
-	return 4.0*cont::eps_m*LJ6*(LJ6 - 1) / (dist*dist2) + cont::para_ljp2;
+	return 4.0*eps_m*LJ6*(LJ6 - 1) / (dist*dist2) + para_ljp2;
 }
 
 inline bool is_near(const Cell*const RESTRICT c1, const Cell*const RESTRICT c2) {
@@ -57,10 +84,10 @@ inline bool is_near(const Cell*const RESTRICT c1, const Cell*const RESTRICT c2) 
 
 inline double ljmain_der_far(const Cell*const RESTRICT der1, const Cell*const RESTRICT der2) {
 	const double dist = sqrt(p_cell_dist_sq(der1, der2));
-	const double dist2 = dist + cont::delta_R;
+	const double dist2 = dist + delta_R;
 	const double rad_sum = der1->radius + der2->radius;
 	const double LJ6 = POW6(rad_sum) / POW6(dist2);
-	return 4.0*cont::eps_m*LJ6*(LJ6 - 1) / (dist*dist) + cont::para_ljp2;
+	return 4.0*eps_m*LJ6*(LJ6 - 1) / (dist*dist) + para_ljp2;
 }
 
 inline double ljmain(const Cell*const RESTRICT c1, const  Cell*const RESTRICT c2) {
@@ -69,7 +96,7 @@ inline double ljmain(const Cell*const RESTRICT c1, const  Cell*const RESTRICT c2
 	const double rad_sum = c1->radius + c2->radius;
 	const double LJ6 = POW6(rad_sum) / POW3(distSq);
 	//LJ6 = LJ6*LJ6*LJ6;
-	return 4.0*cont::eps_m*LJ6*(LJ6 - 1) / distSq;
+	return 4.0*eps_m*LJ6*(LJ6 - 1) / distSq;
 
 }
 
@@ -94,7 +121,7 @@ double CI_der_to_der::CIFuncCName(const Cell*const RESTRICT c1, const Cell*const
 		return ljmain_der_near(c1, c2);
 	}
 	else if (is_near(c1, c2)) {
-		return cont::para_ljp2;
+		return para_ljp2;
 	}
 	else {
 		return ljmain_der_far(c1, c2);
@@ -106,9 +133,9 @@ double CI_al_air_de_to_al_air_de_fix_mu::CIFuncCName(const Cell*const RESTRICT c
 		return ljmain(c1, c2);
 	}
 	else {
-		double spf = cont::K_DESMOSOME;
+		double spf = K_DESMOSOME;
 		if (c1->agek > cont::THRESH_SP && c2->agek > cont::THRESH_SP) {
-			spf = cont::K_TOTAL;
+			spf = K_TOTAL;
 		}
 		return adhesion(c1, c2, spf);
 	}
@@ -120,7 +147,7 @@ double CI_fix_mu_to_fix_mu::CIFuncCName(const Cell*const RESTRICT c1, const Cell
 		return ljmain(c1, c2);
 	}
 	else {
-		return adhesion(c1, c2, cont::K_DESMOSOME);
+		return adhesion(c1, c2, K_DESMOSOME);
 	}
 }
 
@@ -141,11 +168,14 @@ double CI_fix_to_memb::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*con
 	else {
 		const double distlj = sqrt(p_cell_dist_sq(c1, c2));
 		const double LJ2 = distlj / (c1->radius + c2->radius);
-		return -(cont::Kspring / distlj)*(LJ2 - 1.0);
+		return -(Kspring / distlj)*(LJ2 - 1.0);
 	}
 }
 
 double CI_memb_to_memb::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*const RESTRICT c2) {
+	
+	
+
 	using namespace cont;
 	const double rad_sum = c1->radius+ c2->radius;
 	const double rad_sum_sq = rad_sum*rad_sum;
@@ -156,7 +186,7 @@ double CI_memb_to_memb::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*co
 		//assert(fabs(ljmain(me, oppo)) < 1000);
 		const double LJ6 = POW3(cr_dist_sq) / POW3(distSq);
 		//LJ6 = LJ6*LJ6*LJ6;
-		return 4.0*cont::eps_m*LJ6*(LJ6 - 1) / distSq;
+		return 4.0*eps_m*LJ6*(LJ6 - 1) / distSq;
 	}
 	else if (distSq < rad_sum_sq) {
 		const double distlj = sqrt(distSq);
@@ -181,7 +211,7 @@ inline double CI_other::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*co
 
 inline double CI_pair::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*const RESTRICT c2) {
 	const double dist = sqrt(p_cell_dist_sq(c1, c2));
-	const double force = cont::Kspring_division*(dist - c1->spr_nat_len);
+	const double force = Kspring_division*(dist - c1->spr_nat_len);
 	return -force / dist;
 }
 
@@ -190,7 +220,7 @@ inline void wall_interaction(Cell*const RESTRICT c) {
 	const double LJ6 = POW6(c->radius) / POW6(c->z());
 	//LJ6 = LJ6*LJ6;
 	//LJ6 = LJ6*LJ6*LJ6;
-	const double ljm = 4.0*cont::eps_m*LJ6*(LJ6 - 1.0) / (distlj*distlj);
+	const double ljm = 4.0*eps_m*LJ6*(LJ6 - 1.0) / (distlj*distlj);
 	c->z += cont::DT_Cell* ljm*2.0*c->z();
 }
 ////////////////////////////////////////////////////////////////////
@@ -249,7 +279,7 @@ inline void _memb_bend_calc3(Cell *const RESTRICT memb)
 	auto& ipn = memb->md.ipn;
 	auto& ipm = memb->md.ipm;
 
-	memb->x +=cont::DT_Cell* cont::KBEND*(
+	memb->x +=cont::DT_Cell* KBEND*(
 		-(1.0 - ipn)*(nvr[0] - ipn*nv[0]) / dn
 		+ (1.0 - ipnl)*((nv[0] - ipnl*nvl[0]) / dnl - (nvl[0] - ipnl*nv[0]) / dn)
 		+ (1.0 - ipnll)*(nvll[0] - ipnll*nvl[0]) / dnl
@@ -258,7 +288,7 @@ inline void _memb_bend_calc3(Cell *const RESTRICT memb)
 		+ (1.0 - ipmb)*((mv[0] - ipmb*mvb[0]) / dmb - (mvb[0] - ipmb*mv[0]) / dm)
 		+ (1.0 - ipmbb)*(mvbb[0] - ipmbb*mvb[0]) / dmb);
 
-	memb->y += cont::DT_Cell* cont::KBEND*(
+	memb->y += cont::DT_Cell* KBEND*(
 		-(1.0 - ipn)*(nvr[1] - ipn*nv[1]) / dn
 		+ (1.0 - ipnl)*((nv[1] - ipnl*nvl[1]) / dnl - (nvl[1] - ipnl*nv[1]) / dn)
 		+ (1.0 - ipnll)*(nvll[1] - ipnll*nvl[1]) / dnl
@@ -267,7 +297,7 @@ inline void _memb_bend_calc3(Cell *const RESTRICT memb)
 		+ (1.0 - ipmb)*((mv[1] - ipmb*mvb[1]) / dmb - (mvb[1] - ipmb*mv[1]) / dm)
 		+ (1.0 - ipmbb)*(mvbb[1] - ipmbb*mvb[1]) / dmb);
 
-	memb->z += cont::DT_Cell* cont::KBEND*(
+	memb->z += cont::DT_Cell* KBEND*(
 		-(1.0 - ipn)*(nvr[2] - ipn*nv[2]) / dn
 		+ (1.0 - ipnl)*((nv[2] - ipnl*nvl[2]) / dnl - (nvl[2] - ipnl*nv[2]) / dn)
 		+ (1.0 - ipnll)*(nvll[2] - ipnll*nvl[2]) / dnl
@@ -379,10 +409,10 @@ inline bool paired_with_fix(const Cell*const RESTRICT c) {
 void _MUSUME_interaction(Cell*const RESTRICT& musume) {
 	musume->spring_force_to_memb = 0;
 	if (paired_with_fix(musume)) {
-		musume->spring_force_to_memb = cont::Kspring;
+		musume->spring_force_to_memb = Kspring;
 	}
 	else if (musume->rest_div_times > 0) {
-		musume->spring_force_to_memb = cont::Kspring_d;
+		musume->spring_force_to_memb = Kspring_d;
 	}
     musume->connected_cell.foreach([&](Cell*const conn) { //cannot be restricted due to musume->pair
 		if (conn->state == MEMB) {

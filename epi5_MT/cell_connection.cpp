@@ -7,7 +7,15 @@
 using cint = int_fast16_t;
 #define CINT_F SCNiFAST16
 
-void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY][cont::ANZ] , Cell* (&area)[cont::ANX][cont::ANY][cont::ANZ][cont::N3]) { //DO NOT RESTRICT ptrs in area
+static constexpr double AREA_GRID_ORIGINAL	= 2.0;//ok
+static constexpr double AREA_GRID			= AREA_GRID_ORIGINAL + 1e-7;//ok
+static constexpr cint	ANX					= (cint)((double)cont::LX / AREA_GRID_ORIGINAL + 0.5);//ok
+static constexpr cint	ANY					= (cint)((double)cont::LY / AREA_GRID_ORIGINAL + 0.5);//ok
+static constexpr cint	ANZ					= (cint)((double)cont::LZ / AREA_GRID_ORIGINAL);//ok
+static constexpr cint	N3					= 200; //max grid cell num //ok
+static constexpr cint	N2					= 400; //max conn num //ok
+
+void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[ANX][ANY][ANZ] , Cell* (&area)[ANX][ANY][ANZ][N3]) { //DO NOT RESTRICT ptrs in area
 	using namespace cont;
 	std::memset(aindx, 0, sizeof(std::atomic<cint>)*ANX*ANY*ANZ);
     cman.all_foreach_parallel_native([&](Cell*const c) {//cannot restrict
@@ -33,14 +41,14 @@ void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[cont::ANX][cont::ANY
 	});
 }
 
-void connect_proc(CellManager& cman, const std::atomic<cint>(&aindx)[cont::ANX][cont::ANY][cont::ANZ], Cell*const (&area)[cont::ANX][cont::ANY][cont::ANZ][cont::N3]) {
+void connect_proc(CellManager& cman, const std::atomic<cint>(&aindx)[ANX][ANY][ANZ], Cell*const (&area)[ANX][ANY][ANZ][N3]) {
 	
 #define LAT_ARR(axis)\
 struct lat_arr_##axis {\
-	cint idx[cont::AN##axis * 3];\
+	cint idx[AN##axis * 3];\
 	lat_arr_##axis() {\
-        for (size_t i = 0; i < cont::AN##axis * 3; i++) {\
-			idx[i] = i%cont::AN##axis;\
+        for (size_t i = 0; i < AN##axis * 3; i++) {\
+			idx[i] = i%AN##axis;\
 		}\
 	}\
 	cint operator[](int i) {\

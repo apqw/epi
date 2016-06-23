@@ -5,36 +5,21 @@
 #include "utils.h"
 #include "cell.h"
 
+
 inline double fB(double age, double B, bool cornif) {
+	static constexpr double kb = 0.025;
+	static constexpr double DUR_ALIVE = 0.5;
+	static constexpr double DUR_DEAD = 2.0;
+
 	using namespace cont;
 	return (cornif&&age > THRESH_DEAD - DUR_ALIVE&&age <= THRESH_DEAD + DUR_DEAD ? 1 : 0) - kb*B;
 }
 
 void calc_ext_stim(SwapData<FArr3D<double>>& ext_stim,const FArr3D<const Cell*>& cmap1, const FArr3D<cmask_ty>& cmap2, double zzmax)
 {
+	static constexpr double DB = 0.0009;
 	using namespace cont;
 	const int iz_bound = (int)((zzmax + FAC_MAP*R_max) *inv_dz);
-	/*
-	static int a_prev_z[cont::NZ];
-	static int a_next_z[cont::NZ];
-	for (int l = 0; l < iz_bound; l++) {
-		int prev_z = 0, next_z = 0;
-		if (l == 0) {
-			prev_z = 1;
-		}
-		else {
-			prev_z = l - 1;
-		}
-		if (l == NZ) {
-			next_z = NZ - 1;
-		}
-		else {
-			next_z = l + 1;
-		}
-		a_prev_z[l] = prev_z;
-		a_next_z[l] = next_z;
-	}
-	*/
     auto&& carr = ext_stim.first()();
     auto&& narr = ext_stim.second()();
 

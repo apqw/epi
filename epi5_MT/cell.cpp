@@ -9,7 +9,15 @@
 
 
 
+double Cell::get_div_age_thresh(CELL_STATE state) {
+	return state == FIX ? agki_max_fix
+		: state == MUSUME ? agki_max
+		: 0;
+}
 
+int Cell::correct_div_times(CELL_STATE state, int given_times) {
+	return state == FIX ? div_max : given_times;
+}
 
 
 
@@ -42,9 +50,8 @@ Cell::Cell(ctor_cookie,CELL_STATE _state,
 	SwapData<double[cont::MAX_CELL_NUM]>&IP3_s,
 	double _ex_inert,
 	double _agek , double _ageb , double _ex_fat , double _in_fat, double _spr_nat_len,
-	double _x, double _y, double _z,
+	double _x, double _y, double _z,int _rest_div_time,
 	double _radius , double _ca2p_avg ,
-	double _div_age_thresh ,
 	bool _is_malignant ) :
 	state(_state), 
 	x(_x),
@@ -59,7 +66,10 @@ Cell::Cell(ctor_cookie,CELL_STATE _state,
 	ex_fat(_ex_fat),
 	in_fat(_in_fat),
 	spr_nat_len(_spr_nat_len),
-    radius(_radius),  div_age_thresh(_div_age_thresh), is_malignant(_is_malignant), diff_u(0) {
+    radius(_radius), 
+	div_age_thresh(Cell::get_div_age_thresh(_state)),
+	rest_div_times(Cell::correct_div_times(_state,_rest_div_time)),
+	is_malignant(_is_malignant), diff_u(0) {
 }
 
 void* Cell::operator new(size_t s){

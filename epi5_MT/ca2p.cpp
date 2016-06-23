@@ -7,6 +7,13 @@
 #include "cellmanager.h"
 #include <cmath>
 
+static constexpr unsigned Ca_ITR = (int)(cont::Ca_avg_time / cont::DT_Ca);//Ca_N ok
+/*
+	Each constant is defined in each function (because there are too many constants)
+*/
+static constexpr double Kpp		= 0.3;//ok
+static constexpr double dp		= 0.1;//ha? 0.9->0.1 //ok
+
 template<typename ArrTy>
 inline auto grid_avg8(const ArrTy& grd,int ix,int iy,int iz) {
 	return 0.125*(grd[ix][iy][iz] + grd[ix + 1][iy][iz] + grd[ix][iy + 1][iz]
@@ -40,49 +47,93 @@ inline void dead_IP3_calc(CellManager& cman) {
 		}
 	});
 }
+
+
 inline double fu(double u, double v, double p, double B)
 {
-	//  static double result_debug=0.0;
-	using namespace cont;
-	constexpr double c_gamma = cont::gamma;
+	static constexpr double kf		= 8.1;
+	static constexpr double mu0		= 0.567;
+	static constexpr double mu1		= 0.1;
+	static constexpr double kmu		= 0.05;
+	static constexpr double para_b	= 0.11;
+	static constexpr double para_bb	= 0.89;
+	static constexpr double para_k1	= 0.7;
+	static constexpr double gamma	= 2.0;
+	static constexpr double Hb		= 0.01;
+	static constexpr double Cout	= 1.0;
+	static constexpr double kbc		= 0.4*1.2;
+
+	static constexpr double beta_zero	= 0.02;
+	static constexpr double CA_OUT		= 1.0;
+	static constexpr double beta		= CA_OUT*beta_zero;
+
+	static constexpr double kg		= 0.1;
+
+	static constexpr double c_gamma = gamma;
 	return kf * (mu0 + mu1 * p / (p + kmu)) * (para_b + para_bb * u / (para_k1 + u)) * v
 		- c_gamma * u / (kg + u) + beta + kbc * B*B * Cout / (Hb + B*B);
 
 }
 
-inline double ALIVE_th(double agek) {
+inline double calc_th(bool is_alive,double agek) {
+	
+	static constexpr double thgra		= 0.2;
+	static constexpr double delta_th	= 1.0;
+	static constexpr double thpri = 1.0;
 	using namespace cont;
-	return thgra + ((thpri - thgra)*0.5) * (1.0 + tanh((THRESH_SP - agek) / delta_th));
+	
+	
+	return is_alive ?
+		thgra + ((thpri - thgra)*0.5) * (1.0 + tanh((THRESH_SP - agek) / delta_th)) :
+		thpri;
 }
 
-inline double ALIVE_Kpa(double agek) {
+inline double calc_Kpa(bool is_alive,double agek) {
+	
+	static constexpr double kpa			= 4.0;
+	static constexpr double Kgra		= kpa;
+	static constexpr double delta_K		= 1.0;
+	static constexpr double Kpri = 6.0;
+
 	using namespace cont;
-	return Kgra + ((Kpri - Kgra)*0.5) * (1.0 + tanh((THRESH_SP - agek) / delta_K));
+	return is_alive ?
+		Kgra + ((Kpri - Kgra)*0.5) * (1.0 + tanh((THRESH_SP - agek) / delta_K)) :
+		Kpri;
 }
 
-inline double ALIVE_IAG(double agek) {
+inline double calc_IAG(bool is_alive,double agek) {
+	static constexpr double delta_I = 1.5;
+	static constexpr double iage_kitei = 0;//ok
 	using namespace cont;
-	return 0.5*(1.0 + tanh((agek - THRESH_SP) / delta_I));
+	return is_alive ?
+		0.5*(1.0 + tanh((agek - THRESH_SP) / delta_I)) :
+		iage_kitei;
 }
 
 inline double ex_inert_diff(double ca2p, double current_ex_inert,double _th) {
+	static constexpr double para_k2 = 0.7;
 	using namespace cont;
 	return ((para_k2*para_k2 / (para_k2*para_k2 + ca2p*ca2p) - current_ex_inert) / _th);
 }
 
 inline double IP3_default_diff(double _Kpa,double a_avg,double current_IP3) {
+	static constexpr double H0 = 0.5;
+
 	using namespace cont;
 	return (_Kpa*a_avg / (H0 + a_avg) - Kpp*current_IP3);
 }
 
 inline double fw(double diff, double w)
 {
+	static constexpr double wd = 0.1;//ok
 	using namespace cont;
 	return (1. - w) + (-1. + tanh((wd - diff) / 0.1)) / 2.; //epsw0 == 0.1 //done
 															//-1. <-????
 }
 
 inline void supra_calc(CellManager& cman,const FArr3D<double>& ATP_first, const  FArr3D<double>& ext_stim_first) {
+	static constexpr double ca2p_du = 0.01;
+	
 	using namespace cont;
 	cman.other_foreach_parallel_native([&](Cell*const RESTRICT c){
 		auto& st = c->state;
@@ -93,9 +144,9 @@ inline void supra_calc(CellManager& cman,const FArr3D<double>& ATP_first, const 
 			int& iz = c->lat[2];
 
 			const bool is_alive = c->state == ALIVE;
-			const double _th = is_alive? ALIVE_th(c->agek) :thpri;
-			const double _Kpa = is_alive? ALIVE_Kpa(c->agek): Kpri;
-			const double IAGv = is_alive? ALIVE_IAG(c->agek):iage_kitei;
+			const double _th = calc_th(is_alive,c->agek);
+			const double _Kpa = calc_Kpa(is_alive,c->agek);
+			const double IAGv = calc_IAG(is_alive, c->agek);
 
 			double tmp_diffu = 0;
 			double tmp_IP3 = 0;
@@ -165,10 +216,16 @@ void init_ca2p_map(RawArr3D<uint_fast8_t>& air_stim_flg, RawArr3D<const double*>
 
 }
 inline double fa(double diffu, double A) {
+	static constexpr double STIM11 = 0.002;//ok
+	static constexpr double Kaa = 0.5;//ok
 	using namespace cont;
 	return STIM11*min0(diffu) - A*Kaa;
 }
 inline void ATP_refresh(SwapData<FArr3D<double>>& ATP, const RawArr3D<const double*>& cell_diffu_map, const RawArr3D<uint_fast8_t>& air_stim_flg, const FArr3D<cmask_ty>& cmap2,int iz_bound) {
+	static constexpr double Da = 1.0;
+	static constexpr double AIR_STIM = 0.1;
+
+
 	using namespace cont;
 	auto&& carr = ATP.first()();
 	auto&& narr = ATP.second()();
