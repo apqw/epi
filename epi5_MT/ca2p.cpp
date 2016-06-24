@@ -347,7 +347,7 @@ void calc_ca2p(CellManager& cman, SwapData<FArr3D<double>>& ATP,const FArr3D<dou
 	const double dummy_diffu = 0;
 	init_ca2p_map(air_stim_flg, cell_diffu_map, cmap1, iz_bound, &dummy_diffu);
 
-	for (int cstp = 0; cstp < Ca_ITR; cstp++) {
+    for (size_t cstp = 0; cstp < Ca_ITR; cstp++) {
 		
 		dead_IP3_calc(cman);
 		supra_calc(cman, ATP.first(), ext_stim_first);

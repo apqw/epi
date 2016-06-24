@@ -118,9 +118,9 @@ public:
 
     /*
      * 半径
-     * 書き換えないので並列への対応は無し
+     * 書き換える
      */
-    const double radius;
+    double radius;
 
 	/*
 	 * 分裂開始年齢のしきい値

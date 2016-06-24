@@ -90,11 +90,11 @@ void proc(const std::string& init_data_path,bool use_last,const std::string& ini
 	
 
 	using namespace cont;
-	auto cellset = std::make_unique<CellManager>();
-    auto ATP=std::make_unique<SwapData<FArr3D<double>>>();
-    auto ext_stim= std::make_unique<SwapData<FArr3D<double>>>();
-    auto cell_map1 = std::make_unique<FArr3D<const Cell*>>();
-    auto cell_map2 = std::make_unique<FArr3D<cmask_ty>>();
+    auto cellset = make_unique_c11<CellManager>();
+    auto ATP=make_unique_c11<SwapData<FArr3D<double>>>();
+    auto ext_stim= make_unique_c11<SwapData<FArr3D<double>>>();
+    auto cell_map1 = make_unique_c11<FArr3D<const Cell*>>();
+    auto cell_map2 = make_unique_c11<FArr3D<cmask_ty>>();
     cman_init(*cellset, init_data_path,use_last,init_uvp_data,init_w_data);
     if(use_last){
         ATP->first().read_binary(init_ATP_data);

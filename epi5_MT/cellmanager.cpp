@@ -9,9 +9,7 @@
 #include <tbb/blocked_range.h>
 #include <iomanip>
 
-//memb seat size NMX*NMY
-static constexpr unsigned int NMX = 150;//ok
-static constexpr unsigned int NMY = 150;//ok
+
 
 void pos_copy(CellManager& cman)
 {

@@ -71,6 +71,11 @@ inline bool state_check(CELL_STATE cellstate) {
 
 */
 
+template<typename T, typename ...Args>
+std::unique_ptr<T> make_unique_c11( Args&& ...args )
+{
+    return std::unique_ptr<T>( new T( std::forward<Args>(args)... ) );
+}
 
 double min0(double a);
 

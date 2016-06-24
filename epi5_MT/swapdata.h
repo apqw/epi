@@ -1,6 +1,7 @@
 #ifndef SWAPDATA_H
 #define SWAPDATA_H
 #include <unordered_map>
+#include <type_traits>
 template<typename T>
 class SwapData
 {
@@ -87,12 +88,12 @@ public:
 		sw.second()[idx].at(k) = v;
 	}
 
-	auto& at_w(const Key& k) {
+    auto at_w(const Key& k)->std::add_lvalue_reference<decltype(sw.second()[idx].at(k))> {
 		return sw.second()[idx].at(k);
 	}
 
 
-	const auto& operator()(const Key& k)const {
+    auto operator()(const Key& k)->typename std::add_lvalue_reference<typename std::add_const<decltype(sw.second()[idx].at(k))>::type>::type const{
 		return sw.first()[idx].at(k);
 	}
 
@@ -115,7 +116,7 @@ private:
 	size_t idx;
 	SwapData<T>& sw;
 public:
-	const auto& operator()()const {
+    auto operator()()->typename std::add_lvalue_reference<typename std::add_const<decltype(sw.first()[idx][subidx])>::type>::type const {
 		return sw.first()[idx][subidx];
 	}
 	template<typename U>
@@ -154,7 +155,7 @@ private:
 	size_t idx;
 	SwapData<T>& sw;
 public:
-	const auto& operator()()const {
+    auto operator()()->typename std::add_lvalue_reference<typename std::add_const<decltype(sw.first()[idx])>::type>::type const {
 		return sw.first()[idx];
 	}
 

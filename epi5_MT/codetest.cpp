@@ -7,6 +7,7 @@
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
 #include <memory>
+#include "utils.h"
 bool atomic_double_test(){
     double dval=0.1;
 atomic_double a(dval);
@@ -70,7 +71,7 @@ return true;
 }
 
 bool cell_test() {
-	auto cells = std::make_unique<CellManager>();
+    auto cells = make_unique_c11<CellManager>();
 	auto p = cells ->create(ALIVE);
     auto q = cells->create(DEAD); //auto r = cells->create(DEAD);
 	p->x += 0.1;

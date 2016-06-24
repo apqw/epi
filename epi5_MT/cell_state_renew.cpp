@@ -66,7 +66,7 @@ inline double agek_ALIVE_const(const Cell*const RESTRICT c) {
     return weighted_eps_ks(c)*(S0 + alpha_k*min0(c->ca2p_avg - ca2p_init));
 }
 
-inline double agek_DEAD_AIR_const(const Cell*const RESTRICT c) {
+inline double agek_DEAD_AIR_const() {
     static constexpr double eps_kk = 0.10*0.5;
     static constexpr double S1 = 0.1;
 
@@ -80,7 +80,7 @@ inline double agek_DEAD_AIR_const(const Cell*const RESTRICT c) {
 ////////////////////////////////////////////////////////////////////////////////
 
 /** 脂質の生成・放出を切り替えるカルシウム濃度 */
-static constexpr double ubar = 0.3;
+static constexpr double ubar = 0.45;
 
 /**
  *  agekによるスイッチングの緩さ
@@ -101,7 +101,7 @@ static constexpr double delta_sig_r1 = 0.1;
 inline double k_lipid_release(const Cell*const RESTRICT c) {
     using namespace cont;
 
-    static constexpr double lipid_rel = 0.05*2.0;
+    static constexpr double lipid_rel = 0.05*4.0;
     return 0.25*lipid_rel*(1 + tanh((c->ca2p_avg - ubar) / delta_sig_r1))*(1 + tanh((c->agek - THRESH_SP) / delta_lipid));
 }
 
@@ -329,7 +329,7 @@ void _DEAD_AIR_state_renew(CellManager& cman, Cell*const RESTRICT da) {
         cman.add_remove_queue(da->get_index());
     }
     else {
-        da->agek += cont::DT_Cell*agek_DEAD_AIR_const(da);
+        da->agek += cont::DT_Cell*agek_DEAD_AIR_const();
     }
 }
 
