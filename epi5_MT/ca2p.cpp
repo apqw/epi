@@ -29,53 +29,62 @@ inline void init_ca2p_avg(CellManager& cman) {
 }
 
 
-/**
- *  角層のIP3の値の次の値を計算する。
- *  @attention CellManager側でswapしない限り現在の値は更新されない。
- */
-inline void dead_IP3_calc(CellManager& cman) {
-	using namespace cont;
-	cman.other_foreach_parallel_native([&](Cell*const RESTRICT c) {
-		if (c->state == DEAD) {
+////////////////////////////////////////////////////////////////////////////////
+//                                                                          
+//  Ca2+の反応項に関する定義
+//
+////////////////////////////////////////////////////////////////////////////////
 
-			int count = 0;
-			double tmp = 0;
-			c->connected_cell.foreach([&count, &c, &tmp](Cell* conn) {
-				if (conn->state == ALIVE) {
-					tmp += conn->IP3();
-					count++;
-				}
-			});
-			tmp = DT_Ca*(dp*(tmp - count*c->IP3()) - Kpp*c->IP3());
-			c->IP3.set_next(c->IP3() + tmp);
-		}
-	});
+inline double ca2p_by_ext_stim(double ext_stim) {
+    static constexpr double kbc = 0.4*1.2;
+    static constexpr double Hb = 0.01;
+    static constexpr double Cout = 1.0;
+
+    return kbc * ext_stim*ext_stim * Cout / (Hb + ext_stim*ext_stim);
 }
 
-/** @todo 分かりやすい命名 */
-inline double fu(double u, double v, double p, double B)
+inline double ca2p_into_storage(double ca2p_in_cell) {
+    static constexpr double kg = 0.1;
+    static constexpr double gamma = 2.0;
+    return gamma * ca2p_in_cell / (kg + ca2p_in_cell);
+}
+
+inline double ER_domain1_active(double ip3) {
+    static constexpr double mu0 = 0.567;
+    static constexpr double mu1 = 0.1;
+    static constexpr double kmu = 0.05;
+    return (mu0 + mu1 * ip3 / (ip3 + kmu));
+}
+
+inline double ER_domain2_active(double ca2p) {
+    static constexpr double para_b = 0.11;
+    static constexpr double para_bb = 0.89;
+    static constexpr double para_k1 = 0.7;
+    return (para_b + para_bb * ca2p / (para_k1 + ca2p));
+}
+
+/** 
+ *  Ca2+の反応項
+ *  @param [in] u Ca2+濃度
+ *  @param [in] ER_domain3_deactive 貯蔵庫から細胞質内への放出に対する不活性効果
+ *  @param [in] p IP3濃度
+ *  @param [in] B 細胞外刺激物質濃度
+ */
+inline double ca2p_reaction_factor(double u, double ER_domain3_deactive, double p, double B)
 {
-	static constexpr double kf		= 8.1;
-	static constexpr double mu0		= 0.567;
-	static constexpr double mu1		= 0.1;
-	static constexpr double kmu		= 0.05;
-	static constexpr double para_b	= 0.11;
-	static constexpr double para_bb	= 0.89;
-	static constexpr double para_k1	= 0.7;
-	static constexpr double gamma	= 2.0;
-	static constexpr double Hb		= 0.01;
-	static constexpr double Cout	= 1.0;
-	static constexpr double kbc		= 0.4*1.2;
+	static constexpr double k_flux		= 8.1;
 
 	static constexpr double beta_zero	= 0.02;
 	static constexpr double CA_OUT		= 1.0;
-	static constexpr double beta		= CA_OUT*beta_zero;
+	static constexpr double leak_from_storage		= CA_OUT*beta_zero;
 
-	static constexpr double kg		= 0.1;
-
-	static constexpr double c_gamma = gamma;
-	return kf * (mu0 + mu1 * p / (p + kmu)) * (para_b + para_bb * u / (para_k1 + u)) * v
-		- c_gamma * u / (kg + u) + beta + kbc * B*B * Cout / (Hb + B*B);
+    double ca2p_from_storage = k_flux * ER_domain1_active(p) * ER_domain2_active(u) * ER_domain3_deactive;
+	
+	return 
+          ca2p_from_storage
+		- ca2p_into_storage(u) 
+        + leak_from_storage 
+        + ca2p_by_ext_stim(B);
 
 }
 
@@ -141,6 +150,35 @@ inline double fw(double diff, double w)
 															//-1. <-????
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//                                                                          
+//  細胞内IP3,Ca2+の計算に関する定義
+//
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+*  角層のIP3の値の次の値を計算する。
+*  @attention CellManager側でswapしない限り現在の値は更新されない。
+*/
+inline void dead_IP3_calc(CellManager& cman) {
+    using namespace cont;
+    cman.other_foreach_parallel_native([&](Cell*const RESTRICT c) {
+        if (c->state == DEAD) {
+
+            int count = 0;
+            double tmp = 0;
+            c->connected_cell.foreach([&count, &c, &tmp](Cell* conn) {
+                if (conn->state == ALIVE) {
+                    tmp += conn->IP3();
+                    count++;
+                }
+            });
+            tmp = DT_Ca*(dp*(tmp - count*c->IP3()) - Kpp*c->IP3());
+            c->IP3.set_next(c->IP3() + tmp);
+        }
+    });
+}
+
 /**
  *  角層以外のIP3、カルシウム濃度の値の次の値を計算する。
  *  @param cman CellManager
@@ -178,7 +216,7 @@ inline void supra_calc(CellManager& cman,const FArr3D<double>& ATP_first, const 
 				}
 			});
 
-			c->diff_u= fu(c->ca2p(), c->ex_inert, c->IP3(), grid_avg8(ext_stim_first(), ix, iy, iz))+ca2p_du*IAGv*tmp_diffu;
+			c->diff_u= ca2p_reaction_factor(c->ca2p(), c->ex_inert, c->IP3(), grid_avg8(ext_stim_first(), ix, iy, iz))+ca2p_du*IAGv*tmp_diffu;
 			c->IP3.set_next(c->IP3() + DT_Ca*(IP3_default_diff(_Kpa, grid_avg8(ATP_first(), ix, iy, iz), c->IP3()) + dp*IAGv*tmp_IP3));
 			const double cs = c->ca2p() + DT_Ca*c->diff_u;
 			c->ca2p.set_next(cs);
@@ -189,6 +227,12 @@ inline void supra_calc(CellManager& cman,const FArr3D<double>& ATP_first, const 
 	
 	});
 }
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                          
+//  場に関するマップ作成
+//
+////////////////////////////////////////////////////////////////////////////////
 
 /**
  *  場全体に渡るマップを作成。平均化ごとに1度だけ計算する。
@@ -239,6 +283,12 @@ void init_ca2p_map(RawArr3D<uint_fast8_t>& air_stim_flg, RawArr3D<const double*>
 	});
 
 }
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                          
+//  ATPの計算に関する定義
+//
+////////////////////////////////////////////////////////////////////////////////
 
 /** @todo 分かりやすい命名 */
 inline double fa(double diffu, double A) {

@@ -159,27 +159,6 @@ public:
 		return sw.first()[idx];
 	}
 
-	/*
-	template<typename U>
-	SwapArrAccessor1& operator+=(const U& v) {
-		sw.second()[idx] += v;
-		return *this;
-	}
-
-	template<typename U>
-	SwapArrAccessor1& operator-=(const U& v) {
-		sw.second()[idx] -= v;
-		return *this;
-	}
-	*/
-    /*
-	template<typename U>
-	SwapArrAccessor1& operator=(const U& v) {
-		sw.second()[idx] = v;
-		return *this;
-	}
-    */
-
     template<typename U>
     void set_next(U&& v) {
         sw.second()[idx] = v;

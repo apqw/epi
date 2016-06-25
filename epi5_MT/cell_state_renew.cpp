@@ -144,9 +144,13 @@ inline bool stochastic_div_test(const Cell*const c) {
     @attention 確率的な分裂を行う場合、乱数により返り値は変わる。
 */
 inline bool is_divide_ready(const Cell*const RESTRICT c) {
-    return c->pair == nullptr
-        && (c->ageb >= c->div_age_thresh*(1.0 - stoch_div_time_ratio))
-        && stochastic_div_test(c);
+
+    if (c->pair == nullptr && (c->ageb >= c->div_age_thresh*(1.0 - stoch_div_time_ratio))) {
+        return stochastic_div_test(c);
+    }
+    else {
+        return false;
+    }
 }
 
 /**

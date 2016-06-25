@@ -8,7 +8,6 @@
 #include <tbb/scalable_allocator.h>
 
 
-
 double Cell::get_div_age_thresh(CELL_STATE state) {
 	return state == FIX ? agki_max_fix
 		: state == MUSUME ? agki_max
