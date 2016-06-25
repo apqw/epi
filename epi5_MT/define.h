@@ -91,10 +91,10 @@ namespace cont {
 	cdefd dy = LY / NY; cdefd inv_dy = NY / LY;
 	cdefd dz = LZ / NZ; cdefd inv_dz = NZ / LZ;
 
-    cdefd COMPRESS_FACTOR = 4;//ok
+    cdefd COMPRESS_FACTOR = 6;//ok
     //memb seat size NMX*NMY
-    static constexpr unsigned int NMX = 100;//ok
-    static constexpr unsigned int NMY = 100;//ok
+    static constexpr unsigned int NMX = 150;//ok
+    static constexpr unsigned int NMY = 150;//ok
 	
     cdefd THRESH_SP = 3.0; //ok 3.0->1.0
 	
@@ -153,7 +153,7 @@ static constexpr auto last_data_B_name="last_data_B_alt";
 
 static constexpr bool STOCHASTIC = true;
 
-static constexpr bool FORCE_CORNIF = false;
+static constexpr bool FORCE_CORNIF = true;
 
 template<typename T, size_t X, size_t Y, size_t Z>
 class Field;

@@ -27,7 +27,7 @@ bool count_cond(int state) {
     return state == FIX || state == MUSUME || state == ALIVE || state == DEAD;
 }
 
-void draw_polygon(FILE *fp, vector<int> &f_vert, vector<double> &v, int j) {
+void draw_polygon(FILE *fp, vector<int> &f_vert, vector<double> &v, int j,int state) {
 	static char s[6][128];
 	int k, l, n = f_vert[j];
 
@@ -40,7 +40,8 @@ void draw_polygon(FILE *fp, vector<int> &f_vert, vector<double> &v, int j) {
 	// Draw the interior of the polygon
 	fputs("union{\n", fp);
 	for (k = 2; k<n; k++) fprintf(fp, "\ttriangle{%s,%s,%s}\n", s[0], s[k - 1], s[k]);
-	fputs("\ttexture{t1}\n}\n", fp);
+    fprintf(fp,"\ttexture{t%d}\n}\n",state);
+    //fputs("\ttexture{t1}\n}\n", fp);
 
 	// Draw the outline of the polygon
 	fputs("union{\n", fp);
@@ -49,7 +50,7 @@ void draw_polygon(FILE *fp, vector<int> &f_vert, vector<double> &v, int j) {
 		fprintf(fp, "\tcylinder{%s,%s,r}\n\tsphere{%s,r}\n",
 			s[k], s[l], s[l]);
 	}
-	fputs("\ttexture{t2}\n}\n", fp);
+    fputs("\ttexture{c1}\n}\n", fp);
 }
 
 int main(int argc, char *argv[])
@@ -68,6 +69,7 @@ int main(int argc, char *argv[])
     string str;
     int count=0;
 	double zmax = 0,zmin=LZ;
+    std::vector<int> state_arr;
     while(getline(ifs,str)){
         int index=0;
         int state=0;
@@ -88,6 +90,7 @@ int main(int argc, char *argv[])
 		double x, y, z;
 		sscanf(str.data(), "%d %d %*f %*f %*f %*f %lf %lf %lf %*f %*d %*f %*f %*d %*f %*d %*d", &index, &state, &x, &y, &z);
 		if (count_cond(state)) {//state==MUSUME||state==ALIVE||state==DEAD||
+            state_arr.push_back(state);
 			con.put(count++, x, y, z);
 		}
 	}
@@ -116,7 +119,7 @@ int main(int argc, char *argv[])
 			// neighbor information is set to negative numbers for
 			// these cases.
 			//if (neigh[i]>id) {
-				draw_polygon(fp4, f_vert, v, j);
+                draw_polygon(fp4, f_vert, v, j,state_arr[id]);
 			//}
 
 			// Skip to the next entry in the face vertex list
@@ -130,5 +133,6 @@ int main(int argc, char *argv[])
     //con.draw_cells_pov("cell_voro_test.pov");
 	//con.draw_particles_pov("cell_voro_test_p.pov");
     //cout << "Hello World!" << endl;
+
     return 0;
 }

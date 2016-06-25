@@ -41,6 +41,7 @@ public:
 
         CELL_STATE state;
 
+        const int fix_origin;
 	/*
 	 * ˆÊ’u
 	 * •À—ñ‚Å‰ÁZ‚È‚Ç‰Â”\
@@ -160,7 +161,7 @@ public:
 	double diff_u;
 
 
-	
+
 
 	inline size_t get_index() const
 	{
@@ -181,7 +182,7 @@ public:
 	/*
 	ctor_cookie‚ªprivate‚È‚Ì‚Å©•ª©g‚à‚µ‚­‚Ífriend‚Èclass‚©‚ç‚Ì‚İ¶¬‚Å‚«‚é
 	*/
-	Cell(ctor_cookie,CELL_STATE _state,
+    Cell(ctor_cookie,CELL_STATE _state,int fix_origin,
 		SwapData<double[cont::MAX_CELL_NUM]>&ca2p_s,
 		SwapData<double[cont::MAX_CELL_NUM]>&IP3_s,
 		double _ex_inert=0,

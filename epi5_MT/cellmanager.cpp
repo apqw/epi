@@ -192,6 +192,7 @@ void CellManager::_load_from_file(std::string path)
 
 		auto cptr = cman.create(
 			state,
+            stem_orig_id,
 			x, y, z,
 			rad,
             ca2p, ca2p_avg,
@@ -245,12 +246,13 @@ void CellManager::init_internal(std::string init_data_path)
 
 }
 
-CellPtr CellManager::create(CELL_STATE _state, double _x, double _y, double _z, double _radius, double _ca2p, double _ca2p_avg, double _IP3, double _ex_inert, double _agek, double _ageb, double _ex_fat, double _in_fat, double _spr_nat_len, int _rest_div_times, bool _is_malignant)
+CellPtr CellManager::create(CELL_STATE _state,int stem_orig_id, double _x, double _y, double _z, double _radius, double _ca2p, double _ca2p_avg, double _IP3, double _ex_inert, double _agek, double _ageb, double _ex_fat, double _in_fat, double _spr_nat_len, int _rest_div_times, bool _is_malignant)
 {
     //use smart ptr
     Cell* cptr = new Cell(
                 Cell::ctor_cookie(),
                 _state,
+                stem_orig_id,
                 ca2p_s,
                 IP3_s,
                 _ex_inert,
@@ -365,7 +367,7 @@ void CellManager::output(const std::string &filename,bool binary_mode)
         char is_touch=c->is_touch?1:0;
         double spr_nat_len=(double)(c->spr_nat_len);
         int pair_index=c->pair==nullptr?(int)-1:(int)(c->pair->index);
-        int fix_origin_idx=0;
+        int fix_origin_idx=c->fix_origin;
         bin_write(wfile,
                   &index,
                   &state,
@@ -405,7 +407,7 @@ void CellManager::output(const std::string &filename,bool binary_mode)
             <<(c->is_touch?1:0)<<" "
                <<fixed<<setprecision(15)<<c->spr_nat_len<<" "
               <<(int)(c->pair==nullptr?(int)-1:(int)(c->pair->index))<<" "
-                                                      <<0<<std::endl;
+                                                      <<c->fix_origin<<std::endl;
         });
     }
 }

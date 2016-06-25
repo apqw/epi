@@ -97,10 +97,23 @@ void proc(const std::string& init_data_path,bool use_last,const std::string& ini
     auto cell_map2 = make_unique_c11<FArr3D<cmask_ty>>();
     cman_init(*cellset, init_data_path,use_last,init_uvp_data,init_w_data);
     if(use_last){
+        if(FORCE_CORNIF){
+            std::cout<<"WARNING:Using last data with force cornification. Proceed?[y/n]"<<std::endl;
+            char yn;
+            std::cin>>yn;
+            if(yn!='y')exit(1);
+        }
         ATP->first().read_binary(init_ATP_data);
         ATP->second().read_binary(init_ATP_data);
         ext_stim->first().read_binary(init_ext_stim_data);
         ext_stim->second().read_binary(init_ext_stim_data);
+    }else{
+        if(!FORCE_CORNIF){
+            std::cout<<"WARNING:Using initial data without force cornification. Proceed?[y/n]"<<std::endl;
+            char yn;
+            std::cin>>yn;
+            if(yn!='y')exit(1);
+        }
     }
 	init_precalc_lat();
 	init_precalc_per();
@@ -111,7 +124,6 @@ void proc(const std::string& init_data_path,bool use_last,const std::string& ini
 	double zzmax = 0;
     printf("current cell num:%zd\n", cellset->size());
 	auto& cman = *cellset;
-
 auto start=std::chrono::system_clock::now();
     for (size_t i = 0; i < NUM_ITR; i++) {
         if(i%100==0){
