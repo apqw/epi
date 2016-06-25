@@ -226,6 +226,7 @@ void cell_divide(CellManager& cman, Cell*const RESTRICT div) {
     static constexpr double delta_L = 0.01*cont::R_max;
     div->pair = cman.create(
         MUSUME,
+        div->fix_origin,
         div->x(), div->y(), div->z(),
         div->radius,
         div->ca2p(),

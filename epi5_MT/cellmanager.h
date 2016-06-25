@@ -70,7 +70,7 @@ public:
     void output(const std::string& filename,bool binary_mode=false);
     void clean_up();
 
-	CellPtr create(CELL_STATE _state, double _x = 0, double _y = 0, double _z = 0,
+    CellPtr create(CELL_STATE _state, int stem_orig_id,double _x = 0, double _y = 0, double _z = 0,
 		double _radius = cont::R_max, double _ca2p = cont::ca2p_init, double _ca2p_avg = cont::ca2p_init,
 		double _IP3 = cont::IP3_init, double _ex_inert = cont::ex_inert_init,
 		double _agek = 0, double _ageb = 0,

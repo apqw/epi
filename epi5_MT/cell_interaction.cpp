@@ -18,7 +18,7 @@ static constexpr double eps_m				= 0.01; //ok
 	MEMB_calc
 */
 static constexpr double P_MEMB				= 1. / cont::COMPRESS_FACTOR;
-static constexpr double DER_DER_CONST		= 0.2;
+static constexpr double DER_DER_CONST		= 0.05;
 static constexpr double K_TOTAL				= 3.0;
 static constexpr double K_DESMOSOME_RATIO	= 0.01;
 static constexpr double K_DESMOSOME			= K_TOTAL*K_DESMOSOME_RATIO;

@@ -72,8 +72,8 @@ return true;
 
 bool cell_test() {
     auto cells = make_unique_c11<CellManager>();
-	auto p = cells ->create(ALIVE);
-    auto q = cells->create(DEAD); //auto r = cells->create(DEAD);
+    auto p = cells ->create(ALIVE,0);
+    auto q = cells->create(DEAD,0); //auto r = cells->create(DEAD);
 	p->x += 0.1;
     printf("p idx:%zd q idx:%zd p prex:%lf\n", p->get_index(), q->get_index(),p->x());
 	pos_copy(*cells);
