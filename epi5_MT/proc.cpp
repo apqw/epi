@@ -83,7 +83,7 @@ ext_stim_first.output_binary(last_data_B_name);
 
 }
 
-void proc(const std::string& init_data_path,bool use_last,const std::string& init_uvp_data,const std::string& init_w_data,const std::string& init_ATP_data,
+void proc(const std::string& init_data_path,  bool _force_cornif,bool use_last,const std::string& init_uvp_data,const std::string& init_w_data,const std::string& init_ATP_data,
           const std::string& init_ext_stim_data)
 {
 
@@ -96,8 +96,9 @@ void proc(const std::string& init_data_path,bool use_last,const std::string& ini
     auto cell_map1 = make_unique_c11<FArr3D<const Cell*>>();
     auto cell_map2 = make_unique_c11<FArr3D<cmask_ty>>();
     cman_init(*cellset, init_data_path,use_last,init_uvp_data,init_w_data);
+    bool flg_forced_sc = _force_cornif;
     if(use_last){
-        if(FORCE_CORNIF){
+        if(flg_forced_sc){
             std::cout<<"WARNING:Using last data with force cornification. Proceed?[y/n]"<<std::endl;
             char yn;
             std::cin>>yn;
@@ -108,7 +109,7 @@ void proc(const std::string& init_data_path,bool use_last,const std::string& ini
         ext_stim->first().read_binary(init_ext_stim_data);
         ext_stim->second().read_binary(init_ext_stim_data);
     }else{
-        if(!FORCE_CORNIF){
+        if(!flg_forced_sc){
             std::cout<<"WARNING:Using initial data without force cornification. Proceed?[y/n]"<<std::endl;
             char yn;
             std::cin>>yn;
@@ -118,7 +119,7 @@ void proc(const std::string& init_data_path,bool use_last,const std::string& ini
 	init_precalc_lat();
 	init_precalc_per();
     make_dir(OUTPUTDIR);
-	bool flg_forced_sc = FORCE_CORNIF;
+	
 	int num_sc = 0;
 
 	double zzmax = 0;

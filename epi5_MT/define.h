@@ -153,7 +153,7 @@ static constexpr auto last_data_B_name="last_data_B_alt";
 
 static constexpr bool STOCHASTIC = true;
 
-static constexpr bool FORCE_CORNIF = true;
+//static constexpr bool FORCE_CORNIF = true;
 
 template<typename T, size_t X, size_t Y, size_t Z>
 class Field;

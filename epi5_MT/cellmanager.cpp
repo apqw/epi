@@ -9,8 +9,13 @@
 #include <tbb/blocked_range.h>
 #include <iomanip>
 
+/**
+ *  @file Cellの管理
+ */
 
-
+/**
+ *  全ての細胞の位置をアップデート
+ */
 void pos_copy(CellManager& cman)
 {
 	cman.all_foreach_parallel_native([](Cell* c) {
@@ -20,29 +25,43 @@ void pos_copy(CellManager& cman)
 	});
 }
 
+/**
+ *  カルシウム濃度を次の値とスワップ
+ */
 void ca2p_swap(CellManager& cman)
 {
 	cman.ca2p_s.swap();
 }
 
+/**
+ *  IP3濃度を次の値とスワップ
+ */
 void IP3_swap(CellManager& cman)
 {
 	cman.IP3_s.swap();
 }
 
+/**
+ *  角化を行う。
+ *  ALIVE->DEAD
+ */
 void cornificate(CellManager & cman, Cell * const RESTRICT al)
 {
 	al->state = DEAD;
 	printf("sw updated:%d\n", ++cman.sw);
 }
 
-
+/**
+ *  細胞の登録
+ */
 size_t CellManager::register_cell(const CellPtr & c)
 {
 	return push_back_with_index(c);
 }
 
-
+/**
+ *  基底膜の初期化
+ */
 void CellManager::_memb_init()
 {
 	using namespace cont;
@@ -99,6 +118,9 @@ void CellManager::_memb_init()
 	});
 }
 
+/**
+ *  ファイルから細胞のデータを読み込む
+ */
 void CellManager::_load_from_file(std::string path)
 {
 	auto&cman = *this;
@@ -222,11 +244,19 @@ void CellManager::_load_from_file(std::string path)
 	cman.nder = nder;
 }
 
+/**
+ *  細胞をインデックスで削除キューに追加
+ *  (スレッドセーフ)
+ */
 void CellManager::add_remove_queue(size_t idx)
 {
 	remove_queue.push_back(idx);
 }
 
+/**
+ *  削除リストにある細胞を削除
+ *  (スレッドセーフではない)
+ */
 void CellManager::remove_exec()
 {
 	for (size_t i = 0; i < remove_queue.size(); ++i) {
@@ -246,6 +276,11 @@ void CellManager::init_internal(std::string init_data_path)
 
 }
 
+
+/**
+ *  細胞のインスタンスの生成
+ *  (スレッドセーフ)
+ */
 CellPtr CellManager::create(CELL_STATE _state,int stem_orig_id, double _x, double _y, double _z, double _radius, double _ca2p, double _ca2p_avg, double _IP3, double _ex_inert, double _agek, double _ageb, double _ex_fat, double _in_fat, double _spr_nat_len, int _rest_div_times, bool _is_malignant)
 {
     //use smart ptr
@@ -261,7 +296,6 @@ CellPtr CellManager::create(CELL_STATE _state,int stem_orig_id, double _x, doubl
 
                 _radius, _ca2p_avg, _is_malignant);
 
-    //cell_store.push_back(cptr);
     cptr->set_index(this->register_cell(cptr));
 	size_t _index = cptr->get_index();
 	cptr->ca2p.init(_index);
@@ -269,12 +303,13 @@ CellPtr CellManager::create(CELL_STATE _state,int stem_orig_id, double _x, doubl
 
 	cptr->ca2p._set(_ca2p);
 	cptr->IP3._set(_IP3);
-	//cptr->rest_div_times = _rest_div_times;
 
     return cptr;
 }
 
-
+/**
+ *  周期境界を考慮して全細胞の位置を修正
+ */
 void cell_pos_periodic_fix(CellManager& cman) {
 	
 	cman.all_foreach_parallel_native([&](Cell*const c) {
@@ -307,6 +342,9 @@ void bin_write(std::ofstream& ofs,First* fptr,Second* sptr,T*... ptr){
     bin_write<Second,T...>(ofs,sptr,ptr...);
 }
 
+/**
+ *  局在化の情報を細胞に書き込む
+ */
 void check_localization(CellManager&cman){
     cman.all_foreach_parallel_native([](Cell*const RESTRICT c){
         bool touch=false;
@@ -323,6 +361,11 @@ void check_localization(CellManager&cman){
     });
 }
 
+/**
+ *  細胞のデータを書き出し
+ *  @param [in] filename ファイル名
+ *  @param [in] binary_mode バイナリで出力
+ */
 void CellManager::output(const std::string &filename,bool binary_mode)
 {
     std::ofstream wfile;
@@ -412,19 +455,10 @@ void CellManager::output(const std::string &filename,bool binary_mode)
     }
 }
 
+/**
+ *  色々クリーンアップ
+ */
 void CellManager::clean_up(){
-    /*
-    fprintf(stdout,"removing unused cell...\n");
-    fflush(stdout);
-    auto rit = std::remove_if(cell_store.begin(),cell_store.end(),[&](std::shared_ptr<Cell>& c)->bool{
-        return c->removed;
-    });
-    fprintf(stdout,"remove_if done.\n");
-    fflush(stdout);
-    cell_store.erase(rit,cell_store.end());
-    fprintf(stdout,"erase done.\n");
-    fflush(stdout);
-    */
     fprintf(stdout,"gj cleaning...\n");
     fflush(stdout);
     this->all_foreach_parallel_native([](Cell* const RESTRICT c){
