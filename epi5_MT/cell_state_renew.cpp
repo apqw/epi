@@ -265,7 +265,7 @@ void cell_divide(CellManager& cman, Cell*const RESTRICT div) {
     div->pair->x._set(div->pair->x() - divx*0.5*delta_L);
     div->pair->y._set(div->pair->y() - divy*0.5*delta_L);
     div->pair->z._set(div->pair->z() - divz*0.5*delta_L);
-    printf("new cell detected.\n");
+    printf("new cell detected. cell_num:%zd\n",cman.size());
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -363,8 +363,8 @@ void pair_disperse(Cell*const c) {//cannot restrict due to c->pair->pair (== c)
 
     static constexpr double eps_L = 0.14;//ok
     static constexpr double unpair_dist_coef = 0.9;
-    fprintf(stdout, "disperse start.\n");
-    fflush(stdout);
+    //fprintf(stdout, "disperse start.\n");
+    //fflush(stdout);
     using namespace cont;
     assert(c->pair != nullptr);
     assert(c->pair->pair == c);
@@ -374,8 +374,8 @@ void pair_disperse(Cell*const c) {//cannot restrict due to c->pair->pair (== c)
     if (c->spr_nat_len < 2.0*c->radius) {
         c->spr_nat_len += DT_Cell*eps_L;
         c->pair->spr_nat_len = c->spr_nat_len;
-        fprintf(stdout, "nat len calced.\n");
-        fflush(stdout);
+        //fprintf(stdout, "nat len calced.\n");
+        //fflush(stdout);
     }
     else if ((distSq = p_cell_dist_sq(c, c->pair))>unpair_th*unpair_th) {
         c->spr_nat_len = 0;
@@ -385,7 +385,7 @@ void pair_disperse(Cell*const c) {//cannot restrict due to c->pair->pair (== c)
         printf("unpaired. distSq:%lf\n", distSq);
     }
 
-    fprintf(stdout, "disperse end.\n");
+    //fprintf(stdout, "disperse end.\n");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -423,28 +423,28 @@ void cell_state_renew(CellManager & cman)
         }
     });
     cman.remove_exec();
-    fprintf(stdout, "disperse parallel start.\n");
-    fflush(stdout);
+    //fprintf(stdout, "disperse parallel start.\n");
+    //fflush(stdout);
     cman.other_foreach_parallel_native([](Cell*const RESTRICT c) {
         //auto&c = cman[i];
        
         
         if (c->pair != nullptr) {
-            fprintf(stdout, "pair exist.\n");
-            fflush(stdout);
+            //fprintf(stdout, "pair exist.\n");
+            //fflush(stdout);
             if (no_double_count(c, c->pair)) {
-                fprintf(stdout, "first pair confirmed.\n");
-                fflush(stdout);
+                //fprintf(stdout, "first pair confirmed.\n");
+                //fflush(stdout);
                 pair_disperse(c);
-                fprintf(stdout, "first pair proc end.\n");
-                fflush(stdout);
+                //fprintf(stdout, "first pair proc end.\n");
+                //fflush(stdout);
             }
-            fprintf(stdout, "pair pair proc end.\n");
-            fflush(stdout);
+            //fprintf(stdout, "pair pair proc end.\n");
+            //fflush(stdout);
         }
     });
-    fprintf(stdout, "disperse parallel end.\n");
-    fflush(stdout);
+    //fprintf(stdout, "disperse parallel end.\n");
+    //fflush(stdout);
 }
 /**
  *  強制的にカルシウム刺激を与える場合の状態の初期化を行う。
