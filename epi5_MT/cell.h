@@ -16,7 +16,7 @@
  *  細胞のステートごとに派生クラスを作成しようかと考えたが、
  *  ステートの変更が面倒になるのでしていない。
  */
-class Cell
+class Cell:public std::enable_shared_from_this<Cell>
 {
     /** MUSUME用分裂開始年齢のしきい値*/
 	static constexpr double agki_max		= 6.0;
