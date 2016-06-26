@@ -8,7 +8,13 @@
 #include <cinttypes>
 #include <cstdio>
 
+/**
+ *  @file 細胞データの初期化に関する定義
+ */
 
+/**
+ *  細胞の各値を既定値で初期化
+ */
 void _cman_value_init(CellManager & cman)
 {
 	using namespace cont;
@@ -33,6 +39,11 @@ void _cman_value_init(CellManager & cman)
 
 }
 
+/**
+ *  細胞のCa2+濃度,不活性化効果,IP3濃度データをファイルから読み込み設定する
+ *  @param cman CellManager
+ *  @param [in] ld_uvp データファイル名
+ */
 void load_uvp(CellManager& cman,const std::string& ld_uvp){
     std::ifstream fuvp(ld_uvp);
     if(!fuvp){
@@ -59,7 +70,11 @@ void load_uvp(CellManager& cman,const std::string& ld_uvp){
 
 }
 
-
+/**
+ *  細胞のGJ発現度データをファイルから読み込み設定する
+ *  @param cman CellManager
+ *  @param [in] ld_w データファイル名
+ */
 void load_w(CellManager& cman,const std::string& ld_w){
     std::ifstream fw_alt(ld_w);
     if(!fw_alt){
@@ -93,6 +108,12 @@ std::string ln;
     }
 }
 
+/**
+ *  細胞の各値を前回のデータから読み込み設定する
+ *  @param cman CellManager
+ *  @param [in] ld_uvp Ca2+濃度,不活性化効果,IP3濃度データファイル名
+ *  @param [in] ld_w GJ発現度データファイル名
+ */
 void load_from_last(CellManager& cman,const std::string& ld_uvp,const std::string& ld_w){
     load_uvp(cman,ld_uvp);
     load_w(cman,ld_w);
@@ -100,14 +121,22 @@ void load_from_last(CellManager& cman,const std::string& ld_uvp,const std::strin
 
 //////////////////////////////////////////////////////////////////
 
-void cman_init(CellManager& cells,const std::string& init_data_path,
+/**
+ *  全細胞の初期化
+ *  @param cman CellManager
+ *  @param [in] init_data_path 細胞データファイル名
+ *  @param [in] use_last 前回のデータを扱うかどうか
+ *  @param [in] ld_uvp Ca2+濃度,不活性化効果,IP3濃度データファイル名
+ *  @param [in] ld_w GJ発現度データファイル名
+ */
+void cman_init(CellManager& cman,const std::string& init_data_path,
                bool use_last,const std::string& ld_uvp,const std::string& ld_w) {
-	cells.init_internal(init_data_path);
-	connect_cell(cells);
+	cman.init_internal(init_data_path);
+	connect_cell(cman);
 
     if(use_last){
-        load_from_last(cells,ld_uvp,ld_w);
+        load_from_last(cman,ld_uvp,ld_w);
     }else{
-    _cman_value_init(cells);
+    _cman_value_init(cman);
     }
 }

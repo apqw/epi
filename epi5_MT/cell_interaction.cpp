@@ -6,26 +6,32 @@
 #include <functional>
 #include <cmath>
 #include <tbb/task_group.h>
+/**
+ *  @file ×–EŠÔ‚Ì‘ŠŒÝì—p(Žå‚ÉˆÊ’u)‚ÉŠÖ‚·‚é’è‹`
+ */
+
 #define POW6(x) ((x)*(x)*(x)*(x)*(x)*(x))
 #define POW3(x) ((x)*(x)*(x))
 #define CIFuncCName Coef
 #define CIFuncDecl(name) struct name{static double CIFuncCName(const Cell*const RESTRICT c1,const Cell*const RESTRICT c2);}
 
-
-static constexpr double eps_m				= 0.01; //ok
+/** LJƒ|ƒeƒ“ƒVƒƒƒ‹‚ÌŒW” */
+static constexpr double eps_m				= 0.01;
 
 /*
 	MEMB_calc
 */
 static constexpr double P_MEMB				= 1. / cont::COMPRESS_FACTOR;
-static constexpr double DER_DER_CONST		= 0.05;
+
+/** L‚Ñ’e«ŒW” */
+static constexpr double DER_DER_CONST		= 0.1;
 static constexpr double K_TOTAL				= 3.0;
 static constexpr double K_DESMOSOME_RATIO	= 0.01;
 static constexpr double K_DESMOSOME			= K_TOTAL*K_DESMOSOME_RATIO;
 static constexpr double Kspring				= 25.0;
 static constexpr double Kspring_d			= 5.0;
 
-
+/** ‹È‚°’e«ŒW” */
 static constexpr double KBEND = 0.25;//0.5->0.25
 
 /*

@@ -7,34 +7,38 @@
 #include <cinttypes>
 #include <tbb/scalable_allocator.h>
 
-
+/** 細胞のステートに応じた分裂開始閾値を取得する */
 double Cell::get_div_age_thresh(CELL_STATE state) {
 	return state == FIX ? agki_max_fix
 		: state == MUSUME ? agki_max
 		: 0;
 }
 
+/** 細胞のステートに応じた分裂可能回数を計算 */
 int Cell::correct_div_times(CELL_STATE state, int given_times) {
 	return state == FIX ? div_max : given_times;
 }
 
 
-
+/** インデックスをセット */
 void Cell::set_index(size_t i)
 {
 	index = i;
 }
 
+/** dermisへの参照をセット */
 void Cell::set_dermis(const Cell *const d)
 {
 	_dermis = d;
 }
 
+/** dermisへの参照を取得 */
 const Cell * Cell::dermis() const
 {
 	return _dermis;
 }
 
+/** 内部データを指定されたインデックスに応じて移動 */
 void Cell::migrate(size_t dest_idx)
 {
 	set_index(dest_idx);
@@ -43,7 +47,7 @@ void Cell::migrate(size_t dest_idx)
 	IP3._migrate(_index);
 }
 
-
+/** ctor */
 Cell::Cell(ctor_cookie,CELL_STATE _state, int _fix_origin,
 	SwapData<double[cont::MAX_CELL_NUM]>&ca2p_s,
 	SwapData<double[cont::MAX_CELL_NUM]>&IP3_s,

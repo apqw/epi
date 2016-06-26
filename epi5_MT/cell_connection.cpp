@@ -4,17 +4,37 @@
 #include "cell.h"
 #include "cell_conn_value.h"
 #include <cinttypes>
+
+/**
+ *  @file 細胞の接続に関する定義
+ */
+
 using cint = int_fast16_t;
 #define CINT_F SCNiFAST16
 
+/** グリッドサイズ*/
 static constexpr double AREA_GRID_ORIGINAL	= 2.0;//ok
+
+/** グリッドサイズ (?)*/
 static constexpr double AREA_GRID			= AREA_GRID_ORIGINAL + 1e-7;//ok
+
+/** X方向のグリッド数*/
 static constexpr cint	ANX					= (cint)((double)cont::LX / AREA_GRID_ORIGINAL + 0.5);//ok
+/** Y方向のグリッド数*/
 static constexpr cint	ANY					= (cint)((double)cont::LY / AREA_GRID_ORIGINAL + 0.5);//ok
+/** Z方向のグリッド数*/
 static constexpr cint	ANZ					= (cint)((double)cont::LZ / AREA_GRID_ORIGINAL);//ok
+/** グリッド1つ当たりの細胞格納数上限 */
 static constexpr cint	N3					= 200; //max grid cell num //ok
+/** 1細胞の接続最大数 */
 static constexpr cint	N2					= 400; //max conn num //ok
 
+/**
+ *  グリッドの初期化
+ *  @param [in] cman CellManager
+ *  @param [out] aindx 各グリッドに格納されている細胞の個数
+ *  @param [out] area 各グリッドに格納されている細胞への参照
+ */
 void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[ANX][ANY][ANZ] , Cell* (&area)[ANX][ANY][ANZ][N3]) { //DO NOT RESTRICT ptrs in area
 	using namespace cont;
 	std::memset(aindx, 0, sizeof(std::atomic<cint>)*ANX*ANY*ANZ);
@@ -41,6 +61,12 @@ void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[ANX][ANY][ANZ] , Cel
 	});
 }
 
+/**
+ *  全細胞間の接続処理
+ *  @param [in] cman CellManager
+ *  @param [in] aindx 各グリッドに格納されている細胞の個数
+ *  @param [in] area 各グリッドに格納されている細胞への参照
+ */
 void connect_proc(CellManager& cman, const std::atomic<cint>(&aindx)[ANX][ANY][ANZ], Cell*const (&area)[ANX][ANY][ANZ][N3]) {
 	
 #define LAT_ARR(axis)\
@@ -101,7 +127,9 @@ struct lat_arr_##axis {\
 		}
 	});
 }
-
+/**
+ *  GJの値の更新
+ */
 void gj_refresh(CellManager& cman) {
 
 	cman.all_foreach_parallel_native([](Cell*const RESTRICT c) {
@@ -120,25 +148,13 @@ void gj_refresh(CellManager& cman) {
             }
         }
 
-        /*
-		for (auto&& it = c->gj.begin(); it != c->gj.end();) {
-			if (!c->connected_cell.exist(it->first)) {
-				it = c->gj.erase(it);
-			}
-			else {
-				++it;
-			}
-		}
-
-		c->connected_cell.foreach([c](Cell* cptr) {
-			if (c->gj.find(cptr)==c->gj.end()) {
-				c->gj.emplace(cptr, cont::gj_init);
-			}
-		});
-    */
 	});
 }
 
+/**
+ *  dermisの検索
+ *  @attention 接続が済んでいる必要がある。
+ */
 const Cell* find_dermis(const Cell*const RESTRICT c) {
 	double d1Sq = cont::LX*cont::LX;
 	double distanceSq = 0;
@@ -155,6 +171,10 @@ const Cell* find_dermis(const Cell*const RESTRICT c) {
 	return dermis;
 }
 
+/**
+ *  dermisが存在すべき全細胞に対して、dermisへの参照をセット。
+ *  (FIXとMUSUMEに対してdermisを検索する。)
+ */
 inline void set_dermis(CellManager& cman) {
     cman.other_foreach_parallel_native([](Cell*const RESTRICT c) {
 		
@@ -164,6 +184,10 @@ inline void set_dermis(CellManager& cman) {
 	});
 }
 
+
+/**
+ *  細胞の接続に関する処理を行う。
+ */
 void connect_cell(CellManager & cman)
 {
 	using namespace cont;
