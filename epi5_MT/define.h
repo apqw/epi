@@ -65,8 +65,8 @@ enum BoundaryType {
 namespace cont {
 	
     //memb seat size NMX*NMY
-    static constexpr unsigned int NMX = 150;//ok
-    static constexpr unsigned int NMY = 150;//ok
+    static constexpr unsigned int NMX = 100;//ok
+    static constexpr unsigned int NMY = 100;//ok
 
 	cdefs STATE_NUM = 10;
 	cdefs MAX_CONNECT_CELL_NUM = 400;
