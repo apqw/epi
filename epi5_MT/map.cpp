@@ -4,8 +4,13 @@
 #include "cellmanager.h"
 #include "cell.h"
 #include "utils.h"
+/**
+ *  @file ×–E‚Ìè‚ß‚é—Ìˆæ‚ÉŠÖ‚·‚éƒ}ƒbƒvì¬
+ */
 
-
+/**
+ *  ×–E‚ÌŠiŽq“_‚Æ‚µ‚Ä‚ÌÀ•W‚ðŒvŽZ
+ */
 inline void set_lattice(Cell*const RESTRICT c) {
 	c->lat[0] = precalc_lat_x()[(int)(c->x()*cont::inv_dx) + cont::NX];
 	c->lat[1] = precalc_lat_y()[(int)(c->y()*cont::inv_dy) + cont::NY];
@@ -31,34 +36,22 @@ void setup_map_lat(CellManager & cman, FArr3D<const Cell*>& cmap1, FArr3D<cmask_
 		set_lattice(c);
 	});
 	cman.all_foreach_parallel_native([&](const Cell*const c) {
-		//auto&c = cman[i];
 		
 		auto& clat = c->lat;
-		/*
-		int  k, l, m, ipx, ipy, ipz;
-		double mx, my, mz;
-		*/
 		const bool afm_cell = c->state == ALIVE || c->state == FIX || c->state == MUSUME;
 		
 		 if (!afm_cell) {
 			constexpr int _irx = irx;
 			constexpr int _iry = iry;
 			constexpr int _irz = irz;
-			//double diffx, diffxSq, diffy, diffz, distSq;
-			//const double crad = FAC_MAP*c->radius;
-			//const double cradSq = crad*crad;
 			const double normal_radSq = c->radius*c->radius;
-			const int xmax = clat[0] + _irx; const int xmin = clat[0] - _irx;
-			const int ymax = clat[1] + _iry; const int ymin = clat[1] - _iry;
-			const int z_b = clat[2] - _irz;
-			const int z_u = clat[2] + _irz;
-			const int zmin = z_b >= 1 ? z_b : 1;
-			const int zmax = z_u < (int)NZ ? z_u : (int)NZ - 1;
+
+
+
 
 			static thread_local double a_diffySq_n[_iry * 2 + 1];
-			static thread_local double a_diffzSq_n[_irz * 2 + 1];
 			static thread_local int a_ipy_n[_iry * 2 + 1];
-			//int yc = 0; int zc = 0;
+            const int ymax = clat[1] + _iry; const int ymin = clat[1] - _iry;
 			for (int l = ymin, yc = 0; l <= ymax; l++) {
 				const double my = l * dy;
 				a_ipy_n[yc] = precalc_lat_y()[l + NY];
@@ -67,6 +60,11 @@ void setup_map_lat(CellManager & cman, FArr3D<const Cell*>& cmap1, FArr3D<cmask_
 				yc++;
 			}
 
+            static thread_local double a_diffzSq_n[_irz * 2 + 1];
+            const int z_b = clat[2] - _irz;
+            const int z_u = clat[2] + _irz;
+            const int zmin = z_b >= 1 ? z_b : 1;
+            const int zmax = z_u < (int)NZ ? z_u : (int)NZ - 1;
 			for (int m = zmin, zc = 0; m <= zmax; m++) {
 				const double mz = m * dz;
 				const double diffz = mz - c->z();
@@ -74,7 +72,7 @@ void setup_map_lat(CellManager & cman, FArr3D<const Cell*>& cmap1, FArr3D<cmask_
 				zc++;
 			}
 			//yc = 0; zc = 0;
-
+            const int xmax = clat[0] + _irx; const int xmin = clat[0] - _irx;
 			for (int k = xmin; k <= xmax; k++) {
 				const double mx = k * dx;
 				const int ipx = precalc_lat_x()[k + NX];
