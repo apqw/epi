@@ -283,6 +283,7 @@ void _MUSUME_state_renew(CellManager& cman, Cell*const RESTRICT musume) {
         if (SYSTEM == WHOLE) {
             printf("ALIVE detected\n");
             musume->state = ALIVE;
+            musume->cst.k_aging_start_timestep=cman.current_timestep;
         }
         else if (SYSTEM == BASAL) {
             musume->state = DISA;

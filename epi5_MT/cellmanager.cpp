@@ -48,6 +48,7 @@ void IP3_swap(CellManager& cman)
 void cornificate(CellManager & cman, Cell * const RESTRICT al)
 {
 	al->state = DEAD;
+    al->cst.k_cornified_timestep=cman.current_timestep;
 	printf("sw updated:%d\n", ++cman.sw);
 }
 
@@ -262,6 +263,10 @@ void CellManager::remove_exec()
 	for (size_t i = 0; i < remove_queue.size(); ++i) {
         size_t remove_idx=remove_queue[i];
        // _data[remove_idx]->removed=true;
+        if(_data[remove_idx]->state==DEAD){
+        _data[remove_idx]->cst.k_disap_timestep=current_timestep;
+        cst_store.push_back(std::move(_data[remove_idx]->cst));
+        }
         delete _data[remove_idx];
         _data[remove_idx] = _data[--_next];
         _data[remove_idx]->migrate(remove_idx);
@@ -472,4 +477,14 @@ void CellManager::clean_up(){
     });
     fprintf(stdout,"done.\n");
     fflush(stdout);
+}
+
+void CellManager::append_stat_data(const std::string &filename){
+    if(cst_store.empty())return;
+    std::ofstream ofs(filename,std::ios_base::app|std::ios_base::out);
+    if(!ofs){std::cout<<"stat data append error"<<std::endl;}
+    for(cell_stat& cdata:cst_store){
+        ofs<<cdata.k_aging_start_timestep<<" "<<cdata.k_cornified_timestep<<" "<<cdata.k_disap_timestep<<std::endl;
+    }
+    cst_store.clear();
 }

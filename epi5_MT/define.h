@@ -140,6 +140,11 @@ namespace cont {
     
     
 }
+struct cell_stat{
+    unsigned long long k_cornified_timestep;
+    unsigned long long k_disap_timestep;
+    unsigned long long k_aging_start_timestep;
+};
 
 cdefui SYSTEM = 0;
 cdefui WHOLE = 0;
@@ -152,6 +157,7 @@ static constexpr auto last_data_cell_name="last_data_cell";
 static constexpr auto last_data_w_name="last_data_w_alt";
 static constexpr auto last_data_a_name="last_data_a_alt";
 static constexpr auto last_data_B_name="last_data_B_alt";
+static constexpr auto stat_data_name="cell_stat";
 
 static constexpr bool STOCHASTIC = true;
 

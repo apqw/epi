@@ -83,3 +83,26 @@ void* Cell::operator new(size_t s){
 void Cell::operator delete(void* p){
     scalable_free(p);
 }
+
+bool Cell::_memb_exist_sec(const Cell* const target,int init_group,int as,int current_depth,int max_depth){
+    if(target==this)return true;
+    if(current_depth>=max_depth)return false;
+    if((*(md.adj_memb[as]))->_memb_exist_sec(target,init_group,as,current_depth+1,max_depth)){
+        return true;
+    }
+    if(init_group==as){
+        const int another=(as+1)%4;
+        if((*(md.adj_memb[another]))->_memb_exist_sec(target,init_group,another,current_depth+1,max_depth)){
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Cell::memb_exist(const Cell* const target,int max_depth){
+    if(target==this)return true;
+    for(int i=0;i<4;i++){
+        if(_memb_exist_sec(*(md.adj_memb[i]),i,i,1,max_depth))return true;
+    }
+    return false;
+}

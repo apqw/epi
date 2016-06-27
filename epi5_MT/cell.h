@@ -10,6 +10,7 @@
 #include "cell_conn_value.h"
 #include "DualValue.h"
 
+
 /**
  *  細胞を記述するクラス
  *
@@ -55,7 +56,13 @@ class Cell:public std::enable_shared_from_this<Cell>
 		double nv[3]; double ipn;
 		double mv[3]; double ipm;
 		double dn, dm;
+        Cell** adj_memb[4]={&memb_u,&memb_l,&memb_b,&memb_r};
+
 	};
+
+
+
+    bool _memb_exist_sec(const Cell* const target,int init_group,int as,int current_depth,int max_depth);
 
     /** cookie struct.
      コンストラクタの呼び出し元を制限するのに使う */
@@ -193,6 +200,7 @@ public:
 	 */
 	double diff_u;
 
+    cell_stat cst;
     /** インデックスを取得 */
 	inline size_t get_index() const
 	{
@@ -210,6 +218,11 @@ public:
 	double spring_force_to_memb;
 	Memb_data md;
 
+
+
+
+
+    bool memb_exist(const Cell* const target,int max_depth);
 	/*
 	  ctor_cookieがprivateなので自分自身もしくはfriendなclassからのみ生成できる
 	*/

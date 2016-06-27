@@ -126,7 +126,10 @@ void proc(const std::string& init_data_path,  bool _force_cornif,bool use_last,c
     printf("current cell num:%zd\n", cellset->size());
 	auto& cman = *cellset;
 auto start=std::chrono::system_clock::now();
+//std::ofstream clr_stat(stat_data_name,std::ios_base::trunc|std::ios_base::out);
+//clr_stat.close();
     for (size_t i = 0; i < NUM_ITR; i++) {
+        cman.current_timestep=i;
         if(i%100==0){
 
             auto dur=std::chrono::system_clock::now()-start;
@@ -141,6 +144,9 @@ auto start=std::chrono::system_clock::now();
             printf("done.\n");
             printf("saving field data...\n");
             output_field_data(cman,ATP->first(),ext_stim->first());
+            printf("done.\n");
+            printf("saving stat data...\n");
+            cman.append_stat_data(stat_data_name);
             printf("done.\n");
         }
 
