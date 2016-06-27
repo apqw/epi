@@ -392,7 +392,7 @@ inline void _FIX_interaction(Cell*const RESTRICT fix) {
 			if(fix->pair!=conn)cell_interaction_apply<CI_fix_mu_to_fix_mu>(fix, conn);
 			break;
 		case MEMB:
-			if (fix->dermis() == conn) {
+            if (fix->dermis()->memb_exist<2>(conn)) {
 				cell_interaction_apply<CI_fix_to_memb>(fix, conn);
 			}
 			else {
@@ -422,7 +422,7 @@ void _MUSUME_interaction(Cell*const RESTRICT& musume) {
 	}
     musume->connected_cell.foreach([&](Cell*const conn) { //cannot be restricted due to musume->pair
 		if (conn->state == MEMB) {
-			if (musume->dermis() == conn) {
+            if (musume->dermis()->memb_exist<2>(conn)) {
 				cell_interaction_apply<CI_mu_to_memb>(musume, conn);
 			}
 			else {

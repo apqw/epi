@@ -61,8 +61,26 @@ class Cell:public std::enable_shared_from_this<Cell>
 	};
 
 
+    template<unsigned init_group,unsigned as,unsigned rest_depth,class...Args,typename =typename std::enable_if<sizeof...(Args)==0 && rest_depth >= 1>::type>
+    inline bool _memb_exist_sec(const Cell* const target,Args...)const{
+        if(target==this)return true;
+        //if(current_depth>=max_depth)return false;
+        if((*(md.adj_memb[as]))->_memb_exist_sec<init_group,as,rest_depth-1>(target)){
+            return true;
+        }
+        if(init_group==as){
+            constexpr int another=(as+1)%4;
+            if((*(md.adj_memb[another]))->_memb_exist_sec<init_group,another,rest_depth-1>(target)){
+                return true;
+            }
+        }
+        return false;
+    }
 
-    bool _memb_exist_sec(const Cell* const target,int init_group,int as,int current_depth,int max_depth);
+    template<unsigned init_group,unsigned as,unsigned rest_depth,class...Args,typename =typename std::enable_if<sizeof...(Args)==0 && rest_depth == 0,void >::type>
+    inline bool _memb_exist_sec(const Cell* const target,Args*...)const{
+        return target==this;
+    }
 
     /** cookie struct.
      コンストラクタの呼び出し元を制限するのに使う */
@@ -222,7 +240,16 @@ public:
 
 
 
-    bool memb_exist(const Cell* const target,int max_depth);
+
+
+    template<unsigned max_depth>
+    bool memb_exist(const Cell* const target)const{
+        if(target==this)return true;
+#define MFIND(n) if(_memb_exist_sec<n,n,max_depth-1>(target))return true
+        MFIND(0);MFIND(1);MFIND(2);MFIND(3);
+#undef MFIND
+        return false;
+    }
 	/*
 	  ctor_cookieがprivateなので自分自身もしくはfriendなclassからのみ生成できる
 	*/
