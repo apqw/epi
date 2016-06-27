@@ -74,6 +74,7 @@ namespace cont {
 	cdefd DT_Cell = 0.01;
 	cdefd DT_Ca = 0.01;//0.02;
 	cdefi MALIG_NUM = 0;
+
 										 /*
 										 LX,LY,LZ:計算領域のサイズ
 										 */
@@ -96,7 +97,7 @@ namespace cont {
 	cdefd dz = LZ / NZ; cdefd inv_dz = NZ / LZ;
 
     cdefd COMPRESS_FACTOR = 6;//ok
-    
+    cdefui MEMB_ADHE_RANGE=1+(unsigned int)(COMPRESS_FACTOR/2);
 	
     cdefd THRESH_SP = 3.0; //ok 3.0->1.0
 	
