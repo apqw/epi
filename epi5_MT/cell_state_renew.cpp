@@ -286,7 +286,7 @@ void _MUSUME_state_renew(CellManager& cman, Cell*const RESTRICT musume) {
             musume->cst.k_aging_start_timestep=cman.current_timestep;
         }
         else if (SYSTEM == BASAL) {
-            musume->state = DISA;
+            //musume->state = DISA;
             cman.add_remove_queue(musume->get_index());
         }
         return;
@@ -331,7 +331,7 @@ void _DEAD_AIR_state_renew(CellManager& cman, Cell*const RESTRICT da) {
     static constexpr unsigned int DISA_conn_num_thresh = 11; //Nc
 
     if (da->agek >= ADHE_CONST&&da->connected_cell.size() <= DISA_conn_num_thresh) {
-        da->state = DISA;
+        //da->state = DISA;
         cman.add_remove_queue(da->get_index());
     }
     else {
