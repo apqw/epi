@@ -46,6 +46,11 @@ static constexpr double Kspring_division	= 5.0;
 template<class Fn>
 inline void cell_interaction_apply(Cell*const RESTRICT c1, Cell*const RESTRICT c2) {
 	const double coef = Fn::CIFuncCName(c1, c2);
+    if (fabs(coef) > 100) {
+        printf("Too strong interaction:%d and %d\n", (int)(c1->state), (int)(c2->state));
+        assert(false);
+        exit(1);
+    }
 	const double dumx = cont::DT_Cell*coef*p_diff_x(c1->x(), c2->x());
 	const double dumy = cont::DT_Cell*coef*p_diff_y(c1->y(), c2->y());
 	const double dumz = cont::DT_Cell*coef*(c1->z() - c2->z());
@@ -66,7 +71,7 @@ CIFuncDecl(CI_fix_to_memb);
 CIFuncDecl(CI_memb_to_memb);
 CIFuncDecl(CI_other);
 CIFuncDecl(CI_pair);
-
+CIFuncDecl(CI_memb_to_memb_diag);
 inline bool is_der_near(const Cell*const RESTRICT der1, const Cell*const RESTRICT der2) {
 	return sqrt(p_cell_dist_sq(der1, der2))+ delta_R < der1->radius + der2->radius;
 }
@@ -192,12 +197,24 @@ double CI_memb_to_memb::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*co
 		//assert(fabs(ljmain(me, oppo)) < 1000);
 		const double LJ6 = POW3(cr_dist_sq) / POW3(distSq);
 		//LJ6 = LJ6*LJ6*LJ6;
-		return 4.0*eps_m*LJ6*(LJ6 - 1) / distSq;
+        double tmp = 4.0*eps_m*LJ6*(LJ6 - 1) / distSq;
+        if (fabs(tmp)>100) {
+            printf("menb too strong intr1,%d %d %lf %lf %lf\n",c1->get_index(),c2->get_index(), tmp, distSq, cr_dist_sq);
+            assert(false);
+            exit(1);
+        }
+		return tmp;
 	}
 	else if (distSq < rad_sum_sq) {
 		const double distlj = sqrt(distSq);
 		const double cr_dist = rad_sum*P_MEMB;
-		return -(DER_DER_CONST / distlj) * (distlj / cr_dist - 1.0);
+        double tmp = -(DER_DER_CONST / distlj) * (distlj / cr_dist - 1.0);
+        if (fabs(tmp)>100) {
+            printf("menb too strong intr2,%lf %lf %lf\n", tmp, distSq, cr_dist*cr_dist);
+            assert(false);
+            exit(1);
+        }
+		return tmp;
 	}
 	else {
 		const double distlj = sqrt(distSq);
@@ -206,9 +223,54 @@ double CI_memb_to_memb::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*co
 		const double LJ6 = POW6(cr_dist) / POW6(lambda_dist - distlj);
 		//LJ6 = LJ6*LJ6;
 		//LJ6 = LJ6*LJ6*LJ6;
-		return -(DER_DER_CONST / rad_sum)*((1.0 - P_MEMB) / P_MEMB)
+        double tmp = -(DER_DER_CONST / rad_sum)*((1.0 - P_MEMB) / P_MEMB)
 			- 4 * eps_m*(LJ6*(LJ6 - 1.0)) / ((lambda_dist - distlj)*distlj);
+        if (fabs(tmp)>100) {
+            printf("menb too strong intr3,%lf %lf %lf\n", tmp, distSq, cr_dist*cr_dist);
+            assert(false);
+            exit(1);
+        }
+        return tmp;
 	}
+}
+double CI_memb_to_memb_diag::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*const RESTRICT c2) {
+
+
+
+    using namespace cont;
+    const double rad_sum = c1->radius + c2->radius;
+    const double rad_sum_sq = rad_sum*rad_sum;
+
+    double cr_dist_sq;
+    const double distSq = p_cell_dist_sq(c1, c2);
+    if (distSq< (cr_dist_sq = rad_sum_sq*P_MEMB*P_MEMB)) {
+        //assert(fabs(ljmain(me, oppo)) < 1000);
+        const double LJ6 = POW3(cr_dist_sq) / POW3(distSq);
+        //LJ6 = LJ6*LJ6*LJ6;
+        double tmp = 4.0*eps_m*LJ6*(LJ6 - 1) / distSq;
+       
+        if (fabs(tmp)>100) {
+            printf("menb too strong intr1,%d %d %lf %lf %lf\n", c1->get_index(), c2->get_index(), tmp, distSq, cr_dist_sq);
+            assert(false);
+            exit(1);
+        }
+        return tmp;
+    }
+    else if (distSq < rad_sum_sq) {
+        const double distlj = sqrt(distSq);
+        const double cr_dist = rad_sum*P_MEMB;
+        double tmp = -(DER_DER_CONST / distlj) * (distlj / cr_dist - 1.0);
+        if (fabs(tmp)>100) {
+            printf("menb too strong intr2,%lf %lf %lf\n", tmp, distSq, cr_dist*cr_dist);
+            assert(false);
+            exit(1);
+        }
+        return tmp;
+    }
+    else {
+        return 0;
+    }
+    
 }
 
 inline double CI_other::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*const RESTRICT c2) {
@@ -402,11 +464,16 @@ inline void _MEMB_interaction(Cell*const RESTRICT memb) {
 	}
 
 	size_t sz = memb->connected_cell.size();
-	for (size_t i = 0; i < sz; i++) {
+	for (size_t i = 0; i < 4; i++) {
 		if (memb->connected_cell[i]->state == MEMB&&no_double_count(memb, memb->connected_cell[i])) {
 			cell_interaction_apply<CI_memb_to_memb>(memb, memb->connected_cell[i]);
 		}
 	}
+    for (size_t i = 4; i < sz; i++) {
+        if (memb->connected_cell[i]->state == MEMB&&no_double_count(memb, memb->connected_cell[i])) {
+            cell_interaction_apply<CI_memb_to_memb_diag>(memb, memb->connected_cell[i]);
+        }
+    }
 }
 
 void _DER_interaction(Cell*const RESTRICT der) {
@@ -511,7 +578,7 @@ inline void _pair_interaction(Cell*const RESTRICT paired) {
 void cell_interaction(CellManager & cman)
 {
     memb_bend(cman);
-
+   // printf("check...\n");
 		cman.memb_foreach_parallel_native([](Cell*const RESTRICT c) {
 			_MEMB_interaction(c);
 		});

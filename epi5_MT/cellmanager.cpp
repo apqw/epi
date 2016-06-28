@@ -111,7 +111,7 @@ void CellManager::_memb_init()
 		else {
 			cptr->md.memb_u = cells[j + NMX];
 		}
-
+        //assert(cptr->md.memb_l && cptr->md.memb_r && cptr->md.memb_b && cptr->md.memb_u);
 		cptr->connected_cell.push_back(cptr->md.memb_l);
 		cptr->connected_cell.push_back(cptr->md.memb_r);
 		cptr->connected_cell.push_back(cptr->md.memb_b);
@@ -120,7 +120,7 @@ void CellManager::_memb_init()
 
     //2pass
     //直接周囲8つ接続することも可能だが、4つ接続するだけで位置関係は定義できているのでそれを利用していきたい
-/*
+
     cells.memb_foreach_with_index([&](CellPtr& cptr, size_t j) {
 
         cptr->connected_cell.push_back(cptr->md.memb_l->md.memb_u);
@@ -131,7 +131,7 @@ void CellManager::_memb_init()
 
 
     //see cont::MEMB_ADJ_CONN_NUM
-*/
+
 }
 
 /**
