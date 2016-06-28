@@ -56,6 +56,10 @@ class Cell:public std::enable_shared_from_this<Cell>
 		double nv[3]; double ipn;
 		double mv[3]; double ipm;
 		double dn, dm;
+
+        double nv_a[3]; double ipn_a;
+        double mv_a[3]; double ipm_a;
+        double dn_a, dm_a;
         Cell** adj_memb[4]={&memb_u,&memb_l,&memb_b,&memb_r};
 
 	};
@@ -77,7 +81,7 @@ class Cell:public std::enable_shared_from_this<Cell>
         return false;
     }
 
-    template<unsigned init_group,unsigned as,unsigned rest_depth,class...Args,typename =typename std::enable_if<sizeof...(Args)==0 && rest_depth == 0,void >::type>
+    template<unsigned init_group,unsigned as,unsigned rest_depth,class...Args,typename =typename std::enable_if<sizeof...(Args)==0 && rest_depth <= 0,void >::type>
     inline bool _memb_exist_sec(const Cell* const target,Args*...)const{
         return target==this;
     }
@@ -242,13 +246,19 @@ public:
 
 
 
-    template<unsigned max_depth>
-    bool memb_exist(const Cell* const target)const{
+    template<unsigned max_depth,typename...Args,typename=typename std::enable_if<sizeof...(Args)==0&&max_depth>=1>::type>
+    bool memb_exist(const Cell* const target,Args...)const{
         if(target==this)return true;
+
 #define MFIND(n) if(_memb_exist_sec<n,n,max_depth-1>(target))return true
         MFIND(0);MFIND(1);MFIND(2);MFIND(3);
 #undef MFIND
         return false;
+    }
+
+    template<unsigned max_depth,typename...Args,typename=typename std::enable_if<sizeof...(Args)==0&&max_depth<=0>::type>
+    bool memb_exist(const Cell* const target,Args*...)const{
+        return target==this;
     }
 	/*
 	  ctor_cookie‚ªprivate‚È‚Ì‚Å©•ª©g‚à‚µ‚­‚Ífriend‚Èclass‚©‚ç‚Ì‚İ¶¬‚Å‚«‚é

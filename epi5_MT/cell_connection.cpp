@@ -57,7 +57,7 @@ void grid_init(CellManager& cman, std::atomic<cint>(&aindx)[ANX][ANY][ANZ] , Cel
 		‚±‚Ìassert‚ÍÁ‚µ‚Ä‚æ‚¢
 		*/
 		assert(aindx[aix][aiy][aiz] < (cint)N3);
-		c->connected_cell.force_set_count(c->state == MEMB ? 4 : 0);
+        c->connected_cell.force_set_count(c->state == MEMB ? MEMB_ADJ_CONN_NUM : 0);
 	});
 }
 

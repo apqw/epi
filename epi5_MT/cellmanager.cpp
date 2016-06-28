@@ -117,6 +117,21 @@ void CellManager::_memb_init()
 		cptr->connected_cell.push_back(cptr->md.memb_b);
 		cptr->connected_cell.push_back(cptr->md.memb_u);
 	});
+
+    //2pass
+    //直接周囲8つ接続することも可能だが、4つ接続するだけで位置関係は定義できているのでそれを利用していきたい
+/*
+    cells.memb_foreach_with_index([&](CellPtr& cptr, size_t j) {
+
+        cptr->connected_cell.push_back(cptr->md.memb_l->md.memb_u);
+        cptr->connected_cell.push_back(cptr->md.memb_b->md.memb_l);
+        cptr->connected_cell.push_back(cptr->md.memb_r->md.memb_b);
+        cptr->connected_cell.push_back(cptr->md.memb_u->md.memb_r);
+    });
+
+
+    //see cont::MEMB_ADJ_CONN_NUM
+*/
 }
 
 /**

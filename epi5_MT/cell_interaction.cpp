@@ -24,7 +24,7 @@ static constexpr double eps_m				= 0.01;
 static constexpr double P_MEMB				= 1. / cont::COMPRESS_FACTOR;
 
 /** L‚Ñ’e«ŒW” */
-static constexpr double DER_DER_CONST		= 0.2;
+static constexpr double DER_DER_CONST		= 0.05;
 static constexpr double K_TOTAL				= 3.0;
 static constexpr double K_DESMOSOME_RATIO	= 0.01;
 static constexpr double K_DESMOSOME			= K_TOTAL*K_DESMOSOME_RATIO;
@@ -244,6 +244,20 @@ inline void _memb_bend_calc1(Cell *const RESTRICT memb)
 	memb->md.mv[1] = p_diff_y(memb->md.memb_u->y(), memb->y()) / dm;
 	memb->md.mv[2] = (memb->md.memb_u->z() - memb->z()) / dm;
 	memb->md.dm = dm;
+
+#ifdef DIAG_BEND
+    const double dn_a = sqrt(p_cell_dist_sq(memb->md.memb_r->md.memb_b, memb)); //ur
+    memb->md.nv_a[0] = p_diff_x(memb->md.memb_r->md.memb_b->x(), memb->x()) / dn_a;
+    memb->md.nv_a[1] = p_diff_y(memb->md.memb_r->md.memb_b->y(), memb->y()) / dn_a;
+    memb->md.nv_a[2] = (memb->md.memb_r->md.memb_b->z() - memb->z()) / dn_a;
+    memb->md.dn_a = dn_a;
+
+    const double dm_a = sqrt(p_cell_dist_sq(memb->md.memb_u->md.memb_r, memb)); //ur
+    memb->md.mv_a[0] = p_diff_x(memb->md.memb_u->md.memb_r->x(), memb->x()) / dm_a;
+    memb->md.mv_a[1] = p_diff_y(memb->md.memb_u->md.memb_r->y(), memb->y()) / dm_a;
+    memb->md.mv_a[2] = (memb->md.memb_u->md.memb_r->z() - memb->z()) / dm_a;
+    memb->md.dm_a = dm_a;
+#endif
 }
 
 inline void _memb_bend_calc2(Cell *const RESTRICT memb)
@@ -257,26 +271,46 @@ inline void _memb_bend_calc2(Cell *const RESTRICT memb)
 		memb->md.mv[0] * memb->md.memb_u->md.mv[0]
 		+ memb->md.mv[1] * memb->md.memb_u->md.mv[1]
 		+ memb->md.mv[2] * memb->md.memb_u->md.mv[2];
+#ifdef DIAG_BEND
+    memb->md.ipn_a =
+        memb->md.nv_a[0] * memb->md.memb_r->md.memb_b->md.nv_a[0]
+        + memb->md.nv_a[1] * memb->md.memb_r->md.memb_b->md.nv_a[1]
+        + memb->md.nv_a[2] * memb->md.memb_r->md.memb_b->md.nv_a[2];
+
+    memb->md.ipm_a =
+        memb->md.mv_a[0] * memb->md.memb_u->md.memb_r->md.mv_a[0]
+        + memb->md.mv_a[1] * memb->md.memb_u->md.memb_r->md.mv_a[1]
+        + memb->md.mv_a[2] * memb->md.memb_u->md.memb_r->md.mv_a[2];
+#endif
 }
 
 inline void _memb_bend_calc3(Cell *const RESTRICT memb)
 {
-	auto& nvr = memb->md.memb_r->md.nv;
-	auto& nvl = memb->md.memb_l->md.nv;
-	auto& nvll = memb->md.memb_ll->md.nv;
 
-	auto& mvu = memb->md.memb_u->md.mv;
-	auto& mvb = memb->md.memb_b->md.mv;
-	auto& mvbb = memb->md.memb_bb->md.mv;
 
-	auto& ipnl = memb->md.memb_l->md.ipn;
-	auto& ipnll = memb->md.memb_ll->md.ipn;
+
+
+    auto& nvr = memb->md.memb_r->md.nv;
+    auto& nvl = memb->md.memb_l->md.nv;
+    auto& nvll = memb->md.memb_ll->md.nv;
+
+    auto& ipnl = memb->md.memb_l->md.ipn;
+    auto& ipnll = memb->md.memb_ll->md.ipn;
+
+
+    auto& mvu = memb->md.memb_u->md.mv;
+    auto& mvb = memb->md.memb_b->md.mv;
+    auto& mvbb = memb->md.memb_bb->md.mv;
 
 	auto& ipmb = memb->md.memb_b->md.ipm;
 	auto& ipmbb = memb->md.memb_bb->md.ipn;
 
+
+
 	auto& dnl = memb->md.memb_l->md.dn;
 	auto& dmb = memb->md.memb_b->md.dm;
+
+
 
 	auto& dn = memb->md.dn;
 	auto& dm = memb->md.dm;
@@ -285,32 +319,59 @@ inline void _memb_bend_calc3(Cell *const RESTRICT memb)
 	auto& ipn = memb->md.ipn;
 	auto& ipm = memb->md.ipm;
 
-	memb->x +=cont::DT_Cell* KBEND*(
-		-(1.0 - ipn)*(nvr[0] - ipn*nv[0]) / dn
-		+ (1.0 - ipnl)*((nv[0] - ipnl*nvl[0]) / dnl - (nvl[0] - ipnl*nv[0]) / dn)
-		+ (1.0 - ipnll)*(nvll[0] - ipnll*nvl[0]) / dnl
+#define BCALC(suff,num)\
+    (\
+            -(1.0 - ipn##suff)*(nvr##suff[num] - ipn##suff*nv##suff[num]) / dn##suff\
+            + (1.0 - ipnl##suff)*((nv##suff[num] - ipnl##suff*nvl##suff[num]) / dnl##suff - (nvl##suff[num] - ipnl##suff*nv##suff[num]) / dn##suff)\
+            + (1.0 - ipnll##suff)*(nvll##suff[num] - ipnll##suff*nvl##suff[num]) / dnl##suff\
+    \
+            - (1.0 - ipm##suff)*(mvu##suff[num] - ipm##suff*mv##suff[num]) / dm##suff\
+            + (1.0 - ipmb##suff)*((mv##suff[num] - ipmb##suff*mvb##suff[num]) / dmb##suff - (mvb##suff[num] - ipmb##suff*mv##suff[num]) / dm##suff)\
+            + (1.0 - ipmbb##suff)*(mvbb##suff[num] - ipmbb##suff*mvb##suff[num]) / dmb##suff)
 
-		- (1.0 - ipm)*(mvu[0] - ipm*mv[0]) / dm
-		+ (1.0 - ipmb)*((mv[0] - ipmb*mvb[0]) / dmb - (mvb[0] - ipmb*mv[0]) / dm)
-		+ (1.0 - ipmbb)*(mvbb[0] - ipmbb*mvb[0]) / dmb);
+    memb->x +=cont::DT_Cell* KBEND*BCALC(,0);
 
-	memb->y += cont::DT_Cell* KBEND*(
-		-(1.0 - ipn)*(nvr[1] - ipn*nv[1]) / dn
-		+ (1.0 - ipnl)*((nv[1] - ipnl*nvl[1]) / dnl - (nvl[1] - ipnl*nv[1]) / dn)
-		+ (1.0 - ipnll)*(nvll[1] - ipnll*nvl[1]) / dnl
+    memb->y += cont::DT_Cell* KBEND*BCALC(,1);
 
-		- (1.0 - ipm)*(mvu[1] - ipm*mv[1]) / dm
-		+ (1.0 - ipmb)*((mv[1] - ipmb*mvb[1]) / dmb - (mvb[1] - ipmb*mv[1]) / dm)
-		+ (1.0 - ipmbb)*(mvbb[1] - ipmbb*mvb[1]) / dmb);
+    memb->z += cont::DT_Cell* KBEND*BCALC(,2);
 
-	memb->z += cont::DT_Cell* KBEND*(
-		-(1.0 - ipn)*(nvr[2] - ipn*nv[2]) / dn
-		+ (1.0 - ipnl)*((nv[2] - ipnl*nvl[2]) / dnl - (nvl[2] - ipnl*nv[2]) / dn)
-		+ (1.0 - ipnll)*(nvll[2] - ipnll*nvl[2]) / dnl
 
-		- (1.0 - ipm)*(mvu[2] - ipm*mv[2]) / dm
-		+ (1.0 - ipmb)*((mv[2] - ipmb*mvb[2]) / dmb - (mvb[2] - ipmb*mv[2]) / dm)
-		+ (1.0 - ipmbb)*(mvbb[2] - ipmbb*mvb[2]) / dmb);
+#ifdef DIAG_BEND
+    auto& nvr_a = memb->md.memb_r->md.memb_b->md.nv_a;
+    auto& nvl_a = memb->md.memb_l->md.memb_u->md.nv_a;
+    auto& nvll_a = memb->md.memb_l->md.memb_u->md.memb_l->md.memb_u->md.nv_a;
+    auto& mvu_a = memb->md.memb_u->md.memb_r->md.mv_a;
+    auto& mvb_a = memb->md.memb_b->md.memb_l->md.mv_a;
+    auto& mvbb_a = memb->md.memb_b->md.memb_l->md.memb_b->md.memb_l->md.mv_a;
+
+
+
+    auto& ipnl_a = memb->md.memb_l->md.memb_u->md.ipn_a;
+    auto& ipnll_a = memb->md.memb_l->md.memb_u->md.memb_l->md.memb_u->md.ipn_a;
+
+    auto& ipmb_a = memb->md.memb_b->md.memb_l->md.ipm_a;
+    auto& ipmbb_a = memb->md.memb_b->md.memb_l->md.memb_b->md.memb_l->md.ipn_a;
+
+    auto& dnl_a = memb->md.memb_l->md.memb_u->md.dn_a;
+    auto& dmb_a = memb->md.memb_b->md.memb_l->md.dm_a;
+
+
+    auto& dn_a = memb->md.dn_a;
+    auto& dm_a = memb->md.dm_a;
+    auto& nv_a = memb->md.nv_a;
+    auto& mv_a = memb->md.mv_a;
+    auto& ipn_a = memb->md.ipn_a;
+    auto& ipm_a = memb->md.ipm_a;
+
+    memb->x +=cont::DT_Cell* KBEND*BCALC(_a,0);
+
+    memb->y += cont::DT_Cell* KBEND*BCALC(_a,1);
+
+    memb->z += cont::DT_Cell* KBEND*BCALC(_a,2);
+#endif
+
+
+
 }
 
 inline void memb_bend(CellManager& cman) {
