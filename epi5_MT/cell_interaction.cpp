@@ -256,6 +256,8 @@ double CI_memb_to_memb_diag::CIFuncCName(const Cell*const RESTRICT c1, const  Ce
         }
         return tmp;
     }
+    return 0;
+    /*
     else if (distSq < rad_sum_sq) {
         const double distlj = sqrt(distSq);
         const double cr_dist = rad_sum*P_MEMB;
@@ -270,7 +272,7 @@ double CI_memb_to_memb_diag::CIFuncCName(const Cell*const RESTRICT c1, const  Ce
     else {
         return 0;
     }
-    
+    */
 }
 
 inline double CI_other::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*const RESTRICT c2) {
