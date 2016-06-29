@@ -90,6 +90,7 @@ struct lat_arr_##axis {\
 
 	using namespace cont;
     constexpr cint ii = 2;
+    constexpr cint iix = ii+1;
 	cman.non_memb_foreach_parallel_native([&](Cell*const c) { //cannot restrict
 		
 		const cint anx = (cint)(c->x() / AREA_GRID);
@@ -98,10 +99,10 @@ struct lat_arr_##axis {\
 
         assert(!(anx >= (cint)ANX || any >= (cint)ANY || anz >= (cint)ANZ || anx < 0 || any < 0 || anz < 0));
 		const size_t my_index = c->get_index();
-		const cint xend = anx + ii + (cint)ANX;
+        const cint xend = anx + iix + (cint)ANX;
 		const cint yend = any + ii + (cint)ANY;
 		const cint zend = anz + ii + (cint)ANZ;
-        for (cint j = anx - ii+(cint)ANX; j <= xend; j++) {
+        for (cint j = anx - iix+(cint)ANX; j <= xend; j++) {
 			const cint aix = xidx[j];
             for (cint k = any - ii + (cint)ANY; k <= yend; k++) {
 				const cint aiy = yidx[k];
