@@ -29,7 +29,7 @@ class Cell:public std::enable_shared_from_this<Cell>
 	static constexpr double agki_max_fix	= fac*agki_max;
 
     /** Å‘å•ª—ô‰ñ” */
-	static constexpr int	div_max			= 20;
+    static constexpr int	div_max			= 10;
 
 
 	static double get_div_age_thresh(CELL_STATE state);
