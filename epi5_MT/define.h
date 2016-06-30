@@ -66,12 +66,12 @@ enum BoundaryType {
 namespace cont {
 	
     //memb seat size NMX*NMY
-    static constexpr unsigned int NMX = 150;//ok
+    static constexpr unsigned int NMX = 300;//ok
     static constexpr unsigned int NMY = 150;//ok
 
 	cdefs STATE_NUM = 10;
 	cdefs MAX_CONNECT_CELL_NUM = 400;
-	cdefs MAX_CELL_NUM = NMX*NMY+20000;
+    cdefs MAX_CELL_NUM = NMX*NMY+50000;
 	cdefd DT_Cell = 0.01;
 	cdefd DT_Ca = 0.01;//0.02;
 	cdefi MALIG_NUM = 0;
@@ -79,14 +79,14 @@ namespace cont {
 										 /*
 										 LX,LY,LZ:計算領域のサイズ
 										 */
-	cdefd LX = 50.0;
+    cdefd LX = 100.0;
 	cdefd LY = 50.0;
 	cdefd LZ = 100.0;
 
 	/*
 	NX,NY,NZ:計算領域の分割数
 	*/
-	cdefs NX = 100;
+    cdefs NX = 200;
 	cdefs NY = 100;
 	cdefs NZ = 200;
 
