@@ -513,8 +513,8 @@ int main(int argc, char* argv[]) {
             calc_color(state, ca, fat, infat, divtime, tb, touch, rgb);
             povdata << "sphere{<" 
                 << x << "," << y << "," << z << ">," 
-                << rad << ","
-                <<"texture{pigment{rgb<"<<rgb[0]<<","<<rgb[1]<<","<<rgb[2]<<">}}}" << std::endl;
+                << rad << " "
+                <<"texture{pigment{color rgb<"<<rgb[0]<<","<<rgb[1]<<","<<rgb[2]<<">}}}" << std::endl;
 
             
         }
