@@ -54,6 +54,8 @@ class CellManager :Lockfree_push_stack<CellPtr, cont::MAX_CELL_NUM> {
     void _load_from_file_bin(std::string path);
 	void init_internal(std::string init_data_path);
 	std::atomic<uint_fast8_t> sw;
+    void cell_shuffle(size_t start, size_t end);
+    void swap_cell_index(size_t c1, size_t c2);
 public:
 	//void pos_swap();
 	//void pos_copy(CellManager& cman);

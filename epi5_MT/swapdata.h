@@ -176,6 +176,20 @@ public:
 		sw.second()[dest_idx] = sw.second()[idx];
 		idx = dest_idx;
 	}
+
+    void _swap(SwapArrAccessor1& dest) {
+        assert(&sw == &(dest.sw));
+        auto tmp_f = std::move(sw.first()[idx]);
+        auto tmp_s = std::move(sw.second()[idx]);
+        
+        sw.first()[idx] = std::move(dest.sw.first()[dest.idx]);
+        sw.second()[idx] = std::move(dest.sw.second()[dest.idx]);
+        dest.sw.first()[dest.idx] = std::move(tmp_f);
+        dest.sw.second()[dest.idx] = std::move(tmp_s);
+        size_t tmp_i = idx;
+        idx = dest.idx;
+        dest.idx = tmp_i;
+    }
 	void init(const size_t _idx) {
 		idx = _idx;
 	}

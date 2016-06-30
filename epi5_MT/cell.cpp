@@ -46,6 +46,13 @@ void Cell::migrate(size_t dest_idx)
 	ca2p._migrate(_index);
 	IP3._migrate(_index);
 }
+void Cell::swap_index(Cell* dest) {
+    ca2p._swap(dest->ca2p);
+    IP3._swap(dest->IP3);
+    size_t tmp = get_index();
+    set_index(dest->get_index());
+    dest->set_index(tmp);
+}
 
 /** ctor */
 Cell::Cell(ctor_cookie,CELL_STATE _state, int _fix_origin,

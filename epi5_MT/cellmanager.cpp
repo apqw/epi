@@ -8,7 +8,7 @@
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
 #include <iomanip>
-
+#include "Random_gen.h"
 /**
  *  @file Cellの管理
  */
@@ -131,9 +131,20 @@ void CellManager::_memb_init()
 
 
     //see cont::MEMB_ADJ_CONN_NUM
-
+    cell_shuffle(0, nmemb - 1);
 }
 
+void CellManager::swap_cell_index(size_t c1, size_t c2) {
+   // _data[c1]->swap_index(_data[c2]);
+    size_t tmp = _data[c1]->get_index();
+    _data[c1]->set_index(_data[c2]->get_index());
+    _data[c2]->set_index(tmp);
+}
+void CellManager::cell_shuffle(size_t start, size_t end) {
+    for (size_t i = start; i <= end; ++i) {
+        swap_cell_index(i, start+(size_t)(((double)(end-start+1))*genrand_real()));
+    }
+}
 /**
  *  ファイルから細胞のデータを読み込む
  */
