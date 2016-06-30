@@ -29,7 +29,7 @@ class Cell:public std::enable_shared_from_this<Cell>
 	static constexpr double agki_max_fix	= fac*agki_max;
 
     /** 最大分裂回数 */
-    static constexpr int	div_max			= 10;
+    static constexpr int	div_max			= 15;
 
 
 	static double get_div_age_thresh(CELL_STATE state);
@@ -89,6 +89,8 @@ class Cell:public std::enable_shared_from_this<Cell>
     /** cookie struct.
      コンストラクタの呼び出し元を制限するのに使う */
 	struct ctor_cookie{};
+    void migrate(size_t dest_idx);
+    void swap_index(Cell* dest);
 public:
 	friend class CellManager;
 
@@ -233,7 +235,7 @@ public:
 	void set_dermis(const Cell* d);
 	const Cell* dermis()const;
 
-	void migrate(size_t dest_idx);
+	
 
 
 
