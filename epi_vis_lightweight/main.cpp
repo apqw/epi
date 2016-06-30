@@ -519,6 +519,7 @@ int main(int argc, char* argv[]) {
             
         }
         //povdata << "}" << std::endl;
-        system(("povray +I"+tmp_file+"+H400 +W400 +O"+IMG_OUT_DIR+"/"+std::to_string(i)).c_str());
+        system(("povray +I"+tmp_file+" +H400 +W400 +O"+IMG_OUT_DIR+"/"+std::to_string(i)).c_str());
+        system(("rm -f " + tmp_file).c_str());
     }
 }
