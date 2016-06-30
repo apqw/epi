@@ -429,23 +429,33 @@ void calc_color(CELL_STATE state,double ca,double fat,double infat,int divtime,i
         return;
     }
 }
-
+bool should_render(CELL_STATE state){
+	if(state==MEMB)return true;
+	if(state==FIX)return true;
+	if(state==MUSUME&&DISP_MUSUME!=0)return true;
+	if(state==ALIVE&&DISP_ALIVE!=0)return true;
+	if(state==DEAD&&DISP_DEAD!=0)return true;
+	return false;
+}
 void set_pov_template(std::ofstream& ofs) {
     ofs <<
         "#version 3.6;\n"
         "#include \"colors.inc\"\n"
         "#include \"metals.inc\"\n"
         "#include \"textures.inc\"\n"
-        "global_settings{max_trace_level 64}\n"
+        "global_settings{max_trace_level 64 \n ambient_light <0.5,0.5,0.5>}\n"
         "camera{\n"
-        "location <25,-180,25>\n"
+        "location <50,-475,50>\n"
         "sky z\n"
         "right 0.24*x*image_width / image_height\n"
         "up 0.24*z\n"
-        "look_at <25,50,25>}\n"
+        "look_at <50,25,50>}\n"
         "background{ rgb 0 }\n"
-        "light_source{ <-8,-20,30> color rgb <0.77,0.75,0.75> }\n"
-        "light_source{ <25,-12,12> color rgb <0.43,0.45,0.45> }\n";
+        "light_source{ <-8,-20,50> color rgb <0.9,0.9,0.9> }\n"
+	"light_source{ <108,-20,50> color rgb <0.9,0.9,0.9> }\n"
+"light_source{ <50,-40,50> color rgb <0.9,0.9,0.9> }\n"
+"light_source{ <50,25,-50> color rgb <0.9,0.9,0.9> }\n"
+        "light_source{ <50,25,100> color rgb <0.43,0.45,0.45> }\n";
 }
 int main(int argc, char* argv[]) {
     int DISP_ORIGIN_BEGIN=0;
@@ -479,6 +489,7 @@ int main(int argc, char* argv[]) {
     if (DISP_ALIVE == 0)DISP_FLAGS[ALIVE] = false;
     if (DISP_DEAD == 0)DISP_FLAGS[DEAD] = false;
     //printf("x0=%f y0=%f DISP_MODE=%d\n", xo, yo, DISP_MODE);
+system(("mkdir "+std::string(IMG_OUT_DIR)).c_str());
     for (int i = t0; i < tmax; i++) {
         std::string datapath = std::string(CELL_DATA_DIR) + "/" + std::to_string(i);
         std::ifstream cdata(datapath);
@@ -509,6 +520,7 @@ int main(int argc, char* argv[]) {
             int tb = -1;
             sscanf(line.c_str(), "%*d %d %lf %*lf %lf %*lf %lf %lf %lf %lf %d %lf %lf %d %*lf %*d %d",
                 (int*)&state, &rad, &agek, &x, &y, &z, &ca, &divtime, &fat, &infat, &touch, &tb);
+		if(!should_render(state))continue;
             double rgb[3];
             calc_color(state, ca, fat, infat, divtime, tb, touch, rgb);
             povdata << "sphere{<" 
@@ -519,7 +531,9 @@ int main(int argc, char* argv[]) {
             
         }
         //povdata << "}" << std::endl;
-        system(("povray +I"+tmp_file+" +H400 +W400 +O"+IMG_OUT_DIR+"/"+std::to_string(i)).c_str());
+std::cout<<"Rendering "<<i<<" ..."<<std::endl;
+        system(("povray +I"+tmp_file+" +H400 +W400 +O"+IMG_OUT_DIR+"/"+std::to_string(i)+" >/dev/null 2>&1").c_str());
         system(("rm -f " + tmp_file).c_str());
+std::cout<<"done."<<std::endl;
     }
 }
