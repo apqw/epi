@@ -1,0 +1,85 @@
+/*
+ * utils_cuda.h
+ *
+ *  Created on: 2016/07/07
+ *      Author: yasu7890v
+ */
+
+#ifndef UTILS_CUDA_H_
+#define UTILS_CUDA_H_
+#include "define.h"
+
+enum DIRECTION{
+	DIR_U,DIR_L,DIR_B,DIR_R
+};
+
+__host__ __device__ inline float p_diff_x(const float x1,const float x2){
+	const float diff= x1-x2;
+	if(diff>0.5f*LX)return diff-LX;
+	if(diff<=-0.5f*LX)return diff+LX;
+	return diff;
+}
+
+__host__ __device__ inline float p_diff_y(const float y1,const float y2){
+	const float diff = y1-y2;
+	if(diff>0.5f*LY)return diff-LY;
+	if(diff<=-0.5f*LY)return diff+LY;
+	return diff;
+}
+
+__host__ __device__ inline float min0(const float a){
+	return a>0.0f?a:0.0f;
+}
+
+template<CELL_STATE cs>
+__host__ __device__ inline float get_radius(){
+	return R_max;
+}
+
+template<>
+__host__ __device__ inline float get_radius<MEMB>(){
+	return R_memb;
+}
+
+__host__ __device__ inline float p_cell_dist_sq(const CellPos a,const CellPos b){
+	const float diffx = p_diff_x(a.x,b.x);
+	const float diffy = p_diff_y(a.y,b.y);
+	const float diffz = a.z-b.z;
+	return diffx*diffx+diffy*diffy+diffz*diffz;
+}
+template<unsigned X,unsigned Y,unsigned Z>
+__host__ __device__ inline int midx(int i,int j,int k){
+	return i*Y*Z+j*Z+k;
+}
+
+
+template<DIRECTION d>
+__device__ __host__ inline CellIndex get_adj_memb_idx(CellIndex my_memb_idx){
+	return 0;
+}//dummy
+
+template<>
+__device__ __host__ inline CellIndex get_adj_memb_idx<DIR_U>(CellIndex my_memb_idx){
+	const int kk= my_memb_idx / NMX;
+	return ((kk + 1) % NMY)*NMX + my_memb_idx%NMX;
+}
+
+template<>
+__device__ __host__ inline CellIndex get_adj_memb_idx<DIR_L>(CellIndex my_memb_idx){
+	const int jj = my_memb_idx%NMX;
+	return ((int)(my_memb_idx / NMX))*NMX + (jj - 1+NMX) % NMX;
+}
+
+template<>
+__device__ __host__ inline CellIndex get_adj_memb_idx<DIR_B>(CellIndex my_memb_idx){
+	const int kk = my_memb_idx / NMX;
+	return ((kk - 1+NMY) % NMY)*NMX + my_memb_idx%NMX;
+}
+
+template<>
+__device__ __host__ inline CellIndex get_adj_memb_idx<DIR_R>(CellIndex my_memb_idx){
+	const int jj = my_memb_idx%NMX;
+	return ((int)(my_memb_idx / NMX))*NMX + (jj + 1) % NMX;
+}
+
+#endif /* UTILS_CUDA_H_ */
