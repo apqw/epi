@@ -11,6 +11,8 @@
 
 #include "ext_stim.h"
 #include "cuda_host_util.h"
+#include "remove_queue.cuh"
+#include "cell_state_renew.h"
 void output(DeviceData*d,int namei){
 	static cell_pos_set pos[MAX_CELL_NUM];
 	using namespace std;
@@ -73,6 +75,10 @@ int main(int argc,char** argv)
 	cudaFree(0);
 	cudaDeviceSetLimit(cudaLimitMallocHeapSize, 1073741824);
 	DeviceData a;
+	remove_queue rmqueue(MAX_CELL_NUM);
+	remove_queue* rmqd;
+	cudaMalloc((void**)&rmqd, sizeof(remove_queue));
+	cudaMemcpy(rmqd, &rmqueue, sizeof(remove_queue), cudaMemcpyHostToDevice);
 	init_with_file(&a, argv[1]);
 	printf("%d\n", sizeof(connected_index_set)*50000/(1024*1024));
 	
@@ -102,6 +108,7 @@ int main(int argc,char** argv)
 		*/
 		//system("pause");
 		interact(&a);
+		cell_state_renew(&a,rmqd);
 		a.current = 1 - a.current;
 		if (i % 100==0)printf("loop:%d done.\n", i);
 		if (i % 10 == 0){
@@ -111,7 +118,7 @@ int main(int argc,char** argv)
 		
 		setup_map(&a, cmap1, cmap2);
 		
-		//float aa = calc_zzmax_2(&a);
+		float aa = calc_zzmax_approx(&a);
 		//if (i % 100 == 0)printf("%lf test\n", aa);
 		calc_ext_stim(&a, ext_stim_set[a.current], ext_stim_set[1 - a.current], cmap1, cmap2);
 		if (i % 1000==0)output(&a,i/1000);

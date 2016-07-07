@@ -2,3 +2,4 @@
 struct DeviceData;
 float calc_zzmax(cell_pos_set* pos, int ncell);
 float calc_zzmax_2(DeviceData*d);
+float calc_zzmax_approx(DeviceData*d);

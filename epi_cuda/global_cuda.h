@@ -84,6 +84,7 @@ struct DeviceData{
 	float* c_ca2p_d[2];
 	float* c_ca2p_avg_d;
 	float* c_ex_inert_d;
+	float* c_IP3_d;
 	float* c_agek_d;
 	float* c_ageb_d;
 	float* c_ex_fat_d;
@@ -98,7 +99,8 @@ struct DeviceData{
 	int nmemb = 0;
 	int nother=0;
 	int current=0;
-
+	int* block_max_store;
+	int* sw;
 
 	DeviceData(){
 		
@@ -112,6 +114,7 @@ struct DeviceData{
 		checkCudaErrors(cudaMalloc((void**)&c_ca2p_d[1], sizeof(float)*MAX_CELL_NUM));
 		checkCudaErrors(cudaMalloc((void**)&c_ca2p_avg_d, sizeof(float)*MAX_CELL_NUM));
 		checkCudaErrors(cudaMalloc((void**)&c_ex_inert_d, sizeof(float)*MAX_CELL_NUM));
+		checkCudaErrors(cudaMalloc((void**)&c_IP3_d, sizeof(float)*MAX_CELL_NUM));
 		checkCudaErrors(cudaMalloc((void**)&c_agek_d, sizeof(float)*MAX_CELL_NUM));
 		checkCudaErrors(cudaMalloc((void**)&c_ageb_d, sizeof(float)*MAX_CELL_NUM));
 		checkCudaErrors(cudaMalloc((void**)&c_ex_fat_d, sizeof(float)*MAX_CELL_NUM));
@@ -120,6 +123,8 @@ struct DeviceData{
 		checkCudaErrors(cudaMalloc((void**)&c_rest_div_times_d, sizeof(int)*MAX_CELL_NUM));
 		checkCudaErrors(cudaMalloc((void**)&c_dermis_index_d, sizeof(int)*MAX_CELL_NUM));
 		checkCudaErrors(cudaMalloc((void**)&zzmax, sizeof(float)));
+		checkCudaErrors(cudaMalloc((void**)&block_max_store, sizeof(int)*512));
+		checkCudaErrors(cudaMalloc((void**)&sw, sizeof(int)));//plz set!!
 	}
 	~DeviceData(){
 		cudaFree(c_state_d);
@@ -132,6 +137,7 @@ struct DeviceData{
 		cudaFree(c_ca2p_d[1]);
 		cudaFree(c_ca2p_avg_d);
 		cudaFree(c_ex_inert_d);
+		cudaFree(c_IP3_d);
 		cudaFree(c_agek_d);
 		cudaFree(c_ageb_d);
 		cudaFree(c_ex_fat_d);
@@ -140,6 +146,8 @@ struct DeviceData{
 		cudaFree(c_rest_div_times_d);
 		cudaFree(c_dermis_index_d);
 		cudaFree(zzmax);
+		cudaFree(sw);
+		cudaFree(block_max_store);
 	}
 };
 
@@ -153,7 +161,7 @@ namespace cont {
 	cdefs STATE_NUM = 10;
 	__constant__ cdefd DT_Cell = 0.01;
 	__constant__ cdefd DT_Ca = 0.01;//0.02;
-	cdefi MALIG_NUM = 0;
+	//cdefi MALIG_NUM = 0;
 
 	/*
 	LX,LY,LZ:計算領域のサイズ
@@ -184,24 +192,24 @@ namespace cont {
 
 	__constant__ cdefd THRESH_DEAD = 22.0;//ok
 
-	cdefui NUM_ITR = 4 * ((int)1e6); //twice
+	__constant__ cdefui NUM_ITR = 4 * ((int)1e6); //twice
 
 
 
-	cdefd Ca_avg_time = 10.0;
+	__constant__ cdefd Ca_avg_time = 10.0;
 
 
-	cdefd ca2p_init = 0.122;
+	__constant__ cdefd ca2p_init = 0.122;
 
-	cdefd ex_inert_init = 0.97;
+	__constant__ cdefd ex_inert_init = 0.97;
 
-	cdefd IP3_init = 0;
+	__constant__ cdefd IP3_init = 0;
 
-	cdefd gj_init = 0.99;
+	__constant__ cdefd gj_init = 0.99;
 
-	cdefd ATP_init = 0;
+	__constant__ cdefd ATP_init = 0;
 
-	cdefd ext_stim_init = 0;
+	__constant__ cdefd ext_stim_init = 0;
 
 
 
@@ -211,7 +219,7 @@ namespace cont {
 
 	cdefd T_TURNOVER = 6000.0;//
 	cdefi NUM_SC_INIT = 1;//ok ha/???->19->1
-	cdefd stoch_corr_coef = 1;
+	
 
 
 
@@ -220,3 +228,8 @@ namespace cont {
 enum DIRECTION :unsigned int{
 	U = 0, L = 1, B = 2, R = 3
 };//why not B->D?
+
+#define STOCHASTIC (1)
+#define M_PI_F (3.141592654f)
+#define MALIGNANT (0)
+#define stoch_corr_coef (1.0f)

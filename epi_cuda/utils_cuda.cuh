@@ -32,3 +32,4 @@ __device__ inline float p_cell_dist_sq_d(cell_pos_set a, cell_pos_set b){
 	float diffz = a.z - b.z;
 	return diffx*diffx + diffy*diffy + diffz*diffz;
 }
+
