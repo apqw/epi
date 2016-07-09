@@ -4,9 +4,10 @@
 #include "cellmanager.h"
 #include "cell.h"
 #include "utils.h"
-
+/*
 __constant__ int map1_sphere[128];
 __constant__ int map2_sphere[768];
+*/
 /**
  *  @file ×–E‚Ìè‚ß‚é—Ìˆæ‚ÉŠÖ‚·‚éƒ}ƒbƒvì¬
  */

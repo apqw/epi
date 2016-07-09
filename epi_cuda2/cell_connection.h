@@ -7,7 +7,7 @@
 
 #ifndef CELL_CONNECTION_H_
 #define CELL_CONNECTION_H_
-struct CellManager;
+class CellManager;
 void connect_cell(CellManager* d);
 
 

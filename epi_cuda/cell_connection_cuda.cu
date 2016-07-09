@@ -6,25 +6,27 @@
 #include <stdio.h>
 #include "utils_cuda.cuh"
 #include <cassert>
+#include <vector>
+#include <fstream>
+#include <string>
 //#include <thrust/sort.h>
-#define AREA_GRID_ORIGINAL 2.0//ok
 
-/** グリッドサイズ (?)*/
-#define AREA_GRID (AREA_GRID_ORIGINAL + 1e-7)//ok
+#define AREA_GRID_ORIGINAL 2.0f
 
+#define AREA_GRID_ORIGINAL_D 2.0
+#define AREA_GRID	((float)(AREA_GRID_ORIGINAL_D + 1e-7))
+#define ANX ((int)(LX / AREA_GRID_ORIGINAL_D + 0.5))
+#define ANY ((int)(LY / AREA_GRID_ORIGINAL_D + 0.5))
+#define ANZ ((int)(LZ / AREA_GRID_ORIGINAL_D))
+#define N3 64
+#define N2 400
 
+#define SEARCH_GRID_DIM 5
 
-/** X方向のグリッド数*/
-__constant__  static const int ANX = (LX / AREA_GRID_ORIGINAL + 0.5);//ok
-/** Y方向のグリッド数*/
-__constant__ static const  int ANY = (LY / AREA_GRID_ORIGINAL + 0.5);//ok
-/** Z方向のグリッド数*/
-__constant__ static const  int ANZ = (LZ / AREA_GRID_ORIGINAL);//ok
-/** グリッド1つ当たりの細胞格納数上限 */
-__constant__ static const  int N3 = 64; //max grid cell num //ok
-/** 1細胞の接続最大数 */
-__constant__ static const  int N2 = 400; //max conn num //ok
-#define SEARCH_GRID_DIM (5)
+#define SEARCH_GRID_NUM (SEARCH_GRID_DIM*SEARCH_GRID_DIM*SEARCH_GRID_DIM)
+#define SEARCH_PAR_NUM 8
+#define SEARCH_THREAD_UPPER_LIMIT 128
+
 #define EXTRACT_STATE_CS(cs) (*(unsigned int*)(&(cs).w))
 
 __global__ void init_grid(int ncell, unsigned int* cstate, cell_pos_set* cs, connected_index_set*cis, unsigned int* aindx_3d, float4* area_info){
@@ -250,6 +252,20 @@ __global__ void conn_sort(int ncell, int nmemb, unsigned int* cstate, connected_
 	}
 }
 
+void dbg_conn_info(unsigned int* aindx, int count){
+	static std::vector<unsigned int> tmp(ANX*ANY*ANZ);
+	cudaMemcpy(&tmp[0], aindx, sizeof(unsigned int)*ANX*ANY*ANZ, cudaMemcpyDeviceToHost);
+	std::ofstream ofs("dbg_ci" + std::to_string(count));
+	for (int i = 0; i < ANX; i++){
+		for (int j = 0; j < ANY; j++){
+			for (int k = 0; k < ANZ; k++){
+				ofs << i << "," << j << "," << k << " " << tmp[i*ANY*ANZ + j*ANZ + k] << std::endl;
+			}
+		}
+	}
+
+}
+
 void connect_cell(DeviceData* d){
 
 	struct uint_alloc{
@@ -271,6 +287,7 @@ void connect_cell(DeviceData* d){
 			cudaFree(ptr);
 		}
 	};
+	static int count = 0;
 	static uint_alloc aindx(sizeof(unsigned int)*ANX*ANY*ANZ);
 	//static uint_alloc area(sizeof(unsigned int)*ANX*ANY*ANZ*N3);
 	static f4_alloc area_info(sizeof(float4)*ANX*ANY*ANZ*N3);
@@ -279,13 +296,18 @@ void connect_cell(DeviceData* d){
 	init_grid << <256, 256 >> >(d->ncell, (unsigned int*)d->c_state_d, d->c_pos_d[d->current], d->c_connected_index_d, aindx.ptr, area_info.ptr);
 	cudaDeviceSynchronize();
 	dim3 grd(ANX, ANY);
-
+	printf("LAST ERROR:%d\n", cudaGetLastError());
 	complete_area_info << <grd, ANZ >> >(aindx.ptr, area_info.ptr);
 	cudaDeviceSynchronize();
+	printf("LAST ERROR:%d\n", cudaGetLastError());
 	connect_proc << <d->ncell - d->nmemb, 128*8 >> >(d->ncell, d->nmemb, d->c_pos_d[d->current], d->c_connected_index_d, area_info.ptr);
 	cudaDeviceSynchronize();
+	printf("LAST ERROR:%d\n", cudaGetLastError());
 	//conn_sort << < d->ncell / 256 + 1, 256 >>> (d->ncell, d->nmemb, (unsigned int*)d->c_state_d, d->c_connected_index_d);
 	//cudaDeviceSynchronize();
+	printf("LAST ERROR:%d\n", cudaGetLastError());
 	set_dermis << <(d->ncell - d->nmemb - d->nder) / 256 + 1, 256 >> >(d->nmemb + d->nder, d->ncell, d->c_pos_d[d->current], d->c_connected_index_d, d->c_dermis_index_d);
 	cudaDeviceSynchronize();
+	printf("LAST ERROR:%d\n", cudaGetLastError());
+	//dbg_conn_info(aindx.ptr, count++);
 }

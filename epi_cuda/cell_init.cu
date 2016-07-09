@@ -33,43 +33,38 @@ int get_adj_memb_idx<(unsigned int)R>(int my_memb_idx){
 	return ((int)(my_memb_idx / NMX))*NMX + (jj + 1) % NMX;
 }
 
-void memb_init(int nmemb, connected_index_set* cs){
-	for (int j = 0; j < nmemb; j++){
-			size_t jj = j%NMX;
-			size_t kk = j / NMX;
-			
-			auto& memb_u = cs[j].index[0];
-			auto& memb_l = cs[j].index[1];
-			auto& memb_b = cs[j].index[2];
-			auto& memb_r = cs[j].index[3];
-			memb_l = get_adj_memb_idx<L>(j);
-			memb_r = get_adj_memb_idx<R>(j);
-			memb_b = get_adj_memb_idx<B>(j);
-			memb_u = get_adj_memb_idx<U>(j);
-			assert(memb_u >= 0 && memb_l >= 0 && memb_b >= 0 && memb_r >= 0);
-		
+void memb_init(int _nmemb, connected_index_set* cs){
+	for (int j = 0; j<_nmemb; j++){
+		const size_t jj = j%NMX;
+		const size_t kk = j / NMX;
+		cs[j].index[0] = get_adj_memb_idx<U>(j);
+		cs[j].index[1] = get_adj_memb_idx<L>(j);
+		cs[j].index[2] = get_adj_memb_idx<B>(j);
+		cs[j].index[3] = get_adj_memb_idx<R>(j);
+		//assert(cs[j].connect_index[0] >= 0 && cs[j].connect_index[1] >= 0 && cs[j].connect_index[2] >= 0 && cs[j].connect_index[3] >= 0);
+	}
+	//2-pass
+	for (int j = 0; j < _nmemb; j++){
+
+		const int memb_u = cs[j].index[0];
+		const int memb_l = cs[j].index[1];
+		const int memb_b = cs[j].index[2];
+		const int memb_r = cs[j].index[3];
+
+		//auto& memb_lu = cs[j].index[4];
+		//auto& memb_bl = cs[j].index[5];
+		//auto& memb_rb = cs[j].index[6];
+		//auto& memb_ur = cs[j].index[7];
+
+		cs[j].index[4] = cs[memb_l].index[0];
+		cs[j].index[5] = cs[memb_b].index[1];
+		cs[j].index[6] = cs[memb_r].index[2];
+		cs[j].index[7] = cs[memb_u].index[3];
+
+		cs[j].connected_num = 8;
+		//assert(cs[j].connect_index[4] >= 0 && cs[j].connect_index[5] >= 0 && cs[j].connect_index[6] >= 0 && cs[j].connect_index[7] >= 0);
 	}
 
-	for (int j = 0; j < nmemb; j++){
-
-		auto& memb_u = cs[j].index[0];
-		auto& memb_l = cs[j].index[1];
-		auto& memb_b = cs[j].index[2];
-		auto& memb_r = cs[j].index[3];
-
-		auto& memb_lu = cs[j].index[4];
-		auto& memb_bl = cs[j].index[5];
-		auto& memb_rb = cs[j].index[6];
-		auto& memb_ur = cs[j].index[7];
-
-		memb_lu = cs[memb_l].index[0];
-		memb_bl = cs[memb_b].index[1];
-		memb_rb = cs[memb_r].index[2];
-		memb_ur = cs[memb_u].index[3];
-
-		//cs[j].connected_num = 8;
-		assert(memb_lu >= 0 && memb_bl >= 0 && memb_rb >= 0 && memb_ur >= 0);
-	}
 }
 
 void init_with_file(DeviceData* d, const char* path)

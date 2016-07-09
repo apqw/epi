@@ -9,93 +9,121 @@
 #include <fstream>
 #include <vector>
 #include <cassert>
+#include <string>
 __device__ void CellConnectionData::add_atomic(CellIndex idx){
 	connect_index[atomicAdd(&connect_num,1)]=idx;
 }
-/*
-CellManager_Device* CellManager_Device::get_device_allocated_ptr(){
-	CellManager_Device tmp;
+#define DCM(ptr,elem_size) cudaMalloc((void**)&(ptr),elem_size*MAX_CELL_NUM)
 
-	//pre
-	cudaMalloc((void**)&tmp.__block_max_store,sizeof(int)*CellManager_Device::DEDUCT_ZMAX_DIV_NUM);
+void CellManager_Device::__alloc(){
+	cudaMalloc((void**)&__block_max_store, sizeof(int)*DEDUCT_ZMAX_DIV_NUM);
 
-	DCM(tmp.state,sizeof(CELL_STATE));
-	DCM(tmp.pos[0],sizeof(CellPos));
-	DCM(tmp.pos[1],sizeof(CellPos));
-	DCM(tmp.fix_origin,sizeof(CellIndex));
-	DCM(tmp.connection_data,sizeof(CellConnectionData));
-	DCM(tmp.pair_index,sizeof(CellIndex));
-	DCM(tmp.ca2p[0],sizeof(float));
-	DCM(tmp.ca2p[1],sizeof(float));
-	DCM(tmp.ca2p_avg,sizeof(float));
-	DCM(tmp.ex_inert,sizeof(float));
-	DCM(tmp.IP3,sizeof(float));
-	DCM(tmp.agek,sizeof(float));
-	DCM(tmp.ageb,sizeof(float));
-	DCM(tmp.ex_fat,sizeof(float));
-	DCM(tmp.in_fat,sizeof(float));
-	DCM(tmp.spr_nat_len,sizeof(float));
-	DCM(tmp.rest_div_times,sizeof(int));
-	DCM(tmp.dermis_index,sizeof(CellIndex));
-	cudaMalloc((void**)&tmp.zmax,sizeof(float));
-	cudaMalloc((void**)&tmp.ncell,sizeof(int));
-	cudaMalloc((void**)&tmp.nder,sizeof(int));
-	cudaMalloc((void**)&tmp.nmemb,sizeof(int));
-	cudaMalloc((void**)&tmp.current_phase,sizeof(int));
-	cudaMalloc((void**)&tmp.sw,sizeof(int));
+	DCM(state, sizeof(CELL_STATE));
+	DCM(pos[0], sizeof(CellPos));
+	DCM(pos[1], sizeof(CellPos));
+	DCM(fix_origin, sizeof(CellIndex));
+	DCM(connection_data, sizeof(CellConnectionData));
+	DCM(pair_index, sizeof(CellIndex));
+	DCM(ca2p[0], sizeof(float));
+	DCM(ca2p[1], sizeof(float));
+	DCM(ca2p_avg, sizeof(float));
+	DCM(ex_inert, sizeof(float));
+	DCM(IP3, sizeof(float));
+	DCM(agek, sizeof(float));
+	DCM(ageb, sizeof(float));
+	DCM(ex_fat, sizeof(float));
+	DCM(in_fat, sizeof(float));
+	DCM(spr_nat_len, sizeof(float));
+	DCM(rest_div_times, sizeof(int));
+	DCM(dermis_index, sizeof(CellIndex));
+	cudaMalloc((void**)&zmax, sizeof(float));
+	cudaMalloc((void**)&ncell, sizeof(int));
+	cudaMalloc((void**)&nder, sizeof(int));
+	cudaMalloc((void**)&nmemb, sizeof(int));
+	cudaMalloc((void**)&current_phase, sizeof(int));
+	cudaMalloc((void**)&sw, sizeof(int));
+	cudaMalloc((void**)&need_reconnect, sizeof(int));
+	cudaMalloc((void**)&remove_queue, sizeof(LockfreeDeviceQueue<CellIndex, MAX_CELL_NUM>));
 
-	cudaMemset(tmp.zmax,0,sizeof(float));
-	cudaMemset(tmp.ncell,0,sizeof(int));
-	cudaMemset(tmp.nder,0,sizeof(int));
-	cudaMemset(tmp.nmemb,0,sizeof(int));
-	cudaMemset(tmp.current_phase,0,sizeof(int));
-	cudaMemset(tmp.sw,0,sizeof(int));
+	cudaMemset(zmax, 0, sizeof(float));
+	cudaMemset(ncell, 0, sizeof(int));
+	cudaMemset(nder, 0, sizeof(int));
+	cudaMemset(nmemb, 0, sizeof(int));
+	cudaMemset(current_phase, 0, sizeof(int));
+	cudaMemset(sw, 0, sizeof(int));
+	cudaMemset(need_reconnect, 0, sizeof(int));
+	LockfreeDeviceQueue<CellIndex, MAX_CELL_NUM> rmq;
+	cudaMemcpy(remove_queue, &rmq, sizeof(LockfreeDeviceQueue<CellIndex, MAX_CELL_NUM>), cudaMemcpyHostToDevice);
+}
 
-	CellManager_Device* ret;
-	cudaMalloc((void**)&ret,sizeof(CellManager_Device));
-	cudaMemcpy(ret,&tmp,sizeof(CellManager_Device),cudaMemcpyHostToDevice);
-	return ret;
+
+__device__ void CellManager_Device::set_need_reconnect(int need){
+	atomicExch(need_reconnect, need);
+}
+__device__ CellDeviceWrapper CellManager_Device::alloc_new_cell(){
+	set_need_reconnect(NEED_RECONNECT);
+	return CellDeviceWrapper(this,atomicAdd(ncell, 1));
+}
+
+__device__ void CellManager_Device::migrate(CellIndex src,CellIndex dest){
+#define MIG(elem) elem[dest]=elem[src]
+	MIG(state);
+	MIG(pos[0]);
+	MIG(pos[1]);
+	MIG(fix_origin);
+	MIG(connection_data); //slow? invalidated
+	MIG(pair_index);
+	MIG(ca2p[0]);
+	MIG(ca2p[1]);
+	MIG(ca2p_avg);
+	MIG(ex_inert);
+	MIG(IP3);
+	MIG(agek);
+	MIG(ageb);
+	MIG(ex_fat);
+	MIG(in_fat);
+	MIG(spr_nat_len);
+	MIG(rest_div_times);
+	MIG(dermis_index);
+#undef MIG
+	if (pair_index[dest] >= 0){
+		pair_index[pair_index[dest]] = dest;
+	}
+
+	set_need_reconnect(NEED_RECONNECT);
 
 }
-*/
-#define DCM(ptr,elem_size) cudaMalloc((void**)&(ptr),elem_size*MAX_CELL_NUM)
 void CellManager::alloc(){
 	CellManager_Device tmp;
+	tmp.__alloc();
 
-	//pre
-	cudaMalloc((void**)&tmp.__block_max_store,sizeof(int)*DEDUCT_ZMAX_DIV_NUM);__block_max_store=tmp.__block_max_store;
 
-	DCM(tmp.state,sizeof(CELL_STATE));state=tmp.state;
-	DCM(tmp.pos[0],sizeof(CellPos));pos[0]=tmp.pos[0];
-	DCM(tmp.pos[1],sizeof(CellPos));pos[1]=tmp.pos[1];
-	DCM(tmp.fix_origin,sizeof(CellIndex));fix_origin=tmp.fix_origin;
-	DCM(tmp.connection_data,sizeof(CellConnectionData));connection_data=tmp.connection_data;
-	DCM(tmp.pair_index,sizeof(CellIndex));pair_index=tmp.pair_index;
-	DCM(tmp.ca2p[0],sizeof(float));ca2p[0]=tmp.ca2p[0];
-	DCM(tmp.ca2p[1],sizeof(float));ca2p[1] = tmp.ca2p[1];
-	DCM(tmp.ca2p_avg,sizeof(float));ca2p_avg=tmp.ca2p_avg;
-	DCM(tmp.ex_inert,sizeof(float));ex_inert=tmp.ex_inert;
-	DCM(tmp.IP3,sizeof(float));IP3=tmp.IP3;
-	DCM(tmp.agek,sizeof(float));agek=tmp.agek;
-	DCM(tmp.ageb,sizeof(float));ageb=tmp.ageb;
-	DCM(tmp.ex_fat,sizeof(float));ex_fat=tmp.ex_fat;
-	DCM(tmp.in_fat,sizeof(float));in_fat=tmp.in_fat;
-	DCM(tmp.spr_nat_len,sizeof(float));spr_nat_len=tmp.spr_nat_len;
-	DCM(tmp.rest_div_times,sizeof(int));rest_div_times=tmp.rest_div_times;
-	DCM(tmp.dermis_index,sizeof(CellIndex));dermis_index=tmp.dermis_index;
-	cudaMalloc((void**)&tmp.zmax,sizeof(float));zmax=tmp.zmax;
-	cudaMalloc((void**)&tmp.ncell,sizeof(int));ncell=tmp.ncell;
-	cudaMalloc((void**)&tmp.nder,sizeof(int));nder=tmp.nder;
-	cudaMalloc((void**)&tmp.nmemb,sizeof(int));nmemb=tmp.nmemb;
-	cudaMalloc((void**)&tmp.current_phase,sizeof(int));current_phase=tmp.current_phase;
-	cudaMalloc((void**)&tmp.sw,sizeof(int));sw=tmp.sw;
-
-	cudaMemset(tmp.zmax,0,sizeof(float));
-	cudaMemset(tmp.ncell,0,sizeof(int));
-	cudaMemset(tmp.nder,0,sizeof(int));
-	cudaMemset(tmp.nmemb,0,sizeof(int));
-	cudaMemset(tmp.current_phase,0,sizeof(int));
-	cudaMemset(tmp.sw,0,sizeof(int));
+	state=tmp.state;
+	pos[0]=tmp.pos[0];
+	pos[1]=tmp.pos[1];
+	fix_origin=tmp.fix_origin;
+	connection_data=tmp.connection_data;
+	pair_index=tmp.pair_index;
+	ca2p[0]=tmp.ca2p[0];
+	ca2p[1] = tmp.ca2p[1];
+	ca2p_avg=tmp.ca2p_avg;
+	ex_inert=tmp.ex_inert;
+	IP3=tmp.IP3;
+	agek=tmp.agek;
+	ageb=tmp.ageb;
+	ex_fat=tmp.ex_fat;
+	in_fat=tmp.in_fat;
+	spr_nat_len=tmp.spr_nat_len;
+	rest_div_times=tmp.rest_div_times;
+	dermis_index=tmp.dermis_index;
+	zmax=tmp.zmax;
+	ncell=tmp.ncell;
+	nder=tmp.nder;
+	nmemb=tmp.nmemb;
+	current_phase=tmp.current_phase;
+	sw=tmp.sw;
+	need_reconnect = tmp.need_reconnect;
+	dev_remove_queue_size = reinterpret_cast<unsigned int*>(tmp.remove_queue); //head address points to size (due to Standard Layout)
 
 	cudaMalloc((void**)&dev_ptr,sizeof(CellManager_Device));
 	cudaMemcpy(dev_ptr,&tmp,sizeof(CellManager_Device),cudaMemcpyHostToDevice);
@@ -145,6 +173,7 @@ for(int j=0;j<_nmemb;j++){
 	cs[j].connect_index[1]=get_adj_memb_idx<DIR_L>(j);
 	cs[j].connect_index[2]=get_adj_memb_idx<DIR_B>(j);
 	cs[j].connect_index[3]=get_adj_memb_idx<DIR_R>(j);
+	assert(cs[j].connect_index[0] >= 0 && cs[j].connect_index[1] >= 0 && cs[j].connect_index[2] >= 0 && cs[j].connect_index[3] >= 0);
 }
 //2-pass
 for (int j = 0; j < _nmemb; j++){
@@ -164,8 +193,8 @@ for (int j = 0; j < _nmemb; j++){
 	cs[j].connect_index[6] = cs[memb_r].connect_index[2];
 	cs[j].connect_index[7] = cs[memb_u].connect_index[3];
 
-	//cs[j].connected_num = 8;
-	//assert(memb_lu >= 0 && memb_bl >= 0 && memb_rb >= 0 && memb_ur >= 0);
+	cs[j].connect_num = 8;
+	assert(cs[j].connect_index[4] >= 0 && cs[j].connect_index[5] >= 0 && cs[j].connect_index[6] >= 0 && cs[j].connect_index[7] >= 0);
 }
 
 }
@@ -217,7 +246,7 @@ __host__ void CellManager::init_with_file(const char* filename){
 				&hspr_nat_len[id_count],
 				&hpair_index[id_count],
 				&hfix_origin[id_count]);
-
+			hpos[id_count].w = 0.0f;
 			/*
 			BLANK�ɂ��ǂ蒅������I��
 			*/
@@ -270,6 +299,7 @@ __host__ void CellManager::init_with_file(const char* filename){
 	printf("eusyo0\n");
 	set_cell_nums(id_count,nmemb,nder);
 	printf("eusyo1\n");
+	memb_init(nmemb, &hconnection_data[0]);
 	cudaMemcpy(state, &hstate[0], sizeof(CELL_STATE)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
 		//cudaMemcpy(d->c_radius_d, c_radius_h, sizeof(float)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
 		cudaMemcpy(ageb, &hageb[0], sizeof(float)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
@@ -289,17 +319,37 @@ __host__ void CellManager::init_with_file(const char* filename){
 }
 
 __host__ void CellManager::switch_phase(){
-	current_phase_host=1-current_phase_host;
-	cudaMemset(((char*)current_phase)+3,current_phase_host,1);
+	current_phase_host = 1 - current_phase_host;
+	cudaMemcpy(current_phase, &current_phase_host, sizeof(int), cudaMemcpyHostToDevice);
 }
-/*
-__host__ void CellManager::fetch_cell_nums(){
-	cudaMemcpy(&ncell,dev_ptr->ncell,sizeof(int),cudaMemcpyDeviceToHost);
-	cudaMemcpy(&host_data.nder,dev_ptr->nder,sizeof(int),cudaMemcpyDeviceToHost);
-	cudaMemcpy(&host_data.nmemb,dev_ptr->nmemb,sizeof(int),cudaMemcpyDeviceToHost);
-}
-*/
 
+__host__ void CellManager::fetch_cell_nums(){
+	cudaMemcpy(&ncell_host,ncell,sizeof(int),cudaMemcpyDeviceToHost);
+	cudaMemcpy(&nder_host,nder,sizeof(int),cudaMemcpyDeviceToHost);
+	cudaMemcpy(&nmemb_host,nmemb,sizeof(int),cudaMemcpyDeviceToHost);
+}
+
+bool CellManager::should_force_reconnect(){
+	int tmp;
+	cudaMemcpy(&tmp, need_reconnect, sizeof(int), cudaMemcpyDeviceToHost);
+	return ( tmp == NEED_RECONNECT);
+}
+
+void CellManager::no_need_reconnect(){
+	int tmp = NO_NEED_RECONNECT;
+	cudaMemcpy(need_reconnect, &tmp, sizeof(int), cudaMemcpyHostToDevice);
+}
+unsigned int CellManager::get_device_remove_queue_size(){
+	unsigned int tmp;
+	cudaMemcpy(&tmp, dev_remove_queue_size, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+	return tmp;
+}
+
+void CellManager::reset_device_remove_queue(){
+	//unsigned int tmp;
+	cudaMemset(dev_remove_queue_size,0, sizeof(unsigned int));
+	//return tmp;
+}
 __host__ void CellManager::set_cell_nums(int _ncell,int _nmemb,int _nder){
 
 	ncell_host=_ncell;
@@ -314,4 +364,8 @@ printf("eruusi2\n");
 }
 CellPos* CellManager::current_pos_host(){
 	return pos[current_phase_host];
+}
+
+CellPos* CellManager::next_pos_host(){
+	return pos[1-current_phase_host];
 }

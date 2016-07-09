@@ -1,0 +1,428 @@
+#include "define.h"
+#include "CellManager.h"
+#include <cstdio>
+#include <cassert>
+#include <curand_kernel.h>
+#include "cell_state_renew.h"
+#include "utils.h"
+#define stoch_div_time_ratio (0.25f)
+#define stoch_corr_coef (1.0f)
+#define S2 (0.1f)
+#define S0 (0.1f*0.2f) //TODO:よりわかりやすい命名
+#define delta_L (0.01f*R_max)
+
+#define printf(x)
+#define assert(x)
+__device__ inline bool __is_malig(CellDeviceWrapper cell){
+	return cell.fix_origin() >= 0 && cell.fix_origin() < MALIGNANT;
+}
+
+__device__ inline float genrand_real(){
+	int id = blockDim.x*blockIdx.x + threadIdx.x;
+	curandState state;
+	curand_init((unsigned int)clock64(), id, 0, &state);
+	return curand_uniform(&state);
+}
+
+/**
+*  @param [in] c 計算対象の細胞細胞
+*  @return 条件によって補正されたeps_ks
+*/
+__device__ inline float weighted_eps_ks(CellDeviceWrapper cell) {
+	#define eps_ks (0.10f*0.5f)
+	#define accel_diff (1.0f)
+	return __is_malig(cell) ? accel_diff *eps_ks : eps_ks;
+	//undef?
+}
+
+__device__ inline float agek_ALIVE_const(CellDeviceWrapper cell) {
+	//using namespace cont;
+	#define alpha_k (2.0f)
+
+	return weighted_eps_ks(cell)*(S0 + alpha_k*min0(cell.ca2p_avg() - ca2p_init));
+}
+
+/**
+*  @param [in] c 計算対象の細胞細胞
+*  @return 条件によって補正されたeps_kb
+*/
+__device__ inline float weighted_eps_kb(CellDeviceWrapper cell) {
+	#define accel_div (1.0f)
+	#define eps_kb (0.12f)
+	return __is_malig(cell) ? accel_div *eps_kb : eps_kb;
+}
+
+__device__ inline float ageb_const(CellDeviceWrapper cell) {
+	//using namespace cont;
+	#define alpha_b (5.0f)
+
+	return weighted_eps_kb(cell)*(S2 + alpha_b*min0(cell.ca2p_avg() - ca2p_init));
+}
+
+
+__device__ inline float get_div_age_thresh(CELL_STATE state){
+	/** MUSUME用分裂開始年齢のしきい値*/
+	#define agki_max (6.0f)
+
+	/** FIX用分裂開始年齢の倍率 */
+	#define fac (1.0f)
+
+	/** FIX用分裂開始年齢のしきい値 */
+	#define agki_max_fix (fac*agki_max)
+
+	return state == FIX ? agki_max_fix
+		: state == MUSUME ? agki_max
+		: 0.0f;
+}
+
+
+/**
+*  分裂するかどうかを確率的に決定する部分
+*  @return 分裂を行う場合true、そうでないならfalse
+*  @attention 確率的な分裂を行わない場合、常にtrueを返す。
+*/
+__device__ inline bool stochastic_div_test(CellDeviceWrapper cell) {
+	//using namespace cont;
+	if (STOCHASTIC!=1) {
+		return true;
+	}
+	else {
+		return genrand_real()*(get_div_age_thresh(cell.state())*stoch_div_time_ratio) <= stoch_corr_coef*DT_Cell*weighted_eps_kb(cell)*S2;
+	}
+}
+
+/**
+分裂の準備ができているかどうか
+@attention 確率的な分裂を行う場合、乱数により返り値は変わる。
+*/
+__device__ inline bool is_divide_ready(CellDeviceWrapper cell) {
+
+	if (cell.pair_index()<0 && (cell.ageb() >= get_div_age_thresh(cell.state())*(1.0 - stoch_div_time_ratio))) {
+		return stochastic_div_test(cell);
+	}
+	else {
+		return false;
+	}
+}
+
+/**
+*  c2からc1への単位ベクトルを計算する。
+*  @param [in] c1 細胞c1
+* 	@param [in] c2 細胞c2
+*  @param [out] outx 単位ベクトルのx成分
+*  @param [out] outy 単位ベクトルのy成分
+*  @param [out] outz 単位ベクトルのz成分
+*
+*  @attention c1とc2が同じ細胞を指している場合、動作は未定義。
+*  また、outx,outy,outzのいずれかが同じ変数を指している場合も動作は未定義。
+*/
+__device__ inline float4 calc_cell_uvec(CellPos c1, CellPos c2) {
+	const float nvx = p_diff_x(c1.x, c2.x);
+	const float nvy = p_diff_y(c1.y, c2.y);
+	const float nvz = c1.z - c2.z;
+
+	const float invnorm = rsqrtf(nvx*nvx + nvy*nvy + nvz*nvz);
+	return make_float4(
+		nvx *invnorm,
+		nvy *invnorm,
+		nvz *invnorm,0.0f
+		);
+
+}
+
+/**
+*  最も近いdermisに対しての分裂方向(単位ベクトル)をランダムに計算する。
+*
+*  @param [in] me 分裂を行う細胞
+*  @param [in] dermis 最近傍のdermis
+*  @param [out] outx 単位ベクトルのx成分
+*  @param [out] outy 単位ベクトルのy成分
+*  @param [out] outz 単位ベクトルのz成分
+*
+*  @attention meとdermisが同じ細胞を指している場合、動作は未定義。
+*  また、outx,outy,outzのいずれかが同じ変数を指している場合も動作は未定義。
+*/
+__device__ float4 div_direction(CellPos c1, CellPos dermis1) {
+
+	//double nx, ny, nz;
+	const float4 dermis_normal = calc_cell_uvec(c1, dermis1);
+	float ox, oy, oz;
+	float sum;
+	do {
+		//const float rand_theta = M_PI_F*genrand_real();
+		float sr1, cr1;
+		sincosf(M_PI_F*genrand_real(), &sr1, &cr1);
+		float sr2, cr2;
+		sincosf(2.0f * M_PI_F*genrand_real(), &sr2, &cr2);
+		const float rvx = sr1*cr2;
+		const float rvy = sr1*sr2;
+		const float rvz = cr1;
+
+		ox = dermis_normal.y*rvz - dermis_normal.z*rvy;
+		oy = dermis_normal.z*rvx - dermis_normal.x*rvz;
+		oz = dermis_normal.x*rvy - dermis_normal.y*rvx;
+	} while ((sum = ox*ox + oy*oy + oz*oz) < 1.0e-14);
+	const float invsum = rsqrtf(sum);
+	return make_float4(
+		ox *invsum,
+		oy *invsum,
+		oz *invsum,0.0f
+		);
+}
+
+__device__ inline void cell_divide(CellManager_Device* cmd, CellDeviceWrapper cell) {
+	CellDeviceWrapper new_cell = cmd->alloc_new_cell();
+
+	new_cell.state() = cell.state();
+	new_cell.fix_origin() = cell.fix_origin();
+	new_cell.pos() = cell.pos();
+	new_cell.next_pos() = cell.next_pos();
+	new_cell.ca2p() = cell.ca2p();
+	new_cell.next_ca2p() = cell.ca2p();
+	new_cell.ca2p_avg_ref() = cell.ca2p();
+	new_cell.IP3() = cell.IP3();
+	new_cell.ex_inert() = cell.ex_inert();
+	new_cell.agek() = 0.0f;
+	new_cell.ageb() = 0.0f; cell.ageb() = 0.0f;
+	new_cell.ex_fat() = 0.0f;
+	new_cell.in_fat() = 0.0f;
+	new_cell.spr_nat_len() = delta_L; cell.spr_nat_len() = delta_L;
+	new_cell.rest_div_times() = cell.rest_div_times();
+	if (cell.state() == MUSUME){
+		new_cell.rest_div_times()--;
+		cell.rest_div_times()--;
+	}
+	new_cell.pair_index() = cell.index;
+	cell.pair_index() = new_cell.index;
+	if (cell.dermis_index() < 0){
+		printf("dermis not found [in divide phase]\n");
+		assert(false);
+	}
+	const float4 div_dir = div_direction(cell.pos(), cmd->current_pos()[cell.dermis_index()]);
+	const CellPos my_pos = cell.pos() + (0.5f*delta_L)*div_dir;
+	const CellPos pair_pos = new_cell.pos() - (0.5f*delta_L)*div_dir;
+	cell.pos() = my_pos; cell.next_pos() = my_pos;
+	new_cell.pos() = pair_pos; new_cell.next_pos() = pair_pos;
+	printf("new cell detected. cell_index:%d\n", new_cell.index);
+}
+
+/**
+*  娘細胞の状態更新。
+*  分化、分裂、細胞周期の更新を行う。
+*/
+__device__ void _MUSUME_state_renew(CellManager_Device* cmd, CellDeviceWrapper cell) {
+	if (cell.dermis_index()<0 && cell.pair_index()<0) {
+		if (SYSTEM == WHOLE) {
+			//printf("ALIVE detected\n");
+			cell.state() = ALIVE;
+			//musume->cst.k_aging_start_timestep = cman.current_timestep;
+		}
+		else if (SYSTEM == BASAL) {
+			//musume->state = DISA;
+			cell.remove();
+		}
+		return;
+	}
+
+	if (cell.rest_div_times() > 0 && is_divide_ready(cell)) {
+		cell_divide(cmd, cell);
+	}
+	else {
+		cell.ageb() += DT_Cell*ageb_const(cell);
+	}
+}
+__device__ void _FIX_state_renew(CellManager_Device* cmd, CellDeviceWrapper cell){
+if (cell.dermis_index()<0) {
+	printf("err: not found fix dermis\n");
+	assert(false);
+	return;
+}
+if (is_divide_ready(cell)) {
+	cell_divide(cmd, cell);
+}
+else {
+	cell.ageb() += DT_Cell*ageb_const(cell);
+}
+}
+
+__device__ inline float agek_DEAD_AIR_const() {
+	#define eps_kk (0.10f*0.5f)
+	#define S1 (0.1f)
+
+	return eps_kk*S1;
+}
+
+/**
+*  角層、空気の状態更新。
+*  加齢、剥離を行う。
+*/
+__device__ void _DEAD_AIR_state_renew(CellDeviceWrapper cell) {
+	#define ADHE_CONST (31.3f)
+	#define DISA_conn_num_thresh (11) //Nc
+
+	if (cell.agek() >= ADHE_CONST&&cell.connection_data_ptr()->connect_num <= DISA_conn_num_thresh) {
+		cell.remove();
+	}
+	else {
+		cell.agek() += DT_Cell*agek_DEAD_AIR_const();
+	}
+}
+
+__device__ void cornificate(CellManager_Device* cmd, CellDeviceWrapper cell)
+{
+	cell.state() = DEAD;
+	printf("sw updated:%d\n", atomicAdd(cmd->sw, 1));
+}
+
+/** 脂質の生成・放出を切り替えるカルシウム濃度 */
+#define ubar (0.45f)
+
+/**
+*  agekによるスイッチングの緩さ
+*  @note tanhの分母
+*/
+#define delta_lipid (0.1f)
+
+/**
+*  カルシウム濃度によるスイッチングの緩さ
+*  @note tanhの分母
+*/
+#define delta_sig_r1 (0.1f)
+
+/**
+*  @param [in] c 計算対象の細胞細胞
+*  @return 放出する脂質の時間差分
+*/
+__device__ inline float k_lipid_release(float ca2p_avg, float agek) {
+	//using namespace cont;
+
+	#define lipid_rel (0.05f*4.0f)
+	return 0.25f*lipid_rel*(1.0f + tanhf((ca2p_avg - ubar) / delta_sig_r1))*(1.0f + tanhf((agek - THRESH_SP) / delta_lipid));
+}
+
+/**
+*  @param [in] c 計算対象の細胞細胞
+*  @return 生成する脂質の時間差分
+*  @attention この値が直接生成量になるわけではない。
+*/
+__device__ inline float k_lipid(float ca2p_avg, float agek) {
+
+	#define lipid (0.6f)
+	return 0.25f*lipid*(1 + tanhf((ubar - ca2p_avg) / delta_sig_r1))*(1.0f + tanhf((agek - THRESH_SP) / delta_lipid));
+}
+
+__device__ inline void _ALIVE_state_renew(CellManager_Device* cmd, CellDeviceWrapper cell) {
+	//using namespace cont;
+	const float my_agek = cell.agek();
+	//printf("agekno:%f\n", my_agek);
+	if (my_agek >= THRESH_DEAD) {
+		cornificate(cmd,cell);
+	}
+	else {
+		const float my_in_fat = cell.in_fat();
+		const float tmp = k_lipid_release(cell.ca2p_avg(), my_agek)*my_in_fat;
+		cell.in_fat() += DT_Cell*(k_lipid(cell.ca2p_avg(), my_agek)*(1.0f - my_in_fat) - tmp);
+		cell.ex_fat() += DT_Cell*tmp;
+		cell.agek() += DT_Cell*agek_ALIVE_const(cell); //update last
+	}
+}
+
+__global__ void remove_exec_impl(CellManager_Device* cmd){
+	int del_id = blockDim.x*blockIdx.x + threadIdx.x;
+	if (del_id < cmd->remove_queue->size()){
+		int src = *cmd->ncell - del_id - 1;
+		cmd->migrate(src, cmd->remove_queue->data[del_id]);
+	}
+}
+
+void remove_exec_finalize_dev(CellManager* cm){
+	int ncell;
+	cudaMemcpy(&ncell, cm->ncell, sizeof(int), cudaMemcpyDeviceToHost);
+	ncell -= cm->get_device_remove_queue_size();
+	cudaMemcpy(cm->ncell, &ncell, sizeof(int), cudaMemcpyHostToDevice);
+	cm->reset_device_remove_queue();
+}
+
+__host__ void remove_exec_finalize_host(CellManager* cm){
+	cm->fetch_cell_nums();
+}
+
+void remove_exec(CellManager* cm){
+	remove_exec_impl << <16, cm->get_device_remove_queue_size() / 16 + 1 >> >(cm->dev_ptr);
+	//cm->fetch_cell_nums();
+	remove_exec_finalize_dev(cm);
+	//remove_exec_finalize_host(cm);
+
+}
+/*
+void state_renew_finalize(CellManager* cm){
+	cm->fetch_cell_nums();
+}
+*/
+__global__ inline void cell_state_renew_impl(int ncell,int offset, CellManager_Device* cmd){
+	const CellIndex index = blockDim.x*blockIdx.x + threadIdx.x + offset;
+	if (index < ncell){
+		CellDeviceWrapper c(cmd, index);
+		switch (cmd->state[index]){
+		case ALIVE:
+			_ALIVE_state_renew(cmd, c);
+			break;
+		case DEAD:case AIR:
+			_DEAD_AIR_state_renew(c);
+			break;
+		case FIX:
+			_FIX_state_renew(cmd, c);
+			break;
+		case MUSUME:
+			_MUSUME_state_renew(cmd, c);
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+__device__ void pair_disperse_impl(CellIndex index,CellManager_Device* cmd) {//cannot restrict due to c->pair->pair (== c)
+
+	#define eps_L (0.14f)
+	#define unpair_dist_coef (0.9f)
+	//using namespace cont;
+	//assert(c->pair != nullptr);
+	//assert(c->pair->pair == c);
+	const float rad_sum = R_max+R_max;
+	const float unpair_th = unpair_dist_coef*rad_sum;
+	float distSq = 0;
+	const CellIndex pairidx = cmd->pair_index[index];
+	if (cmd->spr_nat_len[index] < 2.0f*R_max) {
+		cmd->spr_nat_len[index] += DT_Cell*eps_L;
+
+		cmd->spr_nat_len[pairidx] = cmd->spr_nat_len[index];
+	}
+	else if ((distSq = p_cell_dist_sq(cmd->current_pos()[index], cmd->current_pos()[pairidx]))>unpair_th*unpair_th) {
+		cmd->spr_nat_len[index] = 0.0f;
+		cmd->spr_nat_len[pairidx] = 0.0f;
+		cmd->pair_index[pairidx] = -1;
+		cmd->pair_index[index] = -1;
+		printf("unpaired. distSq:%lf\n", distSq);
+	}
+}
+
+__global__ inline void pair_disperse(int ncell, int offset, CellManager_Device* cmd){
+	const CellIndex index = blockDim.x*blockIdx.x + threadIdx.x + offset;
+	if (index < ncell){
+		if (cmd->pair_index[index] >= 0)if (index>cmd->pair_index[index]){
+			pair_disperse_impl(index, cmd);
+		}
+	}
+}
+
+void cell_state_renew(CellManager* cm){
+	const int other_num = cm->nder_host + cm->nmemb_host;
+	cell_state_renew_impl << <(cm->ncell_host - other_num) / 128+ 1, 128>> >(cm->ncell_host,other_num , cm->dev_ptr);
+	cudaDeviceSynchronize();
+	remove_exec(cm);
+
+	cm->fetch_cell_nums();
+	pair_disperse << <(cm->ncell_host - other_num) / 128 + 1, 128 >> >(cm->ncell_host, other_num, cm->dev_ptr);
+	cudaDeviceSynchronize();
+}

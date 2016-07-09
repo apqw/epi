@@ -6,31 +6,31 @@
 #define POW6(x) ((x)*(x)*(x)*(x)*(x)*(x))
 #define POW3(x) ((x)*(x)*(x))
 /** LJƒ|ƒeƒ“ƒVƒƒƒ‹‚ÌŒW” */
-__constant__ static const float eps_m = 0.01f;
+#define eps_m (0.01f)
 
 /*
 MEMB_calc
 */
-__constant__ static const float P_MEMB = 1.0f / COMPRESS_FACTOR;
+__constant__ static const float P_MEMB = (1.0f / COMPRESS_FACTOR);
 
 /** L‚Ñ’e«ŒW” */
-__constant__ static const float DER_DER_CONST = 0.05f;
-__constant__ static const float K_TOTAL = 3.0f;
-__constant__ static const float K_DESMOSOME_RATIO = 0.01f;
-__constant__ static const float K_DESMOSOME = 3.0f*0.01f;
-__constant__ static const float Kspring = 25.0f;
-__constant__ static const float Kspring_d = 5.0f;
+#define DER_DER_CONST (0.05f)
+#define K_TOTAL (3.0f)
+#define K_DESMOSOME_RATIO (0.01f)
+#define K_DESMOSOME (3.0f*0.01f)
+#define Kspring (25.0f)
+#define Kspring_d (5.0f)
 
 /** ‹È‚°’e«ŒW” */
-__constant__ static const float KBEND = 0.25f;//0.5->0.25
+#define KBEND (0.25f) //0.5->0.25
 
 /*
 DER_calc
 */
-__constant__ static const float delta_R = 0.4f*R_der;
+#define delta_R (0.4f*R_der)
 
-__constant__ static const float para_ljp2 = 0.005f;
-__constant__ static const float Kspring_division = 5.0f;
+#define para_ljp2 (0.005f)
+#define Kspring_division (5.0f)
 template<unsigned int d>
 __device__ inline int get_adj_memb_idx_d(int my_memb_idx){
     return 0.0f;
@@ -157,6 +157,7 @@ __device__ float CI_memb_to_memb(cell_pos_set c1, cell_pos_set c2,float rad1,flo
 	else if (distSq < rad_sum_sq) {
 		const float distlj = sqrtf(distSq);
 		const float cr_dist = rad_sum*P_MEMB;
+		
 		return -(DER_DER_CONST / distlj) * (distlj / cr_dist - 1.0f);
 	}
 	else {
@@ -164,8 +165,11 @@ __device__ float CI_memb_to_memb(cell_pos_set c1, cell_pos_set c2,float rad1,flo
 		const float lambda_dist = (1.0f + P_MEMB)*rad_sum;
 		const float cr_dist = rad_sum*P_MEMB;
 		const float LJ6 = POW6(cr_dist) / POW6(lambda_dist - distlj);
-		return -(DER_DER_CONST / rad_sum)*((1.0f - P_MEMB) / P_MEMB)
+
+		const float tmp= -(DER_DER_CONST / rad_sum)*((1.0f - P_MEMB) / P_MEMB)
 			- 4.0f * eps_m*(LJ6*(LJ6 - 1.0f)) / ((lambda_dist - distlj)*distlj);
+		
+		return tmp;
 	}
 }
 
@@ -182,7 +186,9 @@ __device__ float CI_memb_to_memb_diag(cell_pos_set c1, cell_pos_set c2, float ra
 	if (distSq< (cr_dist_sq = rad_sum_sq*P_MEMB*P_MEMB)) {
 		//assert(fabs(ljmain(me, oppo)) < 1000);
 		const float LJ6 = POW3(cr_dist_sq) / POW3(distSq);
-		return 4.0f*eps_m*LJ6*(LJ6 - 1.0f) / distSq;
+		const float tmp= 4.0f*eps_m*LJ6*(LJ6 - 1.0f) / distSq;
+		//if (distSq<0.5)printf("valid err:ci memb memb 1 diag x1:%f y1:%f z1:%f x2:%f y2:%f z2:%f \n", c1.x, c1.y, c1.z, c2.x, c2.y, c2.z);
+		return tmp;
 	}
 	return 0.0f;
 }
@@ -292,6 +298,7 @@ __global__ void cell_interaction_memb_apply(int nmemb,cell_pos_set* cs, cell_pos
 				opcs = cs[cis[i].index[j]];
 				//vs = p_vec_sub(CME, opcs);
 				coef = CI_other(CME, opcs, R_memb, R_max);
+				//if (fabs(coef) > 25)printf("err in memb_int_3 __ %d\n", cis[i].index[j]);
 				vel.x += coef*p_diff_x(CME.x, opcs.x);
 				vel.y += coef*p_diff_y(CME.y, opcs.y);
 				vel.z += coef*(CME.z - opcs.z);
@@ -447,7 +454,7 @@ __device__ float3 fix_interact_impl(cell_pos_set cme, int index, cell_pos_set*__
 				coef = CI_other(cme, opcs, get_radius(FIX), get_radius(MEMB));
 			}
 			break;
-		case ALIVE:case AIR:case DER:
+		case ALIVE:case AIR:case DEAD:
 			coef = CI_al_air_de_fix_mu_and_al_air_de(cme, opcs, get_radius(FIX), get_radius(opstate), agek_arr[index], agek_arr[opidx]);
 			break;
 		default:
@@ -515,7 +522,7 @@ __device__ float3 musume_interact_impl(cell_pos_set cme, int index, cell_pos_set
 				coef = CI_other(cme, opcs, get_radius(MUSUME), get_radius(MEMB));
 			}
 			break;
-		case ALIVE:case AIR:case DER:
+		case ALIVE:case AIR:case DEAD:
 			coef = CI_al_air_de_fix_mu_and_al_air_de(cme, opcs, get_radius(MUSUME), get_radius(opstate), agek_arr[index], agek_arr[opidx]);
 			break;
 		default:
@@ -636,7 +643,7 @@ void interact(DeviceData*d){
 	memb_bend_apply_2 << <300 * 150 / 128 + 1, 128 >> >(d->nmemb, d->c_pos_d[d->current], d->c_pos_d[1 - d->current], d->c_connected_index_d);
 	cudaDeviceSynchronize();
 	cell_interaction_memb_apply << <300 * 150 / 128 + 1, 128 >> >(d->nmemb, d->c_pos_d[d->current], d->c_pos_d[1 - d->current], d->c_connected_index_d, (unsigned int*)d->c_state_d, d->c_dermis_index_d);
-	non_memb_interact_impl << <(d->ncell - d->nmemb) /128+ 1, 128 >> >(d->nmemb, d->ncell, d->c_pos_d[d->current], d->c_pos_d[1 - d->current], d->c_connected_index_d, (unsigned int*)d->c_state_d, d->c_dermis_index_d, d->c_pair_index_d, d->c_agek_d, d->c_rest_div_times_d, d->c_spr_nat_len_d);
+	//non_memb_interact_impl << <(d->ncell - d->nmemb) /128+ 1, 128 >> >(d->nmemb, d->ncell, d->c_pos_d[d->current], d->c_pos_d[1 - d->current], d->c_connected_index_d, (unsigned int*)d->c_state_d, d->c_dermis_index_d, d->c_pair_index_d, d->c_agek_d, d->c_rest_div_times_d, d->c_spr_nat_len_d);
 	cudaDeviceSynchronize();
 	cell_pos_periodic_fix << <d->ncell / 512 + 1, 512 >> >(d->c_pos_d[1 - d->current]);
 	cudaDeviceSynchronize();
