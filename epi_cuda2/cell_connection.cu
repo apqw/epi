@@ -14,6 +14,7 @@
 #include <vector>
 #include <fstream>
 #include <string>
+#include <sstream>
 #define AREA_GRID_ORIGINAL 2.0f
 
 #define AREA_GRID	(AREA_GRID_ORIGINAL + 1e-7f)
@@ -23,11 +24,11 @@
 #define N3 64
 #define N2 400
 
-#define SEARCH_GRID_DIM 5
+#define SEARCH_GRID_DIM 4
 
 #define SEARCH_GRID_NUM (SEARCH_GRID_DIM*SEARCH_GRID_DIM*SEARCH_GRID_DIM)
 #define SEARCH_PAR_NUM 8
-#define SEARCH_THREAD_UPPER_LIMIT 128
+#define SEARCH_THREAD_UPPER_LIMIT 64
 
 #define GET_AREA_INFO_IDX(i) ((i)&0x007fffff)
 #define GET_AREA_INFO_IDX_BY_PTR(ptr) GET_AREA_INFO_IDX(*reinterpret_cast<const unsigned int*>(ptr))
@@ -49,10 +50,10 @@ __global__ void init_grid(int ncell, CellPos* current_pos, CellManager_Device*co
 
 		CellPos c = current_pos[index];
 		//int aix, aiy, aiz;
-		const int aix = (int)((0.5f*LX - p_diff_x(0.5f*LX, c.x)) / AREA_GRID);
-		const int aiy = (int)((0.5f*LY - p_diff_y(0.5f*LY, c.y)) / AREA_GRID);
-		const int aiz = (int)((min0(c.z)) / AREA_GRID);
-
+		const int aix = ((int)rintf( (0.5f*LX - p_diff_x(0.5f*LX, c.x)) / AREA_GRID ))%ANX;
+		const int aiy = ((int)rintf( (0.5f*LY - p_diff_y(0.5f*LY, c.y)) / AREA_GRID ))%ANY;
+		const int aiz = ((int)rintf((min0(c.z)) / AREA_GRID))%ANZ;
+		//printf("tesu: %d %d %d\n",aix,aiy,aiz);
 		/*
 		if ((aix >= ANX || aiy >= ANY || aiz >= ANZ || aix < 0 || aiy < 0 || aiz < 0)) {
 			printf("err\n");
@@ -93,15 +94,15 @@ __global__ void connect_proc(int nmemb, CellManager_Device*const RESTRICT cmd, c
 		//printf("tesuya222\n");
 		my_index = nmemb + blockIdx.x;
 		my_pos = cmd->current_pos()[my_index];
-		an.x = my_pos.x / AREA_GRID;
-		an.y = my_pos.y / AREA_GRID;
-		an.z = my_pos.z / AREA_GRID;
+		an.x = (((int)rintf(my_pos.x / AREA_GRID))+ANX)%ANX;
+		an.y = (((int)rintf(my_pos.y / AREA_GRID))+ANY)%ANY;
+		an.z = ((int)rintf(min0(my_pos.z) / AREA_GRID))%ANZ;
 	}
 
 	const int virtual_id = threadIdx.x / SEARCH_PAR_NUM;
 	const int offset = threadIdx.x%SEARCH_PAR_NUM;
 	int cz = virtual_id;
-	//MEMO:‰½ŒÌ‚©SEARCH_PAR_NUM‚ÅŠ„‚Á‚Äƒnƒ}‚Á‚Ä‚½
+	//MEMO:ï¿½ï¿½ï¿½Ì‚ï¿½SEARCH_PAR_NUMï¿½ÅŠï¿½ï¿½ï¿½ï¿½Äƒnï¿½}ï¿½ï¿½ï¿½Ä‚ï¿½
 	int cy = ((int)(cz / SEARCH_GRID_DIM)); cz = cz%SEARCH_GRID_DIM;
 	int cx = ((int)(cy / SEARCH_GRID_DIM)); cy = cy%SEARCH_GRID_DIM;
 	cx = cx%SEARCH_GRID_DIM;
@@ -183,7 +184,7 @@ struct device_alloc_ctor{
 void dbg_conn_info(unsigned int* aindx,int count){
 	static std::vector<unsigned int> tmp(ANX*ANY*ANZ);
 	cudaMemcpy(&tmp[0], aindx, sizeof(unsigned int)*ANX*ANY*ANZ, cudaMemcpyDeviceToHost);
-	std::ofstream ofs("dbg_ci" + std::to_string(count));
+	std::ofstream ofs(("dbg_ci" + int_to_string(count)).c_str());
 	for (int i = 0; i < ANX; i++){
 		for (int j = 0; j < ANY; j++){
 			for (int k = 0; k < ANZ; k++){

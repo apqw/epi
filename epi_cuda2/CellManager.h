@@ -13,10 +13,11 @@
 #define NO_NEED_RECONNECT (0)
 class CellDeviceWrapper;
 struct CellConnectionData{
-	unsigned int connect_num=0;
+	unsigned int connect_num;
 	CellIndex connect_index[MAX_CONNECT_CELL_NUM];
 	float gj[MAX_CONNECT_CELL_NUM];
 	__device__ void add_atomic(CellIndex idx);
+	CellConnectionData():connect_num(0){}
 };
 
 struct CellDataStruct{

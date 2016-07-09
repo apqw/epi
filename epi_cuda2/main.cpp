@@ -15,11 +15,12 @@
 #include <vector>
 #include <fstream>
 #include <string>
+#include "utils.h"
 
 void dbg_output(CellManager* cm,int idx){
 	static std::vector<float4> pos(MAX_CELL_NUM);
 	cudaMemcpy(&pos[0], cm->current_pos_host(), sizeof(float4)*MAX_CELL_NUM, cudaMemcpyDeviceToHost);
-	std::ofstream ofs("dbg" + std::to_string(idx));
+	std::ofstream ofs(("dbg" + int_to_string(idx)).c_str());
 	for (int i = 0; i < cm->ncell_host; i++){
 		ofs << i<<" "<<pos[i].x << " " << pos[i].y << " " << pos[i].z << std::endl;
 	}
@@ -35,7 +36,7 @@ int main(int argc,char** argv){
 	cudaError_t ee;
 	//dbg_output(&cm, -1);
 	connect_cell(&cm);
-	for(int i=0;i<100000;i++){
+	for(int i=0;i<1000;i++){
 		if ((ee = cudaGetLastError()) != 0){
 			printf("error:%d\n", ee);
 			system("pause");

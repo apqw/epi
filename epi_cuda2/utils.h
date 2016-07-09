@@ -4,10 +4,11 @@
  *  Created on: 2016/07/07
  *      Author: yasu7890v
  */
-
 #ifndef UTILS_CUDA_H_
 #define UTILS_CUDA_H_
 #include "define.h"
+#include <string>
+#include <sstream>
 
 enum DIRECTION{
 	DIR_U,DIR_L,DIR_B,DIR_R,NONE
@@ -132,5 +133,9 @@ __device__ __host__ inline float4 p_diff4(const float4 a, const float4 b){
 __device__ __host__ inline float4 p_fms4(const float c, const float4 a, const float4 b){
 	return c*p_diff4(a, b);
 }
+__device__ __host__ inline float interp(float start,float end,float alpha){
+	return start*(1.0f-alpha)+end*alpha;
+}
+std::string int_to_string(int number);
 
 #endif /* UTILS_CUDA_H_ */

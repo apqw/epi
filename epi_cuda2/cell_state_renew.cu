@@ -1,3 +1,6 @@
+
+#define NDEBUG
+
 #include "define.h"
 #include "CellManager.h"
 #include <cstdio>
@@ -8,11 +11,11 @@
 #define stoch_div_time_ratio (0.25f)
 #define stoch_corr_coef (1.0f)
 #define S2 (0.1f)
-#define S0 (0.1f*0.2f) //TODO:‚æ‚è‚í‚©‚è‚â‚·‚¢–½–¼
+#define S0 (0.1f*0.2f) //TODO:ï¿½ï¿½ï¿½í‚©ï¿½ï¿½â‚·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 #define delta_L (0.01f*R_max)
 
-#define printf(x)
-#define assert(x)
+#define printf(x,...)
+//#define assert(x)
 __device__ inline bool __is_malig(CellDeviceWrapper cell){
 	return cell.fix_origin() >= 0 && cell.fix_origin() < MALIGNANT;
 }
@@ -25,49 +28,75 @@ __device__ inline float genrand_real(){
 }
 
 /**
-*  @param [in] c ŒvZ‘ÎÛ‚Ì×–E×–E
-*  @return ğŒ‚É‚æ‚Á‚Ä•â³‚³‚ê‚½eps_ks
+*  @param [in] c ï¿½vï¿½Zï¿½ÎÛ‚Ì×–Eï¿½×–E
+*  @return ï¿½ï¿½ï¿½ï¿½ï¿½É‚ï¿½ï¿½ï¿½Ä•â³ï¿½ï¿½ï¿½ê‚½eps_ks
 */
+#define eps_ks (0.10f*0.5f)
+#define accel_diff (1.0f)
 __device__ inline float weighted_eps_ks(CellDeviceWrapper cell) {
-	#define eps_ks (0.10f*0.5f)
-	#define accel_diff (1.0f)
+
 	return __is_malig(cell) ? accel_diff *eps_ks : eps_ks;
 	//undef?
 }
 
+__device__ inline float weighted_eps_ks_impl(float malig_coef) {
+	return interp(1.0f,accel_diff,malig_coef)*eps_ks;
+	//return (accel_diff*malig_coef+1.0f*(1.0f-malig_coef)) *eps_ks;
+	//undef?
+}
+
+#define alpha_k (2.0f)
+__device__ inline float agek_ALIVE_const_impl(float ca2p_avg,float malig_coef) {
+	//using namespace cont;
+
+
+	return weighted_eps_ks_impl(malig_coef)*(S0 + alpha_k*min0(ca2p_avg - ca2p_init));
+}
+
 __device__ inline float agek_ALIVE_const(CellDeviceWrapper cell) {
 	//using namespace cont;
-	#define alpha_k (2.0f)
 
 	return weighted_eps_ks(cell)*(S0 + alpha_k*min0(cell.ca2p_avg() - ca2p_init));
 }
 
 /**
-*  @param [in] c ŒvZ‘ÎÛ‚Ì×–E×–E
-*  @return ğŒ‚É‚æ‚Á‚Ä•â³‚³‚ê‚½eps_kb
+*  @param [in] c ï¿½vï¿½Zï¿½ÎÛ‚Ì×–Eï¿½×–E
+*  @return ï¿½ï¿½ï¿½ï¿½ï¿½É‚ï¿½ï¿½ï¿½Ä•â³ï¿½ï¿½ï¿½ê‚½eps_kb
 */
+#define accel_div (1.0f)
+#define eps_kb (0.12f)
 __device__ inline float weighted_eps_kb(CellDeviceWrapper cell) {
-	#define accel_div (1.0f)
-	#define eps_kb (0.12f)
+
 	return __is_malig(cell) ? accel_div *eps_kb : eps_kb;
 }
 
+__device__ inline float weighted_eps_kb_impl(float malig_coef) {
+
+	return interp(1.0f,accel_div,malig_coef)*eps_kb;
+}
+
+//using namespace cont;
+#define alpha_b (5.0f)
 __device__ inline float ageb_const(CellDeviceWrapper cell) {
-	//using namespace cont;
-	#define alpha_b (5.0f)
+
 
 	return weighted_eps_kb(cell)*(S2 + alpha_b*min0(cell.ca2p_avg() - ca2p_init));
 }
 
+__device__ inline float ageb_const_impl(float ca2p_avg,float malig_coef) {
+
+	return weighted_eps_kb_impl(malig_coef)*(S2 + alpha_b*min0(ca2p_avg - ca2p_init));
+}
+
 
 __device__ inline float get_div_age_thresh(CELL_STATE state){
-	/** MUSUME—p•ª—ôŠJn”N—î‚Ì‚µ‚«‚¢’l*/
+	/** MUSUMEï¿½pï¿½ï¿½ï¿½ï¿½Jï¿½nï¿½Nï¿½ï¿½Ì‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½l*/
 	#define agki_max (6.0f)
 
-	/** FIX—p•ª—ôŠJn”N—î‚Ì”{—¦ */
+	/** FIXï¿½pï¿½ï¿½ï¿½ï¿½Jï¿½nï¿½Nï¿½ï¿½Ì”{ï¿½ï¿½ */
 	#define fac (1.0f)
 
-	/** FIX—p•ª—ôŠJn”N—î‚Ì‚µ‚«‚¢’l */
+	/** FIXï¿½pï¿½ï¿½ï¿½ï¿½Jï¿½nï¿½Nï¿½ï¿½Ì‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½l */
 	#define agki_max_fix (fac*agki_max)
 
 	return state == FIX ? agki_max_fix
@@ -77,9 +106,9 @@ __device__ inline float get_div_age_thresh(CELL_STATE state){
 
 
 /**
-*  •ª—ô‚·‚é‚©‚Ç‚¤‚©‚ğŠm—¦“I‚ÉŒˆ’è‚·‚é•”•ª
-*  @return •ª—ô‚ğs‚¤ê‡trueA‚»‚¤‚Å‚È‚¢‚È‚çfalse
-*  @attention Šm—¦“I‚È•ª—ô‚ğs‚í‚È‚¢ê‡Aí‚Étrue‚ğ•Ô‚·B
+*  ï¿½ï¿½ï¿½ô‚·‚é‚©ï¿½Ç‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½mï¿½ï¿½ï¿½Iï¿½ÉŒï¿½ï¿½è‚·ï¿½é•”ï¿½ï¿½
+*  @return ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½ê‡trueï¿½Aï¿½ï¿½ï¿½ï¿½ï¿½Å‚È‚ï¿½ï¿½È‚ï¿½false
+*  @attention ï¿½mï¿½ï¿½ï¿½Iï¿½È•ï¿½ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½È‚ï¿½ï¿½ê‡ï¿½Aï¿½ï¿½ï¿½trueï¿½ï¿½Ô‚ï¿½ï¿½B
 */
 __device__ inline bool stochastic_div_test(CellDeviceWrapper cell) {
 	//using namespace cont;
@@ -91,9 +120,16 @@ __device__ inline bool stochastic_div_test(CellDeviceWrapper cell) {
 	}
 }
 
+__device__ inline bool stochastic_div_test_impl(float _div_age_thresh,float malig_coef) {
+
+		return STOCHASTIC!=1 ||
+				(genrand_real()*(_div_age_thresh*stoch_div_time_ratio) <= stoch_corr_coef*DT_Cell*weighted_eps_kb_impl(malig_coef)*S2);
+
+}
+
 /**
-•ª—ô‚Ì€”õ‚ª‚Å‚«‚Ä‚¢‚é‚©‚Ç‚¤‚©
-@attention Šm—¦“I‚È•ª—ô‚ğs‚¤ê‡A—”‚É‚æ‚è•Ô‚è’l‚Í•Ï‚í‚éB
+ï¿½ï¿½ï¿½ï¿½Ìï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å‚ï¿½ï¿½Ä‚ï¿½ï¿½é‚©ï¿½Ç‚ï¿½ï¿½ï¿½
+@attention ï¿½mï¿½ï¿½ï¿½Iï¿½È•ï¿½ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½ê‡ï¿½Aï¿½ï¿½ï¿½ï¿½ï¿½É‚ï¿½ï¿½Ô‚ï¿½lï¿½Í•Ï‚ï¿½ï¿½B
 */
 __device__ inline bool is_divide_ready(CellDeviceWrapper cell) {
 
@@ -105,16 +141,26 @@ __device__ inline bool is_divide_ready(CellDeviceWrapper cell) {
 	}
 }
 
+__device__ inline bool is_divide_ready_impl(bool has_pair,float ageb,float _div_age_thresh,float malig_coef) {
+
+	if (!has_pair && (ageb >= _div_age_thresh*(1.0 - stoch_div_time_ratio))) {
+		return stochastic_div_test_impl(_div_age_thresh,malig_coef);
+	}
+	else {
+		return false;
+	}
+}
+
 /**
-*  c2‚©‚çc1‚Ö‚Ì’PˆÊƒxƒNƒgƒ‹‚ğŒvZ‚·‚éB
-*  @param [in] c1 ×–Ec1
-* 	@param [in] c2 ×–Ec2
-*  @param [out] outx ’PˆÊƒxƒNƒgƒ‹‚Ìx¬•ª
-*  @param [out] outy ’PˆÊƒxƒNƒgƒ‹‚Ìy¬•ª
-*  @param [out] outz ’PˆÊƒxƒNƒgƒ‹‚Ìz¬•ª
+*  c2ï¿½ï¿½ï¿½ï¿½c1ï¿½Ö‚Ì’Pï¿½Êƒxï¿½Nï¿½gï¿½ï¿½ï¿½ï¿½ï¿½vï¿½Zï¿½ï¿½ï¿½ï¿½B
+*  @param [in] c1 ï¿½×–Ec1
+* 	@param [in] c2 ï¿½×–Ec2
+*  @param [out] outx ï¿½Pï¿½Êƒxï¿½Nï¿½gï¿½ï¿½ï¿½ï¿½xï¿½ï¿½ï¿½ï¿½
+*  @param [out] outy ï¿½Pï¿½Êƒxï¿½Nï¿½gï¿½ï¿½ï¿½ï¿½yï¿½ï¿½ï¿½ï¿½
+*  @param [out] outz ï¿½Pï¿½Êƒxï¿½Nï¿½gï¿½ï¿½ï¿½ï¿½zï¿½ï¿½ï¿½ï¿½
 *
-*  @attention c1‚Æc2‚ª“¯‚¶×–E‚ğw‚µ‚Ä‚¢‚éê‡A“®ì‚Í–¢’è‹`B
-*  ‚Ü‚½Aoutx,outy,outz‚Ì‚¢‚¸‚ê‚©‚ª“¯‚¶•Ï”‚ğw‚µ‚Ä‚¢‚éê‡‚à“®ì‚Í–¢’è‹`B
+*  @attention c1ï¿½ï¿½c2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×–Eï¿½ï¿½ï¿½wï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ê‡ï¿½Aï¿½ï¿½ï¿½ï¿½Í–ï¿½ï¿½ï¿½`ï¿½B
+*  ï¿½Ü‚ï¿½ï¿½Aoutx,outy,outzï¿½Ì‚ï¿½ï¿½ï¿½ï¿½ê‚©ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ïï¿½ï¿½ï¿½ï¿½wï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ê‡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í–ï¿½ï¿½ï¿½`ï¿½B
 */
 __device__ inline float4 calc_cell_uvec(CellPos c1, CellPos c2) {
 	const float nvx = p_diff_x(c1.x, c2.x);
@@ -131,16 +177,16 @@ __device__ inline float4 calc_cell_uvec(CellPos c1, CellPos c2) {
 }
 
 /**
-*  Å‚à‹ß‚¢dermis‚É‘Î‚µ‚Ä‚Ì•ª—ô•ûŒü(’PˆÊƒxƒNƒgƒ‹)‚ğƒ‰ƒ“ƒ_ƒ€‚ÉŒvZ‚·‚éB
+*  ï¿½Å‚ï¿½ï¿½ß‚ï¿½dermisï¿½É‘Î‚ï¿½ï¿½Ä‚Ì•ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½Pï¿½Êƒxï¿½Nï¿½gï¿½ï¿½)ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½_ï¿½ï¿½ï¿½ÉŒvï¿½Zï¿½ï¿½ï¿½ï¿½B
 *
-*  @param [in] me •ª—ô‚ğs‚¤×–E
-*  @param [in] dermis Å‹ß–T‚Ìdermis
-*  @param [out] outx ’PˆÊƒxƒNƒgƒ‹‚Ìx¬•ª
-*  @param [out] outy ’PˆÊƒxƒNƒgƒ‹‚Ìy¬•ª
-*  @param [out] outz ’PˆÊƒxƒNƒgƒ‹‚Ìz¬•ª
+*  @param [in] me ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½×–E
+*  @param [in] dermis ï¿½Å‹ß–Tï¿½ï¿½dermis
+*  @param [out] outx ï¿½Pï¿½Êƒxï¿½Nï¿½gï¿½ï¿½ï¿½ï¿½xï¿½ï¿½ï¿½ï¿½
+*  @param [out] outy ï¿½Pï¿½Êƒxï¿½Nï¿½gï¿½ï¿½ï¿½ï¿½yï¿½ï¿½ï¿½ï¿½
+*  @param [out] outz ï¿½Pï¿½Êƒxï¿½Nï¿½gï¿½ï¿½ï¿½ï¿½zï¿½ï¿½ï¿½ï¿½
 *
-*  @attention me‚Ædermis‚ª“¯‚¶×–E‚ğw‚µ‚Ä‚¢‚éê‡A“®ì‚Í–¢’è‹`B
-*  ‚Ü‚½Aoutx,outy,outz‚Ì‚¢‚¸‚ê‚©‚ª“¯‚¶•Ï”‚ğw‚µ‚Ä‚¢‚éê‡‚à“®ì‚Í–¢’è‹`B
+*  @attention meï¿½ï¿½dermisï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×–Eï¿½ï¿½ï¿½wï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ê‡ï¿½Aï¿½ï¿½ï¿½ï¿½Í–ï¿½ï¿½ï¿½`ï¿½B
+*  ï¿½Ü‚ï¿½ï¿½Aoutx,outy,outzï¿½Ì‚ï¿½ï¿½ï¿½ï¿½ê‚©ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ïï¿½ï¿½ï¿½ï¿½wï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ê‡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í–ï¿½ï¿½ï¿½`ï¿½B
 */
 __device__ float4 div_direction(CellPos c1, CellPos dermis1) {
 
@@ -207,8 +253,8 @@ __device__ inline void cell_divide(CellManager_Device* cmd, CellDeviceWrapper ce
 }
 
 /**
-*  –º×–E‚Ìó‘ÔXVB
-*  •ª‰»A•ª—ôA×–EüŠú‚ÌXV‚ğs‚¤B
+*  ï¿½ï¿½ï¿½×–Eï¿½Ìï¿½ÔXï¿½Vï¿½B
+*  ï¿½ï¿½ï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½ï¿½Aï¿½×–Eï¿½ï¿½ï¿½ÌXï¿½Vï¿½ï¿½ï¿½sï¿½ï¿½ï¿½B
 */
 __device__ void _MUSUME_state_renew(CellManager_Device* cmd, CellDeviceWrapper cell) {
 	if (cell.dermis_index()<0 && cell.pair_index()<0) {
@@ -253,8 +299,8 @@ __device__ inline float agek_DEAD_AIR_const() {
 }
 
 /**
-*  Šp‘wA‹ó‹C‚Ìó‘ÔXVB
-*  ‰Á—îA”—£‚ğs‚¤B
+*  ï¿½pï¿½wï¿½Aï¿½ï¿½Cï¿½Ìï¿½ÔXï¿½Vï¿½B
+*  ï¿½ï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½B
 */
 __device__ void _DEAD_AIR_state_renew(CellDeviceWrapper cell) {
 	#define ADHE_CONST (31.3f)
@@ -274,24 +320,24 @@ __device__ void cornificate(CellManager_Device* cmd, CellDeviceWrapper cell)
 	printf("sw updated:%d\n", atomicAdd(cmd->sw, 1));
 }
 
-/** ‰¿‚Ì¶¬E•úo‚ğØ‚è‘Ö‚¦‚éƒJƒ‹ƒVƒEƒ€”Z“x */
+/** ï¿½ï¿½ï¿½ï¿½ï¿½Ìï¿½ï¿½ï¿½ï¿½Eï¿½ï¿½oï¿½ï¿½Ø‚ï¿½Ö‚ï¿½ï¿½ï¿½Jï¿½ï¿½ï¿½Vï¿½Eï¿½ï¿½ï¿½Zï¿½x */
 #define ubar (0.45f)
 
 /**
-*  agek‚É‚æ‚éƒXƒCƒbƒ`ƒ“ƒO‚ÌŠÉ‚³
-*  @note tanh‚Ì•ª•ê
+*  agekï¿½É‚ï¿½ï¿½Xï¿½Cï¿½bï¿½`ï¿½ï¿½ï¿½Oï¿½ÌŠÉ‚ï¿½
+*  @note tanhï¿½Ì•ï¿½ï¿½ï¿½
 */
 #define delta_lipid (0.1f)
 
 /**
-*  ƒJƒ‹ƒVƒEƒ€”Z“x‚É‚æ‚éƒXƒCƒbƒ`ƒ“ƒO‚ÌŠÉ‚³
-*  @note tanh‚Ì•ª•ê
+*  ï¿½Jï¿½ï¿½ï¿½Vï¿½Eï¿½ï¿½ï¿½Zï¿½xï¿½É‚ï¿½ï¿½Xï¿½Cï¿½bï¿½`ï¿½ï¿½ï¿½Oï¿½ÌŠÉ‚ï¿½
+*  @note tanhï¿½Ì•ï¿½ï¿½ï¿½
 */
 #define delta_sig_r1 (0.1f)
 
 /**
-*  @param [in] c ŒvZ‘ÎÛ‚Ì×–E×–E
-*  @return •úo‚·‚é‰¿‚ÌŠÔ·•ª
+*  @param [in] c ï¿½vï¿½Zï¿½ÎÛ‚Ì×–Eï¿½×–E
+*  @return ï¿½ï¿½oï¿½ï¿½ï¿½é‰ï¿½ï¿½ï¿½Ìï¿½ï¿½Ôï¿½ï¿½ï¿½
 */
 __device__ inline float k_lipid_release(float ca2p_avg, float agek) {
 	//using namespace cont;
@@ -301,9 +347,9 @@ __device__ inline float k_lipid_release(float ca2p_avg, float agek) {
 }
 
 /**
-*  @param [in] c ŒvZ‘ÎÛ‚Ì×–E×–E
-*  @return ¶¬‚·‚é‰¿‚ÌŠÔ·•ª
-*  @attention ‚±‚Ì’l‚ª’¼Ú¶¬—Ê‚É‚È‚é‚í‚¯‚Å‚Í‚È‚¢B
+*  @param [in] c ï¿½vï¿½Zï¿½ÎÛ‚Ì×–Eï¿½×–E
+*  @return ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é‰ï¿½ï¿½ï¿½Ìï¿½ï¿½Ôï¿½ï¿½ï¿½
+*  @attention ï¿½ï¿½ï¿½Ì’lï¿½ï¿½ï¿½ï¿½ï¿½Úï¿½ï¿½ï¿½ï¿½Ê‚É‚È‚ï¿½í‚¯ï¿½Å‚Í‚È‚ï¿½ï¿½B
 */
 __device__ inline float k_lipid(float ca2p_avg, float agek) {
 
@@ -416,10 +462,93 @@ __global__ inline void pair_disperse(int ncell, int offset, CellManager_Device* 
 	}
 }
 
+
+__global__ inline void cell_value_renew_impl(int ncell,int offset,CellManager_Device*const cmd){
+
+	/*
+	 * ex_fat
+	 * in_fat
+	 * agek
+	 * ageb
+	 */
+	const CellIndex index = blockDim.x*blockIdx.x + threadIdx.x + offset;
+	if(index<ncell){
+		float agek=cmd->agek[index];
+		float ageb=cmd->ageb[index];
+		float ex_fat=cmd->ex_fat[index];
+		float in_fat=cmd->in_fat[index];
+		const float malig_coef=cmd->fix_origin[index]<MALIGNANT?1.0f:0.0f;
+		const float my_ca2p_avg=cmd->ca2p_avg[index];
+
+		switch(cmd->state[index]){
+		case ALIVE:
+			const float tmp = k_lipid_release(my_ca2p_avg, agek)*in_fat;
+			in_fat += DT_Cell*(k_lipid(my_ca2p_avg, agek)*(1.0f - in_fat) - tmp);
+			ex_fat += DT_Cell*tmp;
+			agek   += DT_Cell*agek_ALIVE_const_impl(my_ca2p_avg,malig_coef);
+			break;
+		case DEAD:case AIR:
+			agek+=DT_Cell*agek_DEAD_AIR_const();
+			break;
+		case MUSUME:case FIX:
+			ageb+=DT_Cell*ageb_const_impl(my_ca2p_avg,malig_coef);
+			break;
+		default:
+			break;
+		}
+		//__syncthreads();
+		cmd->agek[index]=agek;
+		cmd->ageb[index]=ageb;
+		cmd->ex_fat[index]=ex_fat;
+		cmd->in_fat[index]=in_fat;
+	}
+}
+__global__ void cell_live_renew_impl(int ncell,int offset,CellManager_Device*const cmd){
+	const CellIndex index = blockDim.x*blockIdx.x + threadIdx.x + offset;
+		if(index<ncell){
+			const CELL_STATE state=cmd->state[index];
+			const float agek=cmd->agek[index];
+			const float ageb=cmd->ageb[index];
+			const CellIndex pair_index=cmd->pair_index[index];
+			const CellIndex dermis_index=cmd->dermis_index[index];
+			const int rest_div_times=cmd->rest_div_times[index];
+			const int fix_origin = cmd->fix_origin[index];
+			const int connect_num=cmd->connection_data[index].connect_num;
+
+			const bool has_pair = pair_index>=0;
+			const bool musume_diff = state==MUSUME&&dermis_index<0 && !has_pair;
+			//(bool has_pair,float ageb,float _div_age_thresh,float malig_coef)
+			const bool divide_ready=(state==MUSUME||state==FIX)&&rest_div_times>0
+					&&is_divide_ready_impl(has_pair,ageb,get_div_age_thresh(state),fix_origin<MALIGNANT?1.0f:0.0f);
+			const bool d_a_remove = (state==DEAD||state==AIR)&&agek >= ADHE_CONST&&connect_num <= DISA_conn_num_thresh;
+			const bool musume_remove = musume_diff&&SYSTEM==BASAL;
+			const bool musume_to_alive=musume_diff&&SYSTEM==WHOLE;
+			const bool alive_cornif = state==ALIVE&&agek>=THRESH_DEAD;
+			CellDeviceWrapper cell(cmd, index);
+			if(!musume_diff&&divide_ready){
+				cell_divide(cmd, cell);
+			}
+
+			if(musume_remove||d_a_remove){
+				cell.remove();
+			}
+
+			if(musume_to_alive){
+				cmd->state[index]=ALIVE;
+			}
+
+			if(alive_cornif){
+				cornificate(cmd,cell);
+			}
+		}
+}
+
 void cell_state_renew(CellManager* cm){
 	const int other_num = cm->nder_host + cm->nmemb_host;
-	cell_state_renew_impl << <(cm->ncell_host - other_num) / 128+ 1, 128>> >(cm->ncell_host,other_num , cm->dev_ptr);
+	cell_value_renew_impl << <(cm->ncell_host - other_num) / 256+ 1, 256>> >(cm->ncell_host,other_num , cm->dev_ptr);
 	cudaDeviceSynchronize();
+	cell_live_renew_impl << <(cm->ncell_host - other_num) / 128+ 1, 128>> >(cm->ncell_host,other_num , cm->dev_ptr);
+		cudaDeviceSynchronize();
 	remove_exec(cm);
 
 	cm->fetch_cell_nums();
