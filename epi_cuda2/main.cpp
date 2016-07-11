@@ -11,11 +11,14 @@
 #include "cell_connection.h"
 #include "cell_interaction.h"
 #include "cell_state_renew.h"
+#include "ext_stim.h"
+#include "map.h"
 #include <cstdlib>
 #include <vector>
 #include <fstream>
 #include <string>
 #include "utils.h"
+#include "ca2p.h"
 
 void dbg_output(CellManager* cm,int idx){
 	static std::vector<float4> pos(MAX_CELL_NUM);
@@ -36,9 +39,20 @@ int main(int argc,char** argv){
 	cudaError_t ee;
 	//dbg_output(&cm, -1);
 	connect_cell(&cm);
+	int* cmap1; float* cmap2, *ext_stim1, *ext_stim2;
+	cudaMalloc((void**)&cmap1, sizeof(int)*(NX + 1)*(NY + 1)*(NZ + 1));
+	cudaMalloc((void**)&cmap2, sizeof(float)*(NX + 1)*(NY + 1)*(NZ + 1));
+	cudaMalloc((void**)&ext_stim1, sizeof(float)*(NX + 1)*(NY + 1)*(NZ + 1));
+	cudaMalloc((void**)&ext_stim2, sizeof(float)*(NX + 1)*(NY + 1)*(NZ + 1));
+	float* ext_stim_set[2] = { ext_stim1, ext_stim2 };
+	map_calc_init();
 	for(int i=0;i<1000;i++){
 		if ((ee = cudaGetLastError()) != 0){
 			printf("error:%d\n", ee);
+			cudaFree(cmap1);
+			cudaFree(cmap2);
+			cudaFree(ext_stim1);
+			cudaFree(ext_stim2);
 			system("pause");
 			exit(1);
 		}
@@ -47,10 +61,18 @@ int main(int argc,char** argv){
 		cm.switch_phase();
 		cell_pos_periodic_fix(&cm);
 		cell_state_renew(&cm);
-		
+		setup_map(&cm, cmap1, cmap2);
+		float zmax = get_cell_zmax(&cm);
+		calc_ext_stim(&cm, ext_stim_set[cm.current_phase_host], ext_stim_set[1 - cm.current_phase_host], cmap1, cmap2,zmax);
+		//printf("zmax:%f\n",zmax);
+		calc_ca2p(&cm, ext_stim_set[cm.current_phase_host], cmap1, cmap2, zmax);
 		if (i % 10 == 0||cm.should_force_reconnect())connect_cell(&cm);
 		//dbg_output(&cm, i);
 		if(i%100==0)printf("tesuya %d\n",i);
 	}
+	cudaFree(cmap1);
+	cudaFree(cmap2);
+	cudaFree(ext_stim1);
+	cudaFree(ext_stim2);
 	system("pause");
 }

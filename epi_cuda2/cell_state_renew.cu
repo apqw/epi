@@ -20,11 +20,15 @@ __device__ inline bool __is_malig(CellDeviceWrapper cell){
 	return cell.fix_origin() >= 0 && cell.fix_origin() < MALIGNANT;
 }
 
-__device__ inline float genrand_real(){
+
+
+__device__ inline float genrand_real(curandState* cs){
+	/*
 	int id = blockDim.x*blockIdx.x + threadIdx.x;
 	curandState state;
-	curand_init((unsigned int)clock64(), id, 0, &state);
-	return curand_uniform(&state);
+	curand_init((unsigned int)clock64(), id, 0, cs);
+	*/
+	return curand_uniform(cs);
 }
 
 /**
@@ -116,14 +120,14 @@ __device__ inline bool stochastic_div_test(CellDeviceWrapper cell) {
 		return true;
 	}
 	else {
-		return genrand_real()*(get_div_age_thresh(cell.state())*stoch_div_time_ratio) <= stoch_corr_coef*DT_Cell*weighted_eps_kb(cell)*S2;
+		return false;//genrand_real()*(get_div_age_thresh(cell.state())*stoch_div_time_ratio) <= stoch_corr_coef*DT_Cell*weighted_eps_kb(cell)*S2;
 	}
 }
 
-__device__ inline bool stochastic_div_test_impl(float _div_age_thresh,float malig_coef) {
+__device__ inline bool stochastic_div_test_impl(float _div_age_thresh,float malig_coef,float rnd) {
 
 		return STOCHASTIC!=1 ||
-				(genrand_real()*(_div_age_thresh*stoch_div_time_ratio) <= stoch_corr_coef*DT_Cell*weighted_eps_kb_impl(malig_coef)*S2);
+				(rnd*(_div_age_thresh*stoch_div_time_ratio) <= stoch_corr_coef*DT_Cell*weighted_eps_kb_impl(malig_coef)*S2);
 
 }
 
@@ -141,10 +145,10 @@ __device__ inline bool is_divide_ready(CellDeviceWrapper cell) {
 	}
 }
 
-__device__ inline bool is_divide_ready_impl(bool has_pair,float ageb,float _div_age_thresh,float malig_coef) {
+__device__ inline bool is_divide_ready_impl(bool has_pair,float ageb,float _div_age_thresh,float malig_coef,float rnd) {
 
 	if (!has_pair && (ageb >= _div_age_thresh*(1.0 - stoch_div_time_ratio))) {
-		return stochastic_div_test_impl(_div_age_thresh,malig_coef);
+		return stochastic_div_test_impl(_div_age_thresh,malig_coef,rnd);
 	}
 	else {
 		return false;
@@ -188,7 +192,7 @@ __device__ inline float4 calc_cell_uvec(CellPos c1, CellPos c2) {
 *  @attention me��dermis�������זE���w���Ă���ꍇ�A����͖���`�B
 *  �܂��Aoutx,outy,outz�̂����ꂩ�������ϐ����w���Ă���ꍇ������͖���`�B
 */
-__device__ float4 div_direction(CellPos c1, CellPos dermis1) {
+__device__ float4 div_direction(CellPos c1, CellPos dermis1,curandState* rs) {
 
 	//double nx, ny, nz;
 	const float4 dermis_normal = calc_cell_uvec(c1, dermis1);
@@ -197,9 +201,9 @@ __device__ float4 div_direction(CellPos c1, CellPos dermis1) {
 	do {
 		//const float rand_theta = M_PI_F*genrand_real();
 		float sr1, cr1;
-		sincosf(M_PI_F*genrand_real(), &sr1, &cr1);
+		sincosf(M_PI_F*genrand_real(rs), &sr1, &cr1);
 		float sr2, cr2;
-		sincosf(2.0f * M_PI_F*genrand_real(), &sr2, &cr2);
+		sincosf(2.0f * M_PI_F*genrand_real(rs), &sr2, &cr2);
 		const float rvx = sr1*cr2;
 		const float rvy = sr1*sr2;
 		const float rvz = cr1;
@@ -216,7 +220,7 @@ __device__ float4 div_direction(CellPos c1, CellPos dermis1) {
 		);
 }
 
-__device__ inline void cell_divide(CellManager_Device* cmd, CellDeviceWrapper cell) {
+__device__ inline void cell_divide(CellManager_Device* cmd, CellDeviceWrapper cell,curandState* rs) {
 	CellDeviceWrapper new_cell = cmd->alloc_new_cell();
 
 	new_cell.state() = cell.state();
@@ -227,6 +231,7 @@ __device__ inline void cell_divide(CellManager_Device* cmd, CellDeviceWrapper ce
 	new_cell.next_ca2p() = cell.ca2p();
 	new_cell.ca2p_avg_ref() = cell.ca2p();
 	new_cell.IP3() = cell.IP3();
+	new_cell.next_IP3() = cell.next_IP3();
 	new_cell.ex_inert() = cell.ex_inert();
 	new_cell.agek() = 0.0f;
 	new_cell.ageb() = 0.0f; cell.ageb() = 0.0f;
@@ -244,7 +249,7 @@ __device__ inline void cell_divide(CellManager_Device* cmd, CellDeviceWrapper ce
 		printf("dermis not found [in divide phase]\n");
 		assert(false);
 	}
-	const float4 div_dir = div_direction(cell.pos(), cmd->current_pos()[cell.dermis_index()]);
+	const float4 div_dir = div_direction(cell.pos(), cmd->current_pos()[cell.dermis_index()],rs);
 	const CellPos my_pos = cell.pos() + (0.5f*delta_L)*div_dir;
 	const CellPos pair_pos = new_cell.pos() - (0.5f*delta_L)*div_dir;
 	cell.pos() = my_pos; cell.next_pos() = my_pos;
@@ -256,7 +261,7 @@ __device__ inline void cell_divide(CellManager_Device* cmd, CellDeviceWrapper ce
 *  ���זE�̏�ԍX�V�B
 *  �����A����A�זE���̍X�V���s���B
 */
-__device__ void _MUSUME_state_renew(CellManager_Device* cmd, CellDeviceWrapper cell) {
+__device__ void _MUSUME_state_renew(CellManager_Device* cmd, CellDeviceWrapper cell,curandState* rs) {
 	if (cell.dermis_index()<0 && cell.pair_index()<0) {
 		if (SYSTEM == WHOLE) {
 			//printf("ALIVE detected\n");
@@ -271,20 +276,20 @@ __device__ void _MUSUME_state_renew(CellManager_Device* cmd, CellDeviceWrapper c
 	}
 
 	if (cell.rest_div_times() > 0 && is_divide_ready(cell)) {
-		cell_divide(cmd, cell);
+		cell_divide(cmd, cell,rs);
 	}
 	else {
 		cell.ageb() += DT_Cell*ageb_const(cell);
 	}
 }
-__device__ void _FIX_state_renew(CellManager_Device* cmd, CellDeviceWrapper cell){
+__device__ void _FIX_state_renew(CellManager_Device* cmd, CellDeviceWrapper cell, curandState* rs){
 if (cell.dermis_index()<0) {
 	printf("err: not found fix dermis\n");
 	assert(false);
 	return;
 }
 if (is_divide_ready(cell)) {
-	cell_divide(cmd, cell);
+	cell_divide(cmd, cell,rs);
 }
 else {
 	cell.ageb() += DT_Cell*ageb_const(cell);
@@ -405,7 +410,7 @@ void state_renew_finalize(CellManager* cm){
 	cm->fetch_cell_nums();
 }
 */
-__global__ inline void cell_state_renew_impl(int ncell,int offset, CellManager_Device* cmd){
+__global__ inline void cell_state_renew_impl(int ncell,int offset, CellManager_Device* cmd,curandState* csarr){
 	const CellIndex index = blockDim.x*blockIdx.x + threadIdx.x + offset;
 	if (index < ncell){
 		CellDeviceWrapper c(cmd, index);
@@ -417,10 +422,10 @@ __global__ inline void cell_state_renew_impl(int ncell,int offset, CellManager_D
 			_DEAD_AIR_state_renew(c);
 			break;
 		case FIX:
-			_FIX_state_renew(cmd, c);
+			_FIX_state_renew(cmd, c,&csarr[index]);
 			break;
 		case MUSUME:
-			_MUSUME_state_renew(cmd, c);
+			_MUSUME_state_renew(cmd, c, &csarr[index]);
 			break;
 		default:
 			break;
@@ -503,9 +508,10 @@ __global__ inline void cell_value_renew_impl(int ncell,int offset,CellManager_De
 		cmd->in_fat[index]=in_fat;
 	}
 }
-__global__ void cell_live_renew_impl(int ncell,int offset,CellManager_Device*const cmd){
+__global__ void cell_live_renew_impl(int ncell,int offset,CellManager_Device*const cmd,curandState* csarr){
 	const CellIndex index = blockDim.x*blockIdx.x + threadIdx.x + offset;
 		if(index<ncell){
+			curandState cs = csarr[index];
 			const CELL_STATE state=cmd->state[index];
 			const float agek=cmd->agek[index];
 			const float ageb=cmd->ageb[index];
@@ -514,19 +520,25 @@ __global__ void cell_live_renew_impl(int ncell,int offset,CellManager_Device*con
 			const int rest_div_times=cmd->rest_div_times[index];
 			const int fix_origin = cmd->fix_origin[index];
 			const int connect_num=cmd->connection_data[index].connect_num;
-
+			__syncthreads();
+			const float uniform_rnd = genrand_real(&cs);
+			
 			const bool has_pair = pair_index>=0;
 			const bool musume_diff = state==MUSUME&&dermis_index<0 && !has_pair;
 			//(bool has_pair,float ageb,float _div_age_thresh,float malig_coef)
+			
+			
 			const bool divide_ready=(state==MUSUME||state==FIX)&&rest_div_times>0
-					&&is_divide_ready_impl(has_pair,ageb,get_div_age_thresh(state),fix_origin<MALIGNANT?1.0f:0.0f);
+				&& is_divide_ready_impl(has_pair, ageb, get_div_age_thresh(state), fix_origin<MALIGNANT ? 1.0f : 0.0f, uniform_rnd);
+				
+			
 			const bool d_a_remove = (state==DEAD||state==AIR)&&agek >= ADHE_CONST&&connect_num <= DISA_conn_num_thresh;
 			const bool musume_remove = musume_diff&&SYSTEM==BASAL;
 			const bool musume_to_alive=musume_diff&&SYSTEM==WHOLE;
 			const bool alive_cornif = state==ALIVE&&agek>=THRESH_DEAD;
 			CellDeviceWrapper cell(cmd, index);
 			if(!musume_diff&&divide_ready){
-				cell_divide(cmd, cell);
+				cell_divide(cmd, cell,&cs);
 			}
 
 			if(musume_remove||d_a_remove){
@@ -540,6 +552,8 @@ __global__ void cell_live_renew_impl(int ncell,int offset,CellManager_Device*con
 			if(alive_cornif){
 				cornificate(cmd,cell);
 			}
+			csarr[index] = cs;
+			
 		}
 }
 
@@ -547,11 +561,34 @@ void cell_state_renew(CellManager* cm){
 	const int other_num = cm->nder_host + cm->nmemb_host;
 	cell_value_renew_impl << <(cm->ncell_host - other_num) / 256+ 1, 256>> >(cm->ncell_host,other_num , cm->dev_ptr);
 	cudaDeviceSynchronize();
-	cell_live_renew_impl << <(cm->ncell_host - other_num) / 128+ 1, 128>> >(cm->ncell_host,other_num , cm->dev_ptr);
+	cell_live_renew_impl << <(cm->ncell_host - other_num) / 128+ 1, 128>> >(cm->ncell_host,other_num , cm->dev_ptr,cm->rng_state);
 		cudaDeviceSynchronize();
 	remove_exec(cm);
 
 	cm->fetch_cell_nums();
 	pair_disperse << <(cm->ncell_host - other_num) / 128 + 1, 128 >> >(cm->ncell_host, other_num, cm->dev_ptr);
 	cudaDeviceSynchronize();
+}
+
+
+/**
+*  強制的にカルシウム刺激を与える場合の状態の初期化を行う。
+*  @param cman CellManager
+*  @param [in] zzmax 細胞が存在する最大高さ(z座標)
+*/
+__global__ void initialize_sc_impl(int ncell,int offset,const CellPos* cs,CELL_STATE* cstate,float* agek, float zzmax)
+{
+	const CellIndex index = blockIdx.x*blockDim.x + threadIdx.x+offset;
+
+	if (index < ncell){
+		if (cstate[index] == ALIVE&&zzmax - cs[index].z < 8.0f*R_max){
+			agek[index] = fmaxf(agek[index], THRESH_DEAD);
+			cstate[index] = AIR;
+		}
+	}
+}
+
+void initialize_sc(CellManager*cm,float zmax){
+	const int offset = cm->nmemb_host + cm->nder_host;
+	initialize_sc_impl<<<(cm->ncell_host-offset-1)/128+1,128>>>(cm->ncell_host, offset, cm->current_pos_host(), cm->state, cm->agek, zmax);
 }

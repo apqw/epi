@@ -138,4 +138,12 @@ __device__ __host__ inline float interp(float start,float end,float alpha){
 }
 std::string int_to_string(int number);
 
+template<size_t X,size_t Y,size_t Z>
+__device__ __host__ inline float grid_avg8(const float* grd, int ix, int iy, int iz){
+	return 0.125f*(grd[midx<X, Y, Z>(ix, iy, iz)] + grd[midx<X, Y, Z>(ix + 1, iy, iz)] + grd[midx<X, Y, Z>(ix, iy+1, iz)]
+		+ grd[midx<X, Y, Z>(ix, iy, iz + 1)] + grd[midx<X, Y, Z>(ix + 1, iy + 1, iz)] + grd[midx<X, Y, Z>(ix+1, iy, iz+1)]
+		+ grd[midx<X, Y, Z>(ix, iy + 1, iz + 1)] + grd[midx<X, Y, Z>(ix+1, iy+1, iz+1)]);
+}
+
+
 #endif /* UTILS_CUDA_H_ */

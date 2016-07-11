@@ -19,13 +19,27 @@ typedef unsigned int CELL_STATE;
 typedef float4 CellPos;
 typedef int CellIndex;
 typedef float* FloatArr;
+typedef int* CellMap1;
+typedef float* CellMap2;
 
 #define MAX_CELL_NUM (65536u)
-#define MAX_CONNECT_CELL_NUM (200u)
+#define MAX_CONNECT_CELL_NUM (256u)
 
 #define LX (100.0f)
 #define LY (50.0f)
 #define LZ (100.0f)
+
+#define NX (200)
+#define NY (100)
+#define NZ (200)
+
+#define dx (LX/NX)
+#define dy (LY/NY)
+#define dz (LZ/NZ)
+
+#define inv_dx (NX/LX)
+#define inv_dy (NY/LY)
+#define inv_dz (NZ/LZ)
 
 #define R_max (1.4f)
 #define R_der (1.4f)
@@ -37,6 +51,7 @@ typedef float* FloatArr;
 #define NMY (150)
 
 #define DT_Cell (0.01f)
+#define DT_Ca (0.01f)
 
 #define COMPRESS_FACTOR (6u)
 
@@ -76,5 +91,25 @@ enum __CST:unsigned int {
 #define M_PI_F (3.141592654f)
 
 #define THRESH_DEAD (22.0f)
+
+#define RNG_STATE_NUM 65536
+
+#define Ca_avg_time (10.0f)
+
+template<typename T>
+struct device_alloc_ctor{
+	T* ptr;
+	const size_t _elem_num;
+	device_alloc_ctor(size_t elem_num) :_elem_num(elem_num){
+		cudaMalloc((void**)&ptr, sizeof(T)*elem_num);
+	}
+	~device_alloc_ctor(){
+		cudaFree(ptr);
+	}
+
+	void set_zero(){
+		cudaMemset(ptr, 0, sizeof(T)*_elem_num);
+	}
+};
 
 #endif /* DEFINE_H_ */

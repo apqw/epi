@@ -10,6 +10,16 @@
 #include <vector>
 #include <cassert>
 #include <string>
+#include <cfloat>
+
+__global__ void genrand_init(curandState* csarr){
+#define RNG_SEED 1
+	int id = blockDim.x*blockIdx.x + threadIdx.x;
+	if (id < RNG_STATE_NUM){
+		curand_init((RNG_SEED << 20) + id, id, 0, &csarr[id]);
+	}
+}
+
 __device__ void CellConnectionData::add_atomic(CellIndex idx){
 	connect_index[atomicAdd(&connect_num,1)]=idx;
 }
@@ -28,7 +38,8 @@ void CellManager_Device::__alloc(){
 	DCM(ca2p[1], sizeof(float));
 	DCM(ca2p_avg, sizeof(float));
 	DCM(ex_inert, sizeof(float));
-	DCM(IP3, sizeof(float));
+	DCM(IP3[0], sizeof(float));
+	DCM(IP3[1], sizeof(float));
 	DCM(agek, sizeof(float));
 	DCM(ageb, sizeof(float));
 	DCM(ex_fat, sizeof(float));
@@ -77,7 +88,8 @@ __device__ void CellManager_Device::migrate(CellIndex src,CellIndex dest){
 	MIG(ca2p[1]);
 	MIG(ca2p_avg);
 	MIG(ex_inert);
-	MIG(IP3);
+	MIG(IP3[0]);
+	MIG(IP3[1]);
 	MIG(agek);
 	MIG(ageb);
 	MIG(ex_fat);
@@ -108,7 +120,8 @@ void CellManager::alloc(){
 	ca2p[1] = tmp.ca2p[1];
 	ca2p_avg=tmp.ca2p_avg;
 	ex_inert=tmp.ex_inert;
-	IP3=tmp.IP3;
+	IP3[0]=tmp.IP3[0];
+	IP3[1] = tmp.IP3[1];
 	agek=tmp.agek;
 	ageb=tmp.ageb;
 	ex_fat=tmp.ex_fat;
@@ -127,6 +140,8 @@ void CellManager::alloc(){
 
 	cudaMalloc((void**)&dev_ptr,sizeof(CellManager_Device));
 	cudaMemcpy(dev_ptr,&tmp,sizeof(CellManager_Device),cudaMemcpyHostToDevice);
+	cudaMalloc((void**)&rng_state, sizeof(curandState)*RNG_STATE_NUM);
+	genrand_init << <RNG_STATE_NUM / 256 + 1, 256 >> >(rng_state);
 
 }
 
@@ -145,7 +160,8 @@ void CellManager::dealloc(){
 	cudaFree(ca2p[1]);
 	cudaFree(ca2p_avg);
 	cudaFree(ex_inert);
-	cudaFree(IP3);
+	cudaFree(IP3[0]);
+	cudaFree(IP3[1]);
 	cudaFree(agek);
 	cudaFree(ageb);
 	cudaFree(ex_fat);
@@ -161,6 +177,7 @@ void CellManager::dealloc(){
 	cudaFree(sw);
 
 	cudaFree(dev_ptr);
+	cudaFree(rng_state);
 	//delete ptr;
 
 }
@@ -368,4 +385,51 @@ CellPos* CellManager::current_pos_host(){
 
 CellPos* CellManager::next_pos_host(){
 	return pos[1-current_phase_host];
+}
+//use fixed blocks
+
+__device__ float atomicMaxf(float* address, float val)
+{
+	int *address_as_int = (int*)address;
+	int old = *address_as_int, assumed;
+	while (val > __int_as_float(old)) {
+		assumed = old;
+		old = atomicCAS(address_as_int, assumed,
+			__float_as_int(val));
+	}
+	return __int_as_float(old);
+}
+__global__ void get_cell_zmax_impl(int ncell, const CellPos* cpos, float* out_zmax){
+	extern __shared__ float shared[];
+
+	int tid = threadIdx.x;
+	int gid = (blockDim.x * blockIdx.x) + tid;
+	shared[tid] = -FLT_MAX;
+
+	//collect out-ranged datas
+	while (gid < ncell) {
+		shared[tid] = fmaxf(shared[tid], cpos[gid].z);
+		gid += gridDim.x*blockDim.x;
+	}
+	__syncthreads();
+	gid = (blockDim.x * blockIdx.x) + tid;  // 1
+	for (unsigned int s = blockDim.x / 2; s>0; s >>= 1)
+	{
+		if (tid < s && gid < ncell)
+			shared[tid] = fmaxf(shared[tid], shared[tid + s]);
+		__syncthreads();
+	}
+
+	if (tid == 0)atomicMaxf(out_zmax, shared[0]);
+
+}
+
+float get_cell_zmax(CellManager*cm){
+	float initf = -FLT_MAX;
+	float* zmax;
+	cudaMalloc(&zmax, sizeof(float));
+	cudaMemcpy(zmax, &initf, sizeof(float), cudaMemcpyHostToDevice);
+	get_cell_zmax_impl<<<256,256,256*sizeof(float)>>>(cm->ncell_host, cm->current_pos_host(), zmax);
+	cudaMemcpy(&initf, zmax, sizeof(float), cudaMemcpyDeviceToHost);
+	return initf;
 }

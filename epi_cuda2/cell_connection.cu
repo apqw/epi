@@ -165,21 +165,7 @@ __global__ void set_dermis(int ncell, int offset, CellManager_Device* cmd){
 		}
 	}
 }
-template<typename T>
-struct device_alloc_ctor{
-	T* ptr;
-	const size_t _elem_num;
-	device_alloc_ctor(size_t elem_num) :_elem_num(elem_num){
-		cudaMalloc((void**)&ptr, sizeof(T)*elem_num);
-	}
-	~device_alloc_ctor(){
-		cudaFree(ptr);
-	}
 
-	void set_zero(){
-		cudaMemset(ptr, 0, sizeof(T)*_elem_num);
-	}
-};
 
 void dbg_conn_info(unsigned int* aindx,int count){
 	static std::vector<unsigned int> tmp(ANX*ANY*ANZ);
