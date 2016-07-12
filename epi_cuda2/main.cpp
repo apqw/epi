@@ -65,7 +65,7 @@ int main(int argc,char** argv){
 		float zmax = get_cell_zmax(&cm);
 		calc_ext_stim(&cm, ext_stim_set[cm.current_phase_host], ext_stim_set[1 - cm.current_phase_host], cmap1, cmap2,zmax);
 		//printf("zmax:%f\n",zmax);
-		calc_ca2p(&cm, ext_stim_set[cm.current_phase_host], cmap1, cmap2, zmax);
+		//calc_ca2p(&cm, ext_stim_set[cm.current_phase_host], cmap1, cmap2, zmax);
 		if (i % 10 == 0||cm.should_force_reconnect())connect_cell(&cm);
 		//dbg_output(&cm, i);
 		if(i%100==0)printf("tesuya %d\n",i);
@@ -74,5 +74,7 @@ int main(int argc,char** argv){
 	cudaFree(cmap2);
 	cudaFree(ext_stim1);
 	cudaFree(ext_stim2);
+#ifdef _WIN32
 	system("pause");
+#endif
 }

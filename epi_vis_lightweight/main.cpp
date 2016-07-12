@@ -443,7 +443,7 @@ void set_pov_template(std::ofstream& ofs) {
         "#include \"colors.inc\"\n"
         "#include \"metals.inc\"\n"
         "#include \"textures.inc\"\n"
-        "global_settings{max_trace_level 64 \n ambient_light <0.5,0.5,0.5>}\n"
+        "global_settings{max_trace_level 16 }\n"
         "camera{\n"
         "location <50,-475,50>\n"
         "sky z\n"
@@ -451,11 +451,12 @@ void set_pov_template(std::ofstream& ofs) {
         "up 0.24*z\n"
         "look_at <50,25,50>}\n"
         "background{ rgb 0 }\n"
-        "light_source{ <-8,-20,50> color rgb <0.9,0.9,0.9> }\n"
-	"light_source{ <108,-20,50> color rgb <0.9,0.9,0.9> }\n"
-"light_source{ <50,-40,50> color rgb <0.9,0.9,0.9> }\n"
-"light_source{ <50,25,-50> color rgb <0.9,0.9,0.9> }\n"
-        "light_source{ <50,25,100> color rgb <0.43,0.45,0.45> }\n";
+      //"light_source{ <-8,-20,50> color rgb <0.2,0.2,0.2> shadowless }\n"
+      // "light_source{ <108,-20,50> color rgb <0.2,0.2,0.2> shadowless }\n"
+        "light_source{ <50,-100,50> color rgb <0.5,0.5,0.5> shadowless}\n"
+      //"light_source{ <50,25,-200> color rgb <0.1,0.1,0.1> shadowless}\n"
+      //  "light_source{ <50,25,200> color rgb <0.1,0.1,0.1> shadowless}\n"
+;
 }
 int main(int argc, char* argv[]) {
     int DISP_ORIGIN_BEGIN=0;
@@ -526,7 +527,7 @@ system(("mkdir "+std::string(IMG_OUT_DIR)).c_str());
             povdata << "sphere{<" 
                 << x << "," << y << "," << z << ">," 
                 << rad << " "
-                <<"texture{pigment{color rgb<"<<rgb[0]<<","<<rgb[1]<<","<<rgb[2]<<">}}}" << std::endl;
+                <<"texture{pigment{color rgb<"<<rgb[0]<<","<<rgb[1]<<","<<rgb[2]<<">} finish{diffuse 2.5}}}" << std::endl;
 
             
         }
