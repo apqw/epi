@@ -165,7 +165,7 @@ static constexpr auto stat_data_name="cell_stat";
 
 static constexpr bool STOCHASTIC = true;
 #define DIAG_BEND 1
-
+#define NEW_BEND_POT 1
 //static constexpr bool FORCE_CORNIF = true;
 
 template<typename T, size_t X, size_t Y, size_t Z>

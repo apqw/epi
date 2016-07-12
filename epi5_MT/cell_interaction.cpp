@@ -347,7 +347,18 @@ inline void _memb_bend_calc2(Cell *const RESTRICT memb)
         + memb->md.mv_a[2] * memb->md.memb_u->md.memb_r->md.mv_a[2];
 #endif
 }
+inline double _memb_bend_diff_factor(double cdot) {
+#ifdef NEW_BEND_POT
+    if (cdot >= 0) {
+        return (1.0 - cdot);
+    }else{
+        return 1.0 / ((1.0 + cdot)*(1.0 + cdot));
+    }
+#else
+    return (1.0 - cdot);
+#endif
 
+}
 inline void _memb_bend_calc3(Cell *const RESTRICT memb)
 {
 
@@ -385,13 +396,13 @@ inline void _memb_bend_calc3(Cell *const RESTRICT memb)
 
 #define BCALC(suff,num)\
     (\
-            -(1.0 - ipn##suff)*(nvr##suff[num] - ipn##suff*nv##suff[num]) / dn##suff\
-            + (1.0 - ipnl##suff)*((nv##suff[num] - ipnl##suff*nvl##suff[num]) / dnl##suff - (nvl##suff[num] - ipnl##suff*nv##suff[num]) / dn##suff)\
-            + (1.0 - ipnll##suff)*(nvll##suff[num] - ipnll##suff*nvl##suff[num]) / dnl##suff\
+            -(_memb_bend_diff_factor(ipn##suff))*(nvr##suff[num] - ipn##suff*nv##suff[num]) / dn##suff\
+            + _memb_bend_diff_factor(ipnl##suff)*((nv##suff[num] - ipnl##suff*nvl##suff[num]) / dnl##suff - (nvl##suff[num] - ipnl##suff*nv##suff[num]) / dn##suff)\
+            + _memb_bend_diff_factor(ipnll##suff)*(nvll##suff[num] - ipnll##suff*nvl##suff[num]) / dnl##suff\
     \
-            - (1.0 - ipm##suff)*(mvu##suff[num] - ipm##suff*mv##suff[num]) / dm##suff\
-            + (1.0 - ipmb##suff)*((mv##suff[num] - ipmb##suff*mvb##suff[num]) / dmb##suff - (mvb##suff[num] - ipmb##suff*mv##suff[num]) / dm##suff)\
-            + (1.0 - ipmbb##suff)*(mvbb##suff[num] - ipmbb##suff*mvb##suff[num]) / dmb##suff)
+            - _memb_bend_diff_factor(ipm##suff)*(mvu##suff[num] - ipm##suff*mv##suff[num]) / dm##suff\
+            + _memb_bend_diff_factor(ipmb##suff)*((mv##suff[num] - ipmb##suff*mvb##suff[num]) / dmb##suff - (mvb##suff[num] - ipmb##suff*mv##suff[num]) / dm##suff)\
+            + _memb_bend_diff_factor(ipmbb##suff)*(mvbb##suff[num] - ipmbb##suff*mvb##suff[num]) / dmb##suff)
 
     memb->x +=cont::DT_Cell* KBEND*BCALC(,0);
 
