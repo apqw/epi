@@ -21,8 +21,8 @@
 #include "ca2p.h"
 
 void dbg_output(CellManager* cm,int idx){
-	static std::vector<float4> pos(MAX_CELL_NUM);
-	cudaMemcpy(&pos[0], cm->current_pos_host(), sizeof(float4)*MAX_CELL_NUM, cudaMemcpyDeviceToHost);
+	static std::vector<real4> pos(MAX_CELL_NUM);
+	cudaMemcpy(&pos[0], cm->current_pos_host(), sizeof(real4)*MAX_CELL_NUM, cudaMemcpyDeviceToHost);
 	std::ofstream ofs(("dbg" + int_to_string(idx)).c_str());
 	for (int i = 0; i < cm->ncell_host; i++){
 		ofs << i<<" "<<pos[i].x << " " << pos[i].y << " " << pos[i].z << std::endl;
@@ -30,22 +30,24 @@ void dbg_output(CellManager* cm,int idx){
 
 }
 int main(int argc,char** argv){
-	cudaDeviceSetLimit(cudaLimitMallocHeapSize, 1073741824);
+	cudaDeviceSetLimit(cudaLimitMallocHeapSize, (size_t)2*1073741824);
 	codetest();
-
+	cudaError_t ee;
 	CellManager cm;
 	cm.init_with_file(argv[1]);
 	printf("loop start\n");
-	cudaError_t ee;
+	
 	//dbg_output(&cm, -1);
 	connect_cell(&cm);
-	int* cmap1; float* cmap2, *ext_stim1, *ext_stim2;
+	int* cmap1; float* cmap2; real *ext_stim1, *ext_stim2;
 	cudaMalloc((void**)&cmap1, sizeof(int)*(NX + 1)*(NY + 1)*(NZ + 1));
 	cudaMalloc((void**)&cmap2, sizeof(float)*(NX + 1)*(NY + 1)*(NZ + 1));
-	cudaMalloc((void**)&ext_stim1, sizeof(float)*(NX + 1)*(NY + 1)*(NZ + 1));
-	cudaMalloc((void**)&ext_stim2, sizeof(float)*(NX + 1)*(NY + 1)*(NZ + 1));
-	float* ext_stim_set[2] = { ext_stim1, ext_stim2 };
+	cudaMalloc((void**)&ext_stim1, sizeof(real)*(NX + 1)*(NY + 1)*(NZ + 1));
+	cudaMalloc((void**)&ext_stim2, sizeof(real)*(NX + 1)*(NY + 1)*(NZ + 1));
+	
+	real* ext_stim_set[2] = { ext_stim1, ext_stim2 };
 	map_calc_init();
+
 	for(int i=0;i<1000;i++){
 		if ((ee = cudaGetLastError()) != 0){
 			printf("error:%d\n", ee);
@@ -58,12 +60,33 @@ int main(int argc,char** argv){
 		}
 		
 		cell_interact(&cm);
+		if ((ee = cudaGetLastError()) != 0){
+			printf("error2:%d\n", ee);
+			cudaFree(cmap1);
+			cudaFree(cmap2);
+			cudaFree(ext_stim1);
+			cudaFree(ext_stim2);
+			system("pause");
+			exit(1);
+		}
 		cm.switch_phase();
 		cell_pos_periodic_fix(&cm);
 		cell_state_renew(&cm);
 		setup_map(&cm, cmap1, cmap2);
-		float zmax = get_cell_zmax(&cm);
+
+		real zmax = get_cell_zmax(&cm);
+		//printf("%lf zmax\n", zmax);
+	
 		calc_ext_stim(&cm, ext_stim_set[cm.current_phase_host], ext_stim_set[1 - cm.current_phase_host], cmap1, cmap2,zmax);
+		if ((ee = cudaGetLastError()) != 0){
+			printf("errorpypy:%d\n", ee);
+			cudaFree(cmap1);
+			cudaFree(cmap2);
+			cudaFree(ext_stim1);
+			cudaFree(ext_stim2);
+			system("pause");
+			exit(1);
+		}
 		//printf("zmax:%f\n",zmax);
 		//calc_ca2p(&cm, ext_stim_set[cm.current_phase_host], cmap1, cmap2, zmax);
 		if (i % 10 == 0||cm.should_force_reconnect())connect_cell(&cm);

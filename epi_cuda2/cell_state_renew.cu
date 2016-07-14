@@ -22,7 +22,7 @@ __device__ inline bool __is_malig(CellDeviceWrapper cell){
 
 
 
-__device__ inline float genrand_real(curandState* cs){
+__device__ inline real genrand_real(curandState* cs){
 	/*
 	int id = blockDim.x*blockIdx.x + threadIdx.x;
 	curandState state;
@@ -37,27 +37,27 @@ __device__ inline float genrand_real(curandState* cs){
 */
 #define eps_ks (0.10f*0.5f)
 #define accel_diff (1.0f)
-__device__ inline float weighted_eps_ks(CellDeviceWrapper cell) {
+__device__ inline real weighted_eps_ks(CellDeviceWrapper cell) {
 
 	return __is_malig(cell) ? accel_diff *eps_ks : eps_ks;
 	//undef?
 }
 
-__device__ inline float weighted_eps_ks_impl(float malig_coef) {
+__device__ inline real weighted_eps_ks_impl(real malig_coef) {
 	return interp(1.0f,accel_diff,malig_coef)*eps_ks;
 	//return (accel_diff*malig_coef+1.0f*(1.0f-malig_coef)) *eps_ks;
 	//undef?
 }
 
 #define alpha_k (2.0f)
-__device__ inline float agek_ALIVE_const_impl(float ca2p_avg,float malig_coef) {
+__device__ inline real agek_ALIVE_const_impl(real ca2p_avg,real malig_coef) {
 	//using namespace cont;
 
 
 	return weighted_eps_ks_impl(malig_coef)*(S0 + alpha_k*min0(ca2p_avg - ca2p_init));
 }
 
-__device__ inline float agek_ALIVE_const(CellDeviceWrapper cell) {
+__device__ inline real agek_ALIVE_const(CellDeviceWrapper cell) {
 	//using namespace cont;
 
 	return weighted_eps_ks(cell)*(S0 + alpha_k*min0(cell.ca2p_avg() - ca2p_init));
@@ -69,31 +69,31 @@ __device__ inline float agek_ALIVE_const(CellDeviceWrapper cell) {
 */
 #define accel_div (1.0f)
 #define eps_kb (0.12f)
-__device__ inline float weighted_eps_kb(CellDeviceWrapper cell) {
+__device__ inline real weighted_eps_kb(CellDeviceWrapper cell) {
 
 	return __is_malig(cell) ? accel_div *eps_kb : eps_kb;
 }
 
-__device__ inline float weighted_eps_kb_impl(float malig_coef) {
+__device__ inline real weighted_eps_kb_impl(real malig_coef) {
 
 	return interp(1.0f,accel_div,malig_coef)*eps_kb;
 }
 
 //using namespace cont;
 #define alpha_b (5.0f)
-__device__ inline float ageb_const(CellDeviceWrapper cell) {
+__device__ inline real ageb_const(CellDeviceWrapper cell) {
 
 
 	return weighted_eps_kb(cell)*(S2 + alpha_b*min0(cell.ca2p_avg() - ca2p_init));
 }
 
-__device__ inline float ageb_const_impl(float ca2p_avg,float malig_coef) {
+__device__ inline real ageb_const_impl(real ca2p_avg,real malig_coef) {
 
 	return weighted_eps_kb_impl(malig_coef)*(S2 + alpha_b*min0(ca2p_avg - ca2p_init));
 }
 
 
-__device__ inline float get_div_age_thresh(CELL_STATE state){
+__device__ inline real get_div_age_thresh(CELL_STATE state){
 	/** MUSUME�p����J�n�N��̂������l*/
 	#define agki_max (6.0f)
 
@@ -124,7 +124,7 @@ __device__ inline bool stochastic_div_test(CellDeviceWrapper cell) {
 	}
 }
 
-__device__ inline bool stochastic_div_test_impl(float _div_age_thresh,float malig_coef,float rnd) {
+__device__ inline bool stochastic_div_test_impl(real _div_age_thresh,real malig_coef,real rnd) {
 
 		return STOCHASTIC!=1 ||
 				(rnd*(_div_age_thresh*stoch_div_time_ratio) <= stoch_corr_coef*DT_Cell*weighted_eps_kb_impl(malig_coef)*S2);
@@ -145,7 +145,7 @@ __device__ inline bool is_divide_ready(CellDeviceWrapper cell) {
 	}
 }
 
-__device__ inline bool is_divide_ready_impl(bool has_pair,float ageb,float _div_age_thresh,float malig_coef,float rnd) {
+__device__ inline bool is_divide_ready_impl(bool has_pair,real ageb,real _div_age_thresh,real malig_coef,real rnd) {
 
 	if (!has_pair && (ageb >= _div_age_thresh*(1.0 - stoch_div_time_ratio))) {
 		return stochastic_div_test_impl(_div_age_thresh,malig_coef,rnd);
@@ -166,13 +166,13 @@ __device__ inline bool is_divide_ready_impl(bool has_pair,float ageb,float _div_
 *  @attention c1��c2�������זE���w���Ă���ꍇ�A����͖���`�B
 *  �܂��Aoutx,outy,outz�̂����ꂩ�������ϐ����w���Ă���ꍇ������͖���`�B
 */
-__device__ inline float4 calc_cell_uvec(CellPos c1, CellPos c2) {
-	const float nvx = p_diff_x(c1.x, c2.x);
-	const float nvy = p_diff_y(c1.y, c2.y);
-	const float nvz = c1.z - c2.z;
+__device__ inline real4 calc_cell_uvec(CellPos c1, CellPos c2) {
+	const real nvx = p_diff_x(c1.x, c2.x);
+	const real nvy = p_diff_y(c1.y, c2.y);
+	const real nvz = c1.z - c2.z;
 
-	const float invnorm = rsqrtf(nvx*nvx + nvy*nvy + nvz*nvz);
-	return make_float4(
+	const real invnorm = rsqrtr(nvx*nvx + nvy*nvy + nvz*nvz);
+	return make_real4(
 		nvx *invnorm,
 		nvy *invnorm,
 		nvz *invnorm,0.0f
@@ -192,28 +192,28 @@ __device__ inline float4 calc_cell_uvec(CellPos c1, CellPos c2) {
 *  @attention me��dermis�������זE���w���Ă���ꍇ�A����͖���`�B
 *  �܂��Aoutx,outy,outz�̂����ꂩ�������ϐ����w���Ă���ꍇ������͖���`�B
 */
-__device__ float4 div_direction(CellPos c1, CellPos dermis1,curandState* rs) {
+__device__ real4 div_direction(CellPos c1, CellPos dermis1,curandState* rs) {
 
 	//double nx, ny, nz;
-	const float4 dermis_normal = calc_cell_uvec(c1, dermis1);
-	float ox, oy, oz;
-	float sum;
+	const real4 dermis_normal = calc_cell_uvec(c1, dermis1);
+	real ox, oy, oz;
+	real sum;
 	do {
-		//const float rand_theta = M_PI_F*genrand_real();
-		float sr1, cr1;
-		sincosf(M_PI_F*genrand_real(rs), &sr1, &cr1);
-		float sr2, cr2;
-		sincosf(2.0f * M_PI_F*genrand_real(rs), &sr2, &cr2);
-		const float rvx = sr1*cr2;
-		const float rvy = sr1*sr2;
-		const float rvz = cr1;
+		//const real rand_theta = M_PI_F*genrand_real();
+		real sr1, cr1;
+		sincosr(M_PI_R*genrand_real(rs), &sr1, &cr1);
+		real sr2, cr2;
+		sincosr(2.0f * M_PI_R*genrand_real(rs), &sr2, &cr2);
+		const real rvx = sr1*cr2;
+		const real rvy = sr1*sr2;
+		const real rvz = cr1;
 
 		ox = dermis_normal.y*rvz - dermis_normal.z*rvy;
 		oy = dermis_normal.z*rvx - dermis_normal.x*rvz;
 		oz = dermis_normal.x*rvy - dermis_normal.y*rvx;
 	} while ((sum = ox*ox + oy*oy + oz*oz) < 1.0e-14);
-	const float invsum = rsqrtf(sum);
-	return make_float4(
+	const real invsum = rsqrtr(sum);
+	return make_real4(
 		ox *invsum,
 		oy *invsum,
 		oz *invsum,0.0f
@@ -249,7 +249,7 @@ __device__ inline void cell_divide(CellManager_Device* cmd, CellDeviceWrapper ce
 		printf("dermis not found [in divide phase]\n");
 		assert(false);
 	}
-	const float4 div_dir = div_direction(cell.pos(), cmd->current_pos()[cell.dermis_index()],rs);
+	const real4 div_dir = div_direction(cell.pos(), cmd->current_pos()[cell.dermis_index()],rs);
 	const CellPos my_pos = cell.pos() + (0.5f*delta_L)*div_dir;
 	const CellPos pair_pos = new_cell.pos() - (0.5f*delta_L)*div_dir;
 	cell.pos() = my_pos; cell.next_pos() = my_pos;
@@ -296,7 +296,7 @@ else {
 }
 }
 
-__device__ inline float agek_DEAD_AIR_const() {
+__device__ inline real agek_DEAD_AIR_const() {
 	#define eps_kk (0.10f*0.5f)
 	#define S1 (0.1f)
 
@@ -344,7 +344,7 @@ __device__ void cornificate(CellManager_Device* cmd, CellDeviceWrapper cell)
 *  @param [in] c �v�Z�Ώۂ̍זE�זE
 *  @return ��o���鎉���̎��ԍ���
 */
-__device__ inline float k_lipid_release(float ca2p_avg, float agek) {
+__device__ inline real k_lipid_release(real ca2p_avg, real agek) {
 	//using namespace cont;
 
 	#define lipid_rel (0.05f*4.0f)
@@ -356,7 +356,7 @@ __device__ inline float k_lipid_release(float ca2p_avg, float agek) {
 *  @return �������鎉���̎��ԍ���
 *  @attention ���̒l�����ڐ����ʂɂȂ�킯�ł͂Ȃ��B
 */
-__device__ inline float k_lipid(float ca2p_avg, float agek) {
+__device__ inline real k_lipid(real ca2p_avg, real agek) {
 
 	#define lipid (0.6f)
 	return 0.25f*lipid*(1 + tanhf((ubar - ca2p_avg) / delta_sig_r1))*(1.0f + tanhf((agek - THRESH_SP) / delta_lipid));
@@ -364,14 +364,14 @@ __device__ inline float k_lipid(float ca2p_avg, float agek) {
 
 __device__ inline void _ALIVE_state_renew(CellManager_Device* cmd, CellDeviceWrapper cell) {
 	//using namespace cont;
-	const float my_agek = cell.agek();
+	const real my_agek = cell.agek();
 	//printf("agekno:%f\n", my_agek);
 	if (my_agek >= THRESH_DEAD) {
 		cornificate(cmd,cell);
 	}
 	else {
-		const float my_in_fat = cell.in_fat();
-		const float tmp = k_lipid_release(cell.ca2p_avg(), my_agek)*my_in_fat;
+		const real my_in_fat = cell.in_fat();
+		const real tmp = k_lipid_release(cell.ca2p_avg(), my_agek)*my_in_fat;
 		cell.in_fat() += DT_Cell*(k_lipid(cell.ca2p_avg(), my_agek)*(1.0f - my_in_fat) - tmp);
 		cell.ex_fat() += DT_Cell*tmp;
 		cell.agek() += DT_Cell*agek_ALIVE_const(cell); //update last
@@ -440,9 +440,9 @@ __device__ void pair_disperse_impl(CellIndex index,CellManager_Device* cmd) {//c
 	//using namespace cont;
 	//assert(c->pair != nullptr);
 	//assert(c->pair->pair == c);
-	const float rad_sum = R_max+R_max;
-	const float unpair_th = unpair_dist_coef*rad_sum;
-	float distSq = 0;
+	const real rad_sum = R_max+R_max;
+	const real unpair_th = unpair_dist_coef*rad_sum;
+	real distSq = 0;
 	const CellIndex pairidx = cmd->pair_index[index];
 	if (cmd->spr_nat_len[index] < 2.0f*R_max) {
 		cmd->spr_nat_len[index] += DT_Cell*eps_L;
@@ -478,16 +478,16 @@ __global__ inline void cell_value_renew_impl(int ncell,int offset,CellManager_De
 	 */
 	const CellIndex index = blockDim.x*blockIdx.x + threadIdx.x + offset;
 	if(index<ncell){
-		float agek=cmd->agek[index];
-		float ageb=cmd->ageb[index];
-		float ex_fat=cmd->ex_fat[index];
-		float in_fat=cmd->in_fat[index];
-		const float malig_coef=cmd->fix_origin[index]<MALIGNANT?1.0f:0.0f;
-		const float my_ca2p_avg=cmd->ca2p_avg[index];
+		real agek=cmd->agek[index];
+		real ageb=cmd->ageb[index];
+		real ex_fat=cmd->ex_fat[index];
+		real in_fat=cmd->in_fat[index];
+		const real malig_coef=cmd->fix_origin[index]<MALIGNANT?1.0f:0.0f;
+		const real my_ca2p_avg=cmd->ca2p_avg[index];
 
 		switch(cmd->state[index]){
 		case ALIVE:
-			const float tmp = k_lipid_release(my_ca2p_avg, agek)*in_fat;
+			const real tmp = k_lipid_release(my_ca2p_avg, agek)*in_fat;
 			in_fat += DT_Cell*(k_lipid(my_ca2p_avg, agek)*(1.0f - in_fat) - tmp);
 			ex_fat += DT_Cell*tmp;
 			agek   += DT_Cell*agek_ALIVE_const_impl(my_ca2p_avg,malig_coef);
@@ -513,19 +513,19 @@ __global__ void cell_live_renew_impl(int ncell,int offset,CellManager_Device*con
 		if(index<ncell){
 			curandState cs = csarr[index];
 			const CELL_STATE state=cmd->state[index];
-			const float agek=cmd->agek[index];
-			const float ageb=cmd->ageb[index];
+			const real agek=cmd->agek[index];
+			const real ageb=cmd->ageb[index];
 			const CellIndex pair_index=cmd->pair_index[index];
 			const CellIndex dermis_index=cmd->dermis_index[index];
 			const int rest_div_times=cmd->rest_div_times[index];
 			const int fix_origin = cmd->fix_origin[index];
 			const int connect_num=cmd->connection_data[index].connect_num;
 			__syncthreads();
-			const float uniform_rnd = genrand_real(&cs);
+			const real uniform_rnd = genrand_real(&cs);
 			
 			const bool has_pair = pair_index>=0;
 			const bool musume_diff = state==MUSUME&&dermis_index<0 && !has_pair;
-			//(bool has_pair,float ageb,float _div_age_thresh,float malig_coef)
+			//(bool has_pair,real ageb,real _div_age_thresh,real malig_coef)
 			
 			
 			const bool divide_ready=(state==MUSUME||state==FIX)&&rest_div_times>0
@@ -576,7 +576,7 @@ void cell_state_renew(CellManager* cm){
 *  @param cman CellManager
 *  @param [in] zzmax 細胞が存在する最大高さ(z座標)
 */
-__global__ void initialize_sc_impl(int ncell,int offset,const CellPos* cs,CELL_STATE* cstate,float* agek, float zzmax)
+__global__ void initialize_sc_impl(int ncell,int offset,const CellPos* cs,CELL_STATE* cstate,real* agek, real zzmax)
 {
 	const CellIndex index = blockIdx.x*blockDim.x + threadIdx.x+offset;
 
@@ -588,7 +588,7 @@ __global__ void initialize_sc_impl(int ncell,int offset,const CellPos* cs,CELL_S
 	}
 }
 
-void initialize_sc(CellManager*cm,float zmax){
+void initialize_sc(CellManager*cm,real zmax){
 	const int offset = cm->nmemb_host + cm->nder_host;
 	initialize_sc_impl<<<(cm->ncell_host-offset-1)/128+1,128>>>(cm->ncell_host, offset, cm->current_pos_host(), cm->state, cm->agek, zmax);
 }

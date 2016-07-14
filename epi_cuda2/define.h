@@ -14,20 +14,59 @@
 #else
 #define RESTRICT 
 #endif
+#define __CCONC(x,y) x##y
+#define CCONC(x,y) __CCONC(x,y)
+#define EVAL(x) x
+#define USE_FLOAT
+#ifdef USE_FLOAT
+
+typedef float real;
+typedef float4 real4;
+typedef float3 real3;
+#define CDEF(x) (CCONC(x,F))
+#define M_PI_R (3.141592654f)
+#define make_real4(...) make_float4(__VA_ARGS__)
+#define make_real3(...) make_float3(__VA_ARGS__)
+#define sincosr(...) sincosf(__VA_ARGS__)
+#define rsqrtr(...) rsqrtf(__VA_ARGS__)
+#define R_FMT "%f"
+#else
+typedef double real;
+typedef double4 real4;
+typedef double3 real3;
+#define CDEF(x) (x)
+#define M_PI_R (3.141592653589793238463)
+#define make_real4(...) make_double4(__VA_ARGS__)
+#define make_real3(...) make_double3(__VA_ARGS__)
+#define sincosr(...) sincos(__VA_ARGS__)
+#define rsqrtr(...) rsqrt(__VA_ARGS__)
+#define R_FMT "%lf"
+#endif
+
 
 typedef unsigned int CELL_STATE;
-typedef float4 CellPos;
+typedef real4 CellPos;
+typedef float4 CellPosFP32;
 typedef int CellIndex;
 typedef float* FloatArr;
+typedef real* RealArr;
 typedef int* CellMap1;
 typedef float* CellMap2;
 
 #define MAX_CELL_NUM (65536u)
 #define MAX_CONNECT_CELL_NUM (256u)
 
-#define LX (100.0f)
-#define LY (50.0f)
-#define LZ (100.0f)
+#define LX_val 100.0
+#define LY_val 50.0
+#define LZ_val 100.0
+
+#define LX CDEF(LX_val)
+#define LY CDEF(LY_val)
+#define LZ CDEF(LZ_val)
+
+#define LXf (CCONC(LX_val,f))
+#define LYf (CCONC(LY_val,f))
+#define LZf (CCONC(LZ_val,f))
 
 #define NX (200)
 #define NY (100)
@@ -41,33 +80,33 @@ typedef float* CellMap2;
 #define inv_dy (NY/LY)
 #define inv_dz (NZ/LZ)
 
-#define R_max (1.4f)
-#define R_der (1.4f)
-#define R_memb (1.0f)
+#define R_max CDEF(1.4)
+#define R_der CDEF(1.4)
+#define R_memb CDEF(1.0)
 
-#define LJ_THRESH (1.2f)
+#define LJ_THRESH CDEF(1.2)
 
 #define NMX (300)
 #define NMY (150)
 
-#define DT_Cell (0.01f)
-#define DT_Ca (0.01f)
+#define DT_Cell CDEF(0.01)
+#define DT_Ca CDEF(0.01)
 
 #define COMPRESS_FACTOR (6u)
 
-#define THRESH_SP (3.0f)
+#define THRESH_SP CDEF(3.0)
 
-#define ca2p_init (0.122f)
+#define ca2p_init CDEF(0.122)
 
-#define ex_inert_init (0.97f)
+#define ex_inert_init CDEF(0.97)
 
-#define IP3_init (0.0f)
+#define IP3_init CDEF(0.0)
 
-#define gj_init (0.99f)
+#define gj_init CDEF(0.99)
 
-#define ATP_init (0.0f)
+#define ATP_init CDEF(0.0)
 
-#define ext_stim_init (0.0f)
+#define ext_stim_init CDEF(0.0)
 
 enum __CST:unsigned int {
     ALIVE = 0u,
@@ -88,13 +127,13 @@ enum __CST:unsigned int {
 #define STOCHASTIC 1
 
 #define MALIGNANT (0)
-#define M_PI_F (3.141592654f)
 
-#define THRESH_DEAD (22.0f)
+
+#define THRESH_DEAD CDEF(22.0)
 
 #define RNG_STATE_NUM 65536
 
-#define Ca_avg_time (10.0f)
+#define Ca_avg_time CDEF(10.0)
 
 template<typename T>
 struct device_alloc_ctor{
@@ -111,5 +150,7 @@ struct device_alloc_ctor{
 		cudaMemset(ptr, 0, sizeof(T)*_elem_num);
 	}
 };
+
+
 
 #endif /* DEFINE_H_ */

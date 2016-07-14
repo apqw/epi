@@ -8,18 +8,18 @@
 #define Ca_ITR (int)(Ca_avg_time / DT_Ca)
 
 /** @todo •ª‚©‚è‚â‚·‚¢–½–¼ */
-#define Kpp (0.3f)
+#define Kpp CDEF(0.3)
 /** @todo •ª‚©‚è‚â‚·‚¢–½–¼ */
-#define dp (0.1f)
-__global__ void init_ca2p_map(float* air_stim,const float** diffu_map,const float* diffu,const int*const cmap1,const CellConnectionData* conn,const CELL_STATE* state, int iz_bound,const float* default_diffu_ptr){
+#define dp CDEF(0.1)
+__global__ void init_ca2p_map(real* air_stim, const real** diffu_map, const real* diffu, const int*const cmap1, const CellConnectionData* conn, const CELL_STATE* state, int iz_bound, const real* default_diffu_ptr){
 	const int iz = threadIdx.x;
 	const int ix = blockIdx.x;
 	const int iy = blockIdx.y;
 
 	const int coord = midx<NX + 1, NY + 1, NZ + 1>(ix, iy, iz);
 	const CellIndex index = cmap1[coord];
-	const float* tmp = default_diffu_ptr;
-	float asf = 0.0f;
+	const real* tmp = default_diffu_ptr;
+	real asf = 0.0f;
 	if (index >= 0){
 		const int conn_num = conn[index].connect_num;
 		
@@ -40,13 +40,13 @@ __global__ void init_ca2p_map(float* air_stim,const float** diffu_map,const floa
 	air_stim[coord] = asf;
 }
 
-__global__ void dead_IP3_calc(int ncell, int offset, const CellConnectionData* conn, const CELL_STATE* state, const float* IP3, float* next_IP3){
+__global__ void dead_IP3_calc(int ncell, int offset, const CellConnectionData* conn, const CELL_STATE* state, const real* IP3, real* next_IP3){
 	const CellIndex index = blockIdx.x*blockDim.x + threadIdx.x + offset;
 	if (index < ncell){
 		if (state[index] == DEAD){
 			const int conn_num = conn[index].connect_num;
-			float tmp = 0.0f;
-			const float my_ip3 = IP3[index];
+			real tmp = 0.0f;
+			const real my_ip3 = IP3[index];
 			for (int i = 0; i < conn_num; i++){
 				const CellIndex cidx = conn[index].connect_index[i];
 				if (state[cidx] == ALIVE){
@@ -59,7 +59,7 @@ __global__ void dead_IP3_calc(int ncell, int offset, const CellConnectionData* c
 	}
 }
 /** @todo •ª‚©‚è‚â‚·‚¢–½–¼ */
-__device__ inline float calc_th(bool is_alive, float agek) {
+__device__ inline real calc_th(bool is_alive, real agek) {
 
 	#define thgra (0.2f)
 	#define delta_th (1.0f)
@@ -73,7 +73,7 @@ __device__ inline float calc_th(bool is_alive, float agek) {
 }
 
 /** @todo •ª‚©‚è‚â‚·‚¢–½–¼ */
-__device__ inline float calc_Kpa(bool is_alive, float agek) {
+__device__ inline real calc_Kpa(bool is_alive, real agek) {
 
 	#define kpa (4.0f)
 	#define Kgra (kpa)
@@ -87,7 +87,7 @@ __device__ inline float calc_Kpa(bool is_alive, float agek) {
 }
 
 /** @todo •ª‚©‚è‚â‚·‚¢–½–¼ */
-__device__ inline float calc_IAG(bool is_alive, float agek) {
+__device__ inline real calc_IAG(bool is_alive, real agek) {
 	#define delta_I (1.5f)
 	#define iage_kitei (0.0f)
 	return is_alive ?
@@ -96,7 +96,7 @@ __device__ inline float calc_IAG(bool is_alive, float agek) {
 }
 
 /** @todo •ª‚©‚è‚â‚·‚¢–½–¼ */
-__device__ inline float fw(float diff, float w)
+__device__ inline real fw(real diff, real w)
 {
 	#define wd (0.1f)
 	//using namespace cont;
@@ -111,7 +111,7 @@ __device__ inline float fw(float diff, float w)
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-__device__ inline float ca2p_by_ext_stim(float ext_stim) {
+__device__ inline real ca2p_by_ext_stim(real ext_stim) {
 	#define kbc (0.4f*1.2f)
 	#define Hb (0.01f)
 	#define Cout (1.0f)
@@ -119,20 +119,20 @@ __device__ inline float ca2p_by_ext_stim(float ext_stim) {
 	return kbc * ext_stim*ext_stim * Cout / (Hb + ext_stim*ext_stim);
 }
 
-__device__ inline float ca2p_into_storage(float ca2p_in_cell) {
+__device__ inline real ca2p_into_storage(real ca2p_in_cell) {
 	#define kg (0.1f)
 	#define gamma (2.0f)
 	return gamma * ca2p_in_cell / (kg + ca2p_in_cell);
 }
 
-__device__ inline float ER_domain1_active(float ip3) {
+__device__ inline real ER_domain1_active(real ip3) {
 #define mu0 (0.567f)
 	#define mu1 (0.1f)
 	#define kmu (0.05f)
 	return (mu0 + mu1 * ip3 / (ip3 + kmu));
 }
 
-__device__ inline float ER_domain2_active(float ca2p) {
+__device__ inline real ER_domain2_active(real ca2p) {
 	#define para_b (0.11f)
 	#define para_bb (0.89f)
 	#define para_k1 (0.7f)
@@ -146,7 +146,7 @@ __device__ inline float ER_domain2_active(float ca2p) {
 *  @param [in] p IP3”Z“x
 *  @param [in] B ×–EŠOŽhŒƒ•¨Ž¿”Z“x
 */
-__device__ inline float ca2p_reaction_factor(float u, float ER_domain3_deactive, float p, float B)
+__device__ inline real ca2p_reaction_factor(real u, real ER_domain3_deactive, real p, real B)
 {
 	#define k_flux (8.1f)
 
@@ -154,7 +154,7 @@ __device__ inline float ca2p_reaction_factor(float u, float ER_domain3_deactive,
 	#define CA_OUT (1.0f)
 	#define leak_from_storage (CA_OUT*beta_zero)
 
-	const float ca2p_from_storage = k_flux * ER_domain1_active(p) * ER_domain2_active(u) * ER_domain3_deactive;
+	const real ca2p_from_storage = k_flux * ER_domain1_active(p) * ER_domain2_active(u) * ER_domain3_deactive;
 
 	return
 		ca2p_from_storage
@@ -167,7 +167,7 @@ __device__ inline float ca2p_reaction_factor(float u, float ER_domain3_deactive,
 }
 
 /** @todo •ª‚©‚è‚â‚·‚¢–½–¼ */
-__device__ inline float IP3_default_diff(float _Kpa, float a_avg, float current_IP3) {
+__device__ inline real IP3_default_diff(real _Kpa, real a_avg, real current_IP3) {
 	#define H0 (0.5f)
 
 	//using namespace cont;
@@ -175,14 +175,14 @@ __device__ inline float IP3_default_diff(float _Kpa, float a_avg, float current_
 }
 
 /** @todo •ª‚©‚è‚â‚·‚¢–½–¼ */
-__device__ inline float ex_inert_diff(float ca2p, float current_ex_inert, float _th) {
+__device__ inline real ex_inert_diff(real ca2p, real current_ex_inert, real _th) {
 	#define para_k2 (0.7f)
 	//using namespace cont;
 	return ((para_k2*para_k2 / (para_k2*para_k2 + ca2p*ca2p) - current_ex_inert) / _th);
 }
 
-__global__ void supra_calc(int ncell, int offset, CellConnectionData* conn,const CellPos* pos, const CELL_STATE* state, const float* agek,const float* IP3, float* next_IP3
-	, const float* ca2p, float* next_ca2p, float* ca2p_avg, float* ex_inert, float* diffu,const float* ext_stim,const float* ATP){
+__global__ void supra_calc(int ncell, int offset, CellConnectionData* conn,const CellPos* pos, const CELL_STATE* state, const real* agek,const real* IP3, real* next_IP3
+	, const real* ca2p, real* next_ca2p, real* ca2p_avg, real* ex_inert, real* diffu,const real* ext_stim,const real* ATP){
 #define ca2p_du (0.01f)
 	const CellIndex index = blockIdx.x*blockDim.x + threadIdx.x + offset;
 	if (index < ncell){
@@ -194,17 +194,17 @@ __global__ void supra_calc(int ncell, int offset, CellConnectionData* conn,const
 				(int)rintf(cs.y*inv_dy) % NY,
 				(int)rintf(cs.z*inv_dz) % NZ
 			};
-			const float my_agek = agek[index];
-			const float my_ca2p = ca2p[index];
-			const float my_ip3 = IP3[index];
-			const float my_ex_inert = ex_inert[index];
+			const real my_agek = agek[index];
+			const real my_ca2p = ca2p[index];
+			const real my_ip3 = IP3[index];
+			const real my_ex_inert = ex_inert[index];
 			const bool is_alive = st == ALIVE;
-			const float _th = calc_th(is_alive, my_agek);
-			const float _Kpa = calc_Kpa(is_alive, my_agek);
-			const float IAGv = calc_IAG(is_alive, my_agek);
+			const real _th = calc_th(is_alive, my_agek);
+			const real _Kpa = calc_Kpa(is_alive, my_agek);
+			const real IAGv = calc_IAG(is_alive, my_agek);
 			
-			float tmp_diffu = 0.0f;
-			float tmp_IP3 = 0.0f;
+			real tmp_diffu = 0.0f;
+			real tmp_IP3 = 0.0f;
 
 			const int conn_num = conn[index].connect_num;
 			
@@ -226,11 +226,11 @@ __global__ void supra_calc(int ncell, int offset, CellConnectionData* conn,const
 			}
 			
 			
-			const float my_diffu = (diffu[index] = ca2p_reaction_factor(my_ca2p, my_ex_inert, my_ip3, grid_avg8<NX + 1, NY + 1, NZ + 1>(ext_stim, lat.x, lat.y, lat.z)) + ca2p_du*IAGv*tmp_diffu);
+			const real my_diffu = (diffu[index] = ca2p_reaction_factor(my_ca2p, my_ex_inert, my_ip3, grid_avg8<NX + 1, NY + 1, NZ + 1>(ext_stim, lat.x, lat.y, lat.z)) + ca2p_du*IAGv*tmp_diffu);
 
 			next_IP3[index] = my_ip3 + DT_Ca*(IP3_default_diff(_Kpa, grid_avg8<NX + 1, NY + 1, NZ + 1>(ATP, lat.x, lat.y, lat.z), my_ip3) + dp*IAGv*tmp_IP3);
 			
-			const float n_ca2p = my_ca2p + DT_Ca*my_diffu;
+			const real n_ca2p = my_ca2p + DT_Ca*my_diffu;
 			next_ca2p[index] = n_ca2p;
 			ca2p_avg[index] += n_ca2p;
 			ex_inert[index] = my_ex_inert + DT_Ca*ex_inert_diff(my_ca2p, my_ex_inert, _th);
@@ -241,14 +241,14 @@ __global__ void supra_calc(int ncell, int offset, CellConnectionData* conn,const
 
 
 /** @todo •ª‚©‚è‚â‚·‚¢–½–¼ */
-__device__ inline float fa(float diffu, float A) {
+__device__ inline real fa(real diffu, real A) {
 	#define STIM11 (0.002f)
 	#define Kaa (0.5f)
 	//using namespace cont;
 	return STIM11*min0(diffu) - A*Kaa;
 }
 
-__global__  void ATP_refresh(const float* ATP,float* next_ATP, const float** diffu_map, const float* air_stim_arr,const float* cmap2, int iz_bound) {
+__global__  void ATP_refresh(const real* ATP,real* next_ATP, const real** diffu_map, const real* air_stim_arr,const float* cmap2, int iz_bound,int shmem_border) {
 #define Da (1.0f)
 #define AIR_STIM (0.1f)
 	
@@ -256,9 +256,9 @@ __global__  void ATP_refresh(const float* ATP,float* next_ATP, const float** dif
 	const int ix = blockIdx.x;
 	const int iy = blockIdx.y;
 
-	extern __shared__ int cmap2_line[];
-	float* atp_line = (float*)&cmap2_line[iz_bound + 1];
-	//__shared__ float ext_stim_line[NZ + 1];
+	extern __shared__ float cmap2_line[];
+	real* atp_line = (real*)&cmap2_line[shmem_border];
+	//__shared__ real ext_stim_line[NZ + 1];
 	const int next_iy = (iy + 1) % NY;
 	const int prev_iy = (iy - 1 + NY) % NY;
 
@@ -278,7 +278,7 @@ __global__  void ATP_refresh(const float* ATP,float* next_ATP, const float** dif
 	const int idx4 = midx<NX + 1, NY + 1, NZ + 1>(next_ix, iy, iz);
 	
 	cmap2_line[iz] = cmap2[center];
-	const float cvalue = (atp_line[iz] = ATP[center]);
+	const real cvalue = (atp_line[iz] = ATP[center]);
 	//printf("t2");
 	if (iz == iz_bound - 1){
 		cmap2_line[next_iz] = cmap2[midx<NX + 1, NY + 1, NZ + 1>(ix, iy, next_iz)];
@@ -302,7 +302,7 @@ __global__  void ATP_refresh(const float* ATP,float* next_ATP, const float** dif
 	//printf("t4");
 }
 
-__global__ void init_ca2p_avg(int ncell, int offset, const CELL_STATE* cstate, float* ca2p_avg){
+__global__ void init_ca2p_avg(int ncell, int offset, const CELL_STATE* cstate, real* ca2p_avg){
 	const CellIndex index = blockIdx.x*blockDim.x + threadIdx.x + offset;
 	if (index < ncell){
 		const CELL_STATE st = cstate[index];
@@ -312,7 +312,7 @@ __global__ void init_ca2p_avg(int ncell, int offset, const CELL_STATE* cstate, f
 	}
 }
 
-void calc_ca2p(CellManager*cm,const float*const ext_stim,const int*const cmap1,const float*const cmap2,float zmax)
+void calc_ca2p(CellManager*cm,const real*const ext_stim,const int*const cmap1,const float*const cmap2,real zmax)
 {
 	//using namespace cont;
 	const int offset = cm->nmemb_host + cm->nder_host;
@@ -320,14 +320,14 @@ void calc_ca2p(CellManager*cm,const float*const ext_stim,const int*const cmap1,c
 
 
 	const int iz_bound = (int)((zmax + 2.0f*R_max) *inv_dz)+1;
-
-	static device_alloc_ctor<float> air_stim_arr((NX + 1)*(NY + 1)*(NZ + 1));
-	static device_alloc_ctor<float> ATP1((NX + 1)*(NY + 1)*(NZ + 1));
-	static device_alloc_ctor<float> ATP2((NX + 1)*(NY + 1)*(NZ + 1));
-	static device_alloc_ctor<const float*> cell_diffu_map((NX + 1)*(NY + 1)*(NZ + 1));
-	static device_alloc_ctor<float> cell_diffu(MAX_CELL_NUM);
-	static device_alloc_ctor<float> dummy_diffu(1);
-	cudaMemset(dummy_diffu.ptr, 0, sizeof(float));
+	const int shmem_border = iz_bound + 1 + (iz_bound + 1) % 2;
+	static device_alloc_ctor<real> air_stim_arr((NX + 1)*(NY + 1)*(NZ + 1));
+	static device_alloc_ctor<real> ATP1((NX + 1)*(NY + 1)*(NZ + 1));
+	static device_alloc_ctor<real> ATP2((NX + 1)*(NY + 1)*(NZ + 1));
+	static device_alloc_ctor<const real*> cell_diffu_map((NX + 1)*(NY + 1)*(NZ + 1));
+	static device_alloc_ctor<real> cell_diffu(MAX_CELL_NUM);
+	static device_alloc_ctor<real> dummy_diffu(1);
+	cudaMemset(dummy_diffu.ptr, 0, sizeof(real));
 
 	//static RawArr3D<uint_fast8_t> air_stim_flg;
 	//static RawArr3D<const double*> cell_diffu_map;
@@ -366,7 +366,7 @@ void calc_ca2p(CellManager*cm,const float*const ext_stim,const int*const cmap1,c
 			system("pause");
 		}
 		*/
-		ATP_refresh << <dim3(NX, NY), iz_bound, (iz_bound + 1)*sizeof(int) + (iz_bound + 1)*sizeof(float) >> >(ATP1.ptr, ATP2.ptr, cell_diffu_map.ptr, air_stim_arr.ptr, cmap2, iz_bound);
+		ATP_refresh << <dim3(NX, NY), iz_bound, (shmem_border)*sizeof(int) + (iz_bound + 1)*sizeof(float) >> >(ATP1.ptr, ATP2.ptr, cell_diffu_map.ptr, air_stim_arr.ptr, cmap2, iz_bound,shmem_border);
 		cudaDeviceSynchronize();
 		/*
 		if ((ee = cudaGetLastError()) != 0){

@@ -101,7 +101,7 @@ namespace cont {
     cdefd R_der = 1.4;//ok
     cdefd R_memb = 1.0;//ok
     cdefd COMPRESS_FACTOR = 6;//ok
-    cdefui MEMB_ADHE_RANGE = (unsigned int)cmax((int)((R_max/R_der)*COMPRESS_FACTOR/2)-2,0);//test
+    cdefui MEMB_ADHE_RANGE = (unsigned int)cmax((int)((R_max/R_der)*COMPRESS_FACTOR/2)-1,0);//test
 	
     cdefd THRESH_SP = 3.0; //ok 3.0->1.0
 	
