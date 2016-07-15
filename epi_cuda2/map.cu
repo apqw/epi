@@ -26,11 +26,11 @@ void map_calc_init(){
 
 	int count = 0;
 	for (char i = -_irx; i <= _irx; i++){
-		float x = dx*i;
+		real x = dx*i;
 		for (char j = -_iry; j <= _iry; j++){
-			float y = dy*j;
+			real y = dy*j;
 			for (char k = -_irz; k <= _irz; k++){
-				float z = dz*k;
+				real z = dz*k;
 				if (x*x + y*y + z*z < R_max*R_max){
 					nm[count].x = i;
 					nm[count].y = j;
@@ -45,11 +45,11 @@ void map_calc_init(){
 
 	count = 0;
 	for (char i = -m_irx; i <= m_irx; i++){
-		float x = dx*i;
+		real x = dx*i;
 		for (char j = -m_iry; j <= m_iry; j++){
-			float y = dy*j;
+			real y = dy*j;
 			for (char k = -m_irz; k <= m_irz; k++){
-				float z = dz*k;
+				real z = dz*k;
 				if (x*x + y*y + z*z < R_memb*R_memb){
 					nm[count].x = i;
 					nm[count].y = j;
@@ -65,11 +65,11 @@ void map_calc_init(){
 
 	count = 0;
 	for (char i = -t_irx; i <= t_irx; i++){
-		float x = dx*i;
+		real x = dx*i;
 		for (char j = -t_iry; j <= t_iry; j++){
-			float y = dy*j;
+			real y = dy*j;
 			for (char k = -t_irz; k <= t_irz; k++){
-				float z = dz*k;
+				real z = dz*k;
 				if (x*x + y*y + z*z < 4 * R_max*R_max){
 					nm[count].x = i;
 					nm[count].y = j;

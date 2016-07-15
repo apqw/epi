@@ -6,7 +6,7 @@
 #define DUR_ALIVE (0.5f)
 #define DUR_DEAD (2.0f)
 #define DB (0.0009f)
-__device__  float fB(float age, float B, bool cornif) {
+__device__  real fB(real age, real B, bool cornif) {
 
 
 
@@ -16,17 +16,17 @@ __device__  float fB(float age, float B, bool cornif) {
 /*
 	cache 3 planes
 */
-__global__ void calc_ext_stim_impl(const float* __restrict__ c_ext_stim, float* __restrict__ new_ext_stim, const int* __restrict__ cmap1, const float* __restrict__ cmap2,
-	const unsigned int* __restrict__ cstate,const float* __restrict__ agek_arr,int iz_bound){
+__global__ void calc_ext_stim_impl(const real* __restrict__ c_ext_stim, real* __restrict__ new_ext_stim, const int* __restrict__ cmap1, const float* __restrict__ cmap2,
+	const unsigned int* __restrict__ cstate, const real* __restrict__ agek_arr, int iz_bound, int shmem_border){
 
 	//const int iz_bound = (int)((zzmax + 2.0*R_max) *inv_dz);
 	const int iz = threadIdx.x;
 	const int ix = blockIdx.x;
 	const int iy = blockIdx.y;
 	//if (iz > NZ||iy>NY||ix>NX)return;
-	extern __shared__ int cmap2_line[];
-	float* ext_stim_line = (float*)&cmap2_line[iz_bound + 1];
-	//__shared__ float ext_stim_line[NZ + 1];
+	extern __shared__ float cmap2_line[];
+	real* ext_stim_line = (real*)&cmap2_line[shmem_border];
+	//__shared__ real ext_stim_line[NZ + 1];
 	const int next_iy = (iy + 1) % NY;
 	const int prev_iy = (iy - 1 + NY) % NY;
 
@@ -44,7 +44,7 @@ __global__ void calc_ext_stim_impl(const float* __restrict__ c_ext_stim, float* 
 	const int idx3 = midx<NX + 1, NY + 1, NZ + 1>(prev_ix, iy, iz);
 	const int idx4 = midx<NX + 1, NY + 1, NZ + 1>(next_ix, iy, iz);
 	cmap2_line[iz] = cmap2[center];
-	const float cvalue= (ext_stim_line[iz] = c_ext_stim[center]);
+	const real cvalue= (ext_stim_line[iz] = c_ext_stim[center]);
 	if (iz == iz_bound - 1){
 		cmap2_line[next_iz] = cmap2[midx<NX + 1, NY + 1, NZ + 1>(ix, iy, next_iz)];
 		ext_stim_line[next_iz] = c_ext_stim[midx<NX + 1, NY + 1, NZ + 1>(ix, iy, next_iz)];
@@ -61,7 +61,7 @@ __global__ void calc_ext_stim_impl(const float* __restrict__ c_ext_stim, float* 
 
 	
 	
-	float dum_age = 0.0f;
+	real dum_age = 0.0f;
 	bool flg_cornified = false;
 
 	if (cmap1[center] >= 0){
@@ -88,9 +88,10 @@ __global__ void calc_ext_stim_impl(const float* __restrict__ c_ext_stim, float* 
 
 }
 
-void calc_ext_stim(CellManager*cm, float* c_ext_stim, float* new_ext_stim, int* cmap1, float* cmap2,float zmax){
+void calc_ext_stim(CellManager*cm, real* c_ext_stim, real* new_ext_stim, int* cmap1, float* cmap2, real zmax){
 	int iz_bound=(int)((zmax + 2.0f*R_max) *inv_dz)+1;
-
+	int shmem_border = iz_bound +1+ (iz_bound + 1) % 2;
 	//reduce thread num -> faster
-	calc_ext_stim_impl << < dim3(NX, NY), iz_bound, (iz_bound + 1)*sizeof(int) + (iz_bound + 1)*sizeof(float) >> >(c_ext_stim, new_ext_stim, cmap1, cmap2, cm->state, cm->agek,iz_bound);
+	calc_ext_stim_impl << < dim3(NX, NY), iz_bound, (shmem_border)*sizeof(float) + (iz_bound + 1)*sizeof(real) >> >(c_ext_stim, new_ext_stim, cmap1, cmap2, cm->state, cm->agek, iz_bound, shmem_border);
+	cudaDeviceSynchronize();
 }

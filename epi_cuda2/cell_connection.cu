@@ -46,14 +46,20 @@ __global__ void init_grid(int ncell, CellPos* current_pos, CellManager_Device*co
 		//CellPos* current_pos=cmd->current_pos();
 
 		const bool ismemb = cmd->state[index] == MEMB;
+		//printf("tesu:\n");
 		__syncthreads();
-
-		CellPos c = current_pos[index];
+		
+		const CellPos __cpos = current_pos[index];
+		float4 c;
+		c.x = (float)__cpos.x;
+		c.y = (float)__cpos.y;
+		c.z = (float)__cpos.z;
+		//
 		//int aix, aiy, aiz;
-		const int aix = ((int)rintf( (0.5f*LX - p_diff_x(0.5f*LX, c.x)) / AREA_GRID ))%ANX;
-		const int aiy = ((int)rintf( (0.5f*LY - p_diff_y(0.5f*LY, c.y)) / AREA_GRID ))%ANY;
-		const int aiz = ((int)rintf((min0(c.z)) / AREA_GRID))%ANZ;
-		//printf("tesu: %d %d %d\n",aix,aiy,aiz);
+		const int aix = ((int)rintf( (0.5f*LXf - p_diff_x_f(0.5f*LXf, c.x)) / AREA_GRID ))%ANX;
+		const int aiy = ((int)rintf( (0.5f*LYf - p_diff_y_f(0.5f*LYf, c.y)) / AREA_GRID ))%ANY;
+		const int aiz = ((int)rintf((min0f(c.z)) / AREA_GRID))%ANZ;
+		
 		/*
 		if ((aix >= ANX || aiy >= ANY || aiz >= ANZ || aix < 0 || aiy < 0 || aiz < 0)) {
 			printf("err\n");
@@ -86,17 +92,20 @@ __global__ void init_grid(int ncell, CellPos* current_pos, CellManager_Device*co
 
 __global__ void connect_proc(int nmemb, CellManager_Device*const RESTRICT cmd, const float4*const RESTRICT area_info){
 	__shared__ int4 an;
-	__shared__ CellPos my_pos;
-	//__shared__ float my_radius;
+	__shared__ CellPosFP32 my_pos;
+	//__shared__ real my_radius;
 	//radius always R_max
 	__shared__ CellIndex my_index;
 	if (threadIdx.x == 0){
 		//printf("tesuya222\n");
 		my_index = nmemb + blockIdx.x;
-		my_pos = cmd->current_pos()[my_index];
+		const CellPos tmp_my_pos = cmd->current_pos()[my_index];
+		my_pos.x = (float)tmp_my_pos.x;
+		my_pos.y = (float)tmp_my_pos.y;
+		my_pos.z = (float)tmp_my_pos.z;
 		an.x = (((int)rintf(my_pos.x / AREA_GRID))+ANX)%ANX;
 		an.y = (((int)rintf(my_pos.y / AREA_GRID))+ANY)%ANY;
-		an.z = ((int)rintf(min0(my_pos.z) / AREA_GRID))%ANZ;
+		an.z = ((int)rintf(min0f(my_pos.z) / AREA_GRID))%ANZ;
 	}
 
 	const int virtual_id = threadIdx.x / SEARCH_PAR_NUM;
@@ -119,7 +128,7 @@ __global__ void connect_proc(int nmemb, CellManager_Device*const RESTRICT cmd, c
 			const CellIndex cidx = GET_AREA_INFO_IDX_BY_PTR(&cpos.w);
 			const bool op_memb = GET_AREA_INFO_MEMB_OR_NOT_BY_PTR(&cpos.w);
 			if (my_index>cidx){
-				const float distSq = p_cell_dist_sq(my_pos, cpos);
+				const float distSq = p_cell_dist_sq_f(my_pos, cpos);
 				const float rad_sum = R_max + (op_memb ? R_memb : R_max);
 				if (distSq<LJ_THRESH*LJ_THRESH*rad_sum*rad_sum){
 					//if(cidx<1000)printf("cidx:%d\n", cidx);
@@ -148,13 +157,13 @@ __global__ void set_dermis(int ncell, int offset, CellManager_Device* cmd){
 			const CellPos cme = cmd->current_pos()[index];
 			const unsigned int cnum = cmd->connection_data[index].connect_num;
 			int dermis_index = -1;
-			float distSq = FLT_MAX;
+			real distSq = FLT_MAX;
 			for (int i = 0; i<cnum; i++){
 				const int opidx = cmd->connection_data[index].connect_index[i];
 				const CellPos opcs = cmd->current_pos()[opidx];
 				const CELL_STATE op_state = cmd->state[opidx];
 				if (op_state == MEMB){
-					const float tmp_dist_sq = p_cell_dist_sq(cme, opcs);
+					const real tmp_dist_sq = p_cell_dist_sq(cme, opcs);
 					if (tmp_dist_sq<distSq){
 						dermis_index = opidx;
 						distSq = tmp_dist_sq;
@@ -180,6 +189,7 @@ void dbg_conn_info(unsigned int* aindx,int count){
 	}
 
 }
+//remain as float
 void connect_cell(CellManager* cm){
 	static device_alloc_ctor<unsigned int> aindx(ANX*ANY*ANZ);
 	static device_alloc_ctor<float4> area_info(ANX*ANY*ANZ*N3);
@@ -187,6 +197,7 @@ void connect_cell(CellManager* cm){
 	aindx.set_zero();
 	area_info.set_zero();
 	init_grid << <256, 256 >> >(cm->ncell_host, cm->current_pos_host(), cm->dev_ptr, aindx.ptr, area_info.ptr);
+	
 	cudaDeviceSynchronize();
 	complete_area_info << <dim3(ANX, ANY), ANZ >> >(aindx.ptr, area_info.ptr);
 	cudaDeviceSynchronize();

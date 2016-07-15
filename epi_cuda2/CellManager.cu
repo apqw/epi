@@ -4,6 +4,7 @@
  *  Created on: 2016/07/07
  *      Author: yasu7890v
  */
+#include "define.h"
 #include "CellManager.h"
 #include "utils.h"
 #include <fstream>
@@ -34,20 +35,20 @@ void CellManager_Device::__alloc(){
 	DCM(fix_origin, sizeof(CellIndex));
 	DCM(connection_data, sizeof(CellConnectionData));
 	DCM(pair_index, sizeof(CellIndex));
-	DCM(ca2p[0], sizeof(float));
-	DCM(ca2p[1], sizeof(float));
-	DCM(ca2p_avg, sizeof(float));
-	DCM(ex_inert, sizeof(float));
-	DCM(IP3[0], sizeof(float));
-	DCM(IP3[1], sizeof(float));
-	DCM(agek, sizeof(float));
-	DCM(ageb, sizeof(float));
-	DCM(ex_fat, sizeof(float));
-	DCM(in_fat, sizeof(float));
-	DCM(spr_nat_len, sizeof(float));
+	DCM(ca2p[0], sizeof(real));
+	DCM(ca2p[1], sizeof(real));
+	DCM(ca2p_avg, sizeof(real));
+	DCM(ex_inert, sizeof(real));
+	DCM(IP3[0], sizeof(real));
+	DCM(IP3[1], sizeof(real));
+	DCM(agek, sizeof(real));
+	DCM(ageb, sizeof(real));
+	DCM(ex_fat, sizeof(real));
+	DCM(in_fat, sizeof(real));
+	DCM(spr_nat_len, sizeof(real));
 	DCM(rest_div_times, sizeof(int));
 	DCM(dermis_index, sizeof(CellIndex));
-	cudaMalloc((void**)&zmax, sizeof(float));
+	cudaMalloc((void**)&zmax, sizeof(real));
 	cudaMalloc((void**)&ncell, sizeof(int));
 	cudaMalloc((void**)&nder, sizeof(int));
 	cudaMalloc((void**)&nmemb, sizeof(int));
@@ -56,7 +57,7 @@ void CellManager_Device::__alloc(){
 	cudaMalloc((void**)&need_reconnect, sizeof(int));
 	cudaMalloc((void**)&remove_queue, sizeof(LockfreeDeviceQueue<CellIndex, MAX_CELL_NUM>));
 
-	cudaMemset(zmax, 0, sizeof(float));
+	cudaMemset(zmax, 0, sizeof(real));
 	cudaMemset(ncell, 0, sizeof(int));
 	cudaMemset(nder, 0, sizeof(int));
 	cudaMemset(nmemb, 0, sizeof(int));
@@ -228,15 +229,15 @@ __host__ void CellManager::init_with_file(const char* filename){
 	vector<CellIndex> hfix_origin(MAX_CELL_NUM);
 	vector<CellConnectionData> hconnection_data(MAX_CELL_NUM);
 	vector<CellIndex> hpair_index(MAX_CELL_NUM);
-	vector<float> hca2p(MAX_CELL_NUM);
-	vector<float>hca2p_avg(MAX_CELL_NUM);
-	vector<float>hex_inert(MAX_CELL_NUM);
-	vector<float>hagek(MAX_CELL_NUM);
-	vector<float>hageb(MAX_CELL_NUM);
-	vector<float>hex_fat(MAX_CELL_NUM);
-	vector<float>hin_fat(MAX_CELL_NUM);
-	vector<float>hspr_nat_len(MAX_CELL_NUM);
-	vector<float>hrad(MAX_CELL_NUM);
+	vector<real> hca2p(MAX_CELL_NUM);
+	vector<real>hca2p_avg(MAX_CELL_NUM);
+	vector<real>hex_inert(MAX_CELL_NUM);
+	vector<real>hagek(MAX_CELL_NUM);
+	vector<real>hageb(MAX_CELL_NUM);
+	vector<real>hex_fat(MAX_CELL_NUM);
+	vector<real>hin_fat(MAX_CELL_NUM);
+	vector<real>hspr_nat_len(MAX_CELL_NUM);
+	vector<real>hrad(MAX_CELL_NUM);
 	vector<int> hrest_div_times(MAX_CELL_NUM);
 
 	string line;
@@ -247,7 +248,7 @@ __host__ void CellManager::init_with_file(const char* filename){
 
 	while (std::getline(dstrm, line)) {
 
-			sscanf(line.c_str(), "%*d %d %f %f %f %f %f %f %f %f %d %f %f %*d %f %d %d",
+		sscanf(line.c_str(), "%*d %d " R_FMT " " R_FMT " " R_FMT " " R_FMT " " R_FMT " " R_FMT " " R_FMT " " R_FMT " %d " R_FMT " " R_FMT " %*d " R_FMT " %d %d",
 				&hstate[id_count],
 				&hrad[id_count],
 				&hageb[id_count],
@@ -268,7 +269,7 @@ __host__ void CellManager::init_with_file(const char* filename){
 			BLANK�ɂ��ǂ蒅������I��
 			*/
 			CELL_STATE state = hstate[id_count];
-			float rad = hrad[id_count];
+			real rad = hrad[id_count];
 			if (state == BLANK)break;
 
 			/*
@@ -283,7 +284,7 @@ __host__ void CellManager::init_with_file(const char* filename){
 				exit(1);
 			}
 			if (state == MEMB && rad != R_memb) {
-				printf("radii of DER not consistent with param.h\n");
+				printf("radii of DER not consistent with param.h %lf %lf\n", rad, R_memb);
 				exit(1);
 			}
 			if (phase == 0 && state != MEMB) {
@@ -318,18 +319,18 @@ __host__ void CellManager::init_with_file(const char* filename){
 	printf("eusyo1\n");
 	memb_init(nmemb, &hconnection_data[0]);
 	cudaMemcpy(state, &hstate[0], sizeof(CELL_STATE)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
-		//cudaMemcpy(d->c_radius_d, c_radius_h, sizeof(float)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
-		cudaMemcpy(ageb, &hageb[0], sizeof(float)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
-		cudaMemcpy(agek, &hagek[0], sizeof(float)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
-		cudaMemcpy(ca2p[0], &hca2p[0], sizeof(float)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
-		cudaMemcpy(ca2p[1], &hca2p[0], sizeof(float)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
+		//cudaMemcpy(d->c_radius_d, c_radius_h, sizeof(real)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
+		cudaMemcpy(ageb, &hageb[0], sizeof(real)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
+		cudaMemcpy(agek, &hagek[0], sizeof(real)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
+		cudaMemcpy(ca2p[0], &hca2p[0], sizeof(real)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
+		cudaMemcpy(ca2p[1], &hca2p[0], sizeof(real)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
 		cudaMemcpy(pos[0], &hpos[0], sizeof(CellPos)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
 		cudaMemcpy(pos[1], &hpos[0], sizeof(CellPos)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
-		cudaMemcpy(ca2p_avg, &hca2p_avg[0], sizeof(float)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
+		cudaMemcpy(ca2p_avg, &hca2p_avg[0], sizeof(real)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
 		cudaMemcpy(rest_div_times, &hrest_div_times[0], sizeof(int)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
-		cudaMemcpy(ex_fat, &hex_fat[0], sizeof(float)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
-		cudaMemcpy(in_fat, &hin_fat[0], sizeof(float)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
-		cudaMemcpy(spr_nat_len, &hspr_nat_len[0], sizeof(float)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
+		cudaMemcpy(ex_fat, &hex_fat[0], sizeof(real)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
+		cudaMemcpy(in_fat, &hin_fat[0], sizeof(real)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
+		cudaMemcpy(spr_nat_len, &hspr_nat_len[0], sizeof(real)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
 		cudaMemcpy(pair_index, &hpair_index[0], sizeof(int)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
 		cudaMemcpy(fix_origin, &hfix_origin[0], sizeof(int)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
 		cudaMemcpy(connection_data, &hconnection_data[0], sizeof(CellConnectionData)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
@@ -349,6 +350,7 @@ __host__ void CellManager::fetch_cell_nums(){
 bool CellManager::should_force_reconnect(){
 	int tmp;
 	cudaMemcpy(&tmp, need_reconnect, sizeof(int), cudaMemcpyDeviceToHost);
+
 	return ( tmp == NEED_RECONNECT);
 }
 
@@ -388,6 +390,7 @@ CellPos* CellManager::next_pos_host(){
 }
 //use fixed blocks
 
+//remain float
 __device__ float atomicMaxf(float* address, float val)
 {
 	int *address_as_int = (int*)address;
@@ -399,6 +402,7 @@ __device__ float atomicMaxf(float* address, float val)
 	}
 	return __int_as_float(old);
 }
+//remain float
 __global__ void get_cell_zmax_impl(int ncell, const CellPos* cpos, float* out_zmax){
 	extern __shared__ float shared[];
 
@@ -408,7 +412,7 @@ __global__ void get_cell_zmax_impl(int ncell, const CellPos* cpos, float* out_zm
 
 	//collect out-ranged datas
 	while (gid < ncell) {
-		shared[tid] = fmaxf(shared[tid], cpos[gid].z);
+		shared[tid] = fmaxf(shared[tid], (float)cpos[gid].z);
 		gid += gridDim.x*blockDim.x;
 	}
 	__syncthreads();
@@ -424,12 +428,13 @@ __global__ void get_cell_zmax_impl(int ncell, const CellPos* cpos, float* out_zm
 
 }
 
-float get_cell_zmax(CellManager*cm){
+real get_cell_zmax(CellManager*cm){
 	float initf = -FLT_MAX;
 	float* zmax;
 	cudaMalloc(&zmax, sizeof(float));
 	cudaMemcpy(zmax, &initf, sizeof(float), cudaMemcpyHostToDevice);
 	get_cell_zmax_impl<<<256,256,256*sizeof(float)>>>(cm->ncell_host, cm->current_pos_host(), zmax);
 	cudaMemcpy(&initf, zmax, sizeof(float), cudaMemcpyDeviceToHost);
-	return initf;
+	cudaDeviceSynchronize();
+	return (real)initf;
 }

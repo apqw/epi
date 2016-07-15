@@ -16,7 +16,7 @@ class CellDeviceWrapper;
 struct CellConnectionData{
 	unsigned int connect_num;
 	CellIndex connect_index[MAX_CONNECT_CELL_NUM];
-	float gj[MAX_CONNECT_CELL_NUM];
+	real gj[MAX_CONNECT_CELL_NUM];
 	__device__ void add_atomic(CellIndex idx);
 	CellConnectionData():connect_num(0){}
 };
@@ -33,18 +33,18 @@ struct CellDataStruct{
 	CellIndex* fix_origin;
 	CellConnectionData* connection_data;
 	CellIndex* pair_index;
-	FloatArr ca2p[2];
-	FloatArr ca2p_avg;
-	FloatArr ex_inert;
-	FloatArr IP3[2];
-	FloatArr agek;
-	FloatArr ageb;
-	FloatArr ex_fat;
-	FloatArr in_fat;
-	FloatArr spr_nat_len;
+	RealArr ca2p[2];
+	RealArr ca2p_avg;
+	RealArr ex_inert;
+	RealArr IP3[2];
+	RealArr agek;
+	RealArr ageb;
+	RealArr ex_fat;
+	RealArr in_fat;
+	RealArr spr_nat_len;
 	int* rest_div_times;
 	CellIndex* dermis_index;
-	float* zmax;
+	real* zmax;
 	int* ncell;
 	int* nder;
 	int* nmemb;
@@ -107,24 +107,24 @@ class CellDeviceWrapper{
 	CellManager_Device* ptr;
 	
 	//int current_phase_cache;
-	float ca2p_avg_cache;
+	real ca2p_avg_cache;
 public:
 	const CellIndex index;
-	__device__ float& ageb(){ return ptr->ageb[index]; }
-	__device__ float& agek(){ return ptr->agek[index]; }
+	__device__ real& ageb(){ return ptr->ageb[index]; }
+	__device__ real& agek(){ return ptr->agek[index]; }
 	__device__ CellPos& pos(){ return ptr->pos[*ptr->current_phase][index]; }
 	__device__ CellPos& next_pos(){ return ptr->pos[1 - *ptr->current_phase][index]; }
 	__device__ CELL_STATE& state(){ return ptr->state[index]; }//__device__ CELL_STATE& state_ref(){ return ptr->state[index]; }
 	__device__ CellIndex& fix_origin(){ return ptr->fix_origin[index]; }
-	__device__ float& ca2p(){ return ptr->ca2p[*ptr->current_phase][index]; }
-	__device__ float& next_ca2p(){ return ptr->ca2p[1-*ptr->current_phase][index]; }
-	__device__ float ca2p_avg()const { return ca2p_avg_cache; }__device__ float& ca2p_avg_ref() { return ptr->ca2p_avg[index]; }
-	__device__ float& ex_inert(){ return ptr->ex_inert[index]; }
-	__device__ float& IP3(){ return ptr->IP3[*ptr->current_phase][index]; }
-	__device__ float& next_IP3(){ return ptr->IP3[1-*ptr->current_phase][index]; }
-	__device__ float& ex_fat(){ return ptr->ex_fat[index]; }
-	__device__ float& in_fat(){ return ptr->in_fat[index]; }
-	__device__ float& spr_nat_len(){ return ptr->spr_nat_len[index]; }
+	__device__ real& ca2p(){ return ptr->ca2p[*ptr->current_phase][index]; }
+	__device__ real& next_ca2p(){ return ptr->ca2p[1-*ptr->current_phase][index]; }
+	__device__ real ca2p_avg()const { return ca2p_avg_cache; }__device__ real& ca2p_avg_ref() { return ptr->ca2p_avg[index]; }
+	__device__ real& ex_inert(){ return ptr->ex_inert[index]; }
+	__device__ real& IP3(){ return ptr->IP3[*ptr->current_phase][index]; }
+	__device__ real& next_IP3(){ return ptr->IP3[1-*ptr->current_phase][index]; }
+	__device__ real& ex_fat(){ return ptr->ex_fat[index]; }
+	__device__ real& in_fat(){ return ptr->in_fat[index]; }
+	__device__ real& spr_nat_len(){ return ptr->spr_nat_len[index]; }
 	__device__ int& rest_div_times(){ return ptr->rest_div_times[index]; }
 	__device__ CellIndex& dermis_index(){ return ptr->dermis_index[index]; }
 	__device__ CellDeviceWrapper(CellManager_Device* dev_ptr, CellIndex _index) :ptr(dev_ptr), index(_index){
@@ -137,5 +137,5 @@ public:
 		ptr->remove_queue->push_back(index);
 	}
 };
-float get_cell_zmax(CellManager*cm);
+real get_cell_zmax(CellManager*cm);
 #endif /* CELLMANAGER_H_ */
