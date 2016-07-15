@@ -4,7 +4,7 @@
 #include <voro/voro++.hh>
 #include <vector>
 #include <cassert>
-#define ASSERT assert
+//#define ASSERT assert
 #include "Delaunay.h"
 using namespace std;
 

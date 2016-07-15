@@ -445,15 +445,15 @@ void set_pov_template(std::ofstream& ofs) {
         "#include \"textures.inc\"\n"
         "global_settings{max_trace_level 16 }\n"
         "camera{\n"
-        "location <50,-475,50>\n"
+        "location <50,-300,80>\n"
         "sky z\n"
         "right 0.24*x*image_width / image_height\n"
         "up 0.24*z\n"
-        "look_at <50,25,50>}\n"
+        "look_at <50,25,40>}\n"
         "background{ rgb 0 }\n"
       //"light_source{ <-8,-20,50> color rgb <0.2,0.2,0.2> shadowless }\n"
       // "light_source{ <108,-20,50> color rgb <0.2,0.2,0.2> shadowless }\n"
-        "light_source{ <50,-100,50> color rgb <0.5,0.5,0.5> shadowless}\n"
+        "light_source{ <50,-100,50> color rgb <0.45,0.45,0.45>  shadowless}\n"
       //"light_source{ <50,25,-200> color rgb <0.1,0.1,0.1> shadowless}\n"
       //  "light_source{ <50,25,200> color rgb <0.1,0.1,0.1> shadowless}\n"
 ;
@@ -533,7 +533,7 @@ system(("mkdir "+std::string(IMG_OUT_DIR)).c_str());
         }
         //povdata << "}" << std::endl;
 std::cout<<"Rendering "<<i<<" ..."<<std::endl;
-        system(("povray +I"+tmp_file+" +H400 +W400 +O"+IMG_OUT_DIR+"/"+std::to_string(i)+" >/dev/null 2>&1").c_str());
+        system(("povray +I"+tmp_file+" +H400 +W800 +O"+IMG_OUT_DIR+"/"+std::to_string(i)+" >/dev/null 2>&1").c_str());
         system(("rm -f " + tmp_file).c_str());
 std::cout<<"done."<<std::endl;
     }

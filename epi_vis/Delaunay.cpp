@@ -29,7 +29,7 @@
 //#include "StdAfx.h"
 #include "Delaunay.h"
 #include <cassert>
-#define ASSERT assert
+//#define ASSERT(x) assert(x)
 const REAL sqrt3 = 1.732050808F;
 
 void triangle::SetCircumCircle()

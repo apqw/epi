@@ -48,7 +48,7 @@ int main(int argc,char** argv){
 	real* ext_stim_set[2] = { ext_stim1, ext_stim2 };
 	map_calc_init();
 
-	for(int i=0;i<1000;i++){
+	for(int i=0;i<10000;i++){
 		if ((ee = cudaGetLastError()) != 0){
 			printf("error:%d\n", ee);
 			cudaFree(cmap1);

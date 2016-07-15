@@ -18,7 +18,8 @@ struct CellConnectionData{
 	CellIndex connect_index[MAX_CONNECT_CELL_NUM];
 	real gj[MAX_CONNECT_CELL_NUM];
 	__device__ void add_atomic(CellIndex idx);
-	CellConnectionData():connect_num(0){}
+	CellConnectionData():connect_num(0){
+	}
 };
 
 struct CellDataStruct{

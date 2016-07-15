@@ -17,7 +17,7 @@
 #define __CCONC(x,y) x##y
 #define CCONC(x,y) __CCONC(x,y)
 #define EVAL(x) x
-#define USE_FLOAT
+//#define USE_FLOAT
 #ifdef USE_FLOAT
 
 typedef float real;

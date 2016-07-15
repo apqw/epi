@@ -33,7 +33,8 @@
 #include <set>
 #include <algorithm>
 #include <math.h>
-
+#include <cassert>
+#define ASSERT(x) assert(x)
 using namespace std;
 
 #ifndef _GDIPLUS_H
@@ -166,7 +167,7 @@ public:
 		return dist2 <= m_R2;								// compare with squared radius
 	}
 protected:
-	const vertex * m_Vertices[3];	// the three triangle vertices
+       const vertex * m_Vertices[3];	// the three triangle vertices
 	PointF m_Center;				// center of circumcircle
 	REAL m_R;			// radius of circumcircle
 	REAL m_R2;			// radius of circumcircle, squared
