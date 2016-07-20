@@ -10,6 +10,14 @@
 #define USE_INACCURATE_GJ
 #define DBG
 
+#ifdef DBG
+#define dbgprint(...) printf(__VA_ARGS__)
+#define dbgexec(lmbd) do{(lmbd)();}while(false)
+#else
+#define dbgprint(...)
+#define dbgexec(lmbd)
+#endif
+
 #ifdef USE_FLOAT
 
 typedef float real;
@@ -37,8 +45,11 @@ typedef double3 real3;
 #define R_FMT "%lf"
 #endif
 
+#define ZERO CDEF(0.0)
 
-typedef unsigned int CELL_STATE;
+//typedef unsigned int CELL_STATE;
+using CELL_STATE_t = unsigned int;
+#define CELL_STATE_FMT "%u"
 typedef real4 CellPos;
 typedef float4 CellPosFP32;
 typedef int CellIndex;
@@ -46,6 +57,21 @@ typedef float* FloatArr;
 typedef real* RealArr;
 typedef int* CellMap1;
 typedef float* CellMap2;
+
+#define make_cell_pos(x,y,z) make_real4(x,y,z,CDEF(0.0))
+
+enum CELL_STATE :CELL_STATE_t {
+	ALIVE = 0,
+	DEAD = 1,
+	DISA = 2,
+	UNUSED = 3, //
+	FIX = 4,
+	BLANK = 5,
+	DER = 6,
+	MUSUME = 7,
+	AIR = 8,
+	MEMB = 9
+};
 
 #define MAX_CELL_NUM (65536u)
 #define MAX_CONNECT_CELL_NUM (256u)
@@ -102,9 +128,19 @@ typedef float* CellMap2;
 
 #define ext_stim_init CDEF(0.0)
 
+#define div_max (15)
+
+#define MALIG_NUM (0)
+
 template<typename T>
 using devPtr = thrust::device_ptr<T>;
 
 template<typename T>
 using devRef = thrust::device_reference<T>;
 
+#define SYSTEM 0
+#define WHOLE 0
+#define BASAL 1
+#define CUT 1000
+
+#define OUTPUT_DIR "output"
