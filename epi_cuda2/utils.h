@@ -61,7 +61,7 @@ __host__ __device__ inline float p_diff_y_f(const float y1, const float y2){
 }
 
 __host__ __device__ inline real min0(const real a){
-	return a>0.0?a:0.0;
+	return a>CDEF(0.0)?a:CDEF(0.0);
 }
 
 __host__ __device__ inline float min0f(const float a){
@@ -76,8 +76,8 @@ __host__ __device__ inline real p_cell_dist_sq(const CellPos a,const CellPos b){
 }
 
 __host__ __device__ inline float p_cell_dist_sq_f(const CellPosFP32 a, const CellPosFP32 b){
-	const float diffx = p_diff_x(a.x, b.x);
-	const float diffy = p_diff_y(a.y, b.y);
+	const float diffx = p_diff_x_f(a.x, b.x);
+	const float diffy = p_diff_y_f(a.y, b.y);
 	const float diffz = a.z - b.z;
 	return diffx*diffx + diffy*diffy + diffz*diffz;
 }

@@ -12,6 +12,7 @@
 #include <cassert>
 #include <string>
 #include <cfloat>
+#include <algorithm>
 
 __global__ void genrand_init(curandState* csarr){
 #define RNG_SEED 1
@@ -23,6 +24,10 @@ __global__ void genrand_init(curandState* csarr){
 
 __device__ void CellConnectionData::add_atomic(CellIndex idx){
 	connect_index[atomicAdd(&connect_num,1)]=idx;
+}
+
+__device__ CellConnectionData::CellConnectionData():connect_num(0), gj_switch(0){
+	std::fill(&gj_alloc[0], &gj_alloc[2 * MAX_CONNECT_CELL_NUM], gj_init);
 }
 #define DCM(ptr,elem_size) cudaMalloc((void**)&(ptr),elem_size*MAX_CELL_NUM)
 
@@ -48,12 +53,14 @@ void CellManager_Device::__alloc(){
 	DCM(spr_nat_len, sizeof(real));
 	DCM(rest_div_times, sizeof(int));
 	DCM(dermis_index, sizeof(CellIndex));
+	DCM(uid, sizeof(int));
 	cudaMalloc((void**)&zmax, sizeof(real));
 	cudaMalloc((void**)&ncell, sizeof(int));
 	cudaMalloc((void**)&nder, sizeof(int));
 	cudaMalloc((void**)&nmemb, sizeof(int));
 	cudaMalloc((void**)&current_phase, sizeof(int));
 	cudaMalloc((void**)&sw, sizeof(int));
+	cudaMalloc((void**)&next_uid, sizeof(int));
 	cudaMalloc((void**)&need_reconnect, sizeof(int));
 	cudaMalloc((void**)&remove_queue, sizeof(LockfreeDeviceQueue<CellIndex, MAX_CELL_NUM>));
 
@@ -63,6 +70,7 @@ void CellManager_Device::__alloc(){
 	cudaMemset(nmemb, 0, sizeof(int));
 	cudaMemset(current_phase, 0, sizeof(int));
 	cudaMemset(sw, 0, sizeof(int));
+	cudaMemset(next_uid, 0, sizeof(int));
 	cudaMemset(need_reconnect, 0, sizeof(int));
 	LockfreeDeviceQueue<CellIndex, MAX_CELL_NUM> rmq;
 	cudaMemcpy(remove_queue, &rmq, sizeof(LockfreeDeviceQueue<CellIndex, MAX_CELL_NUM>), cudaMemcpyHostToDevice);
@@ -74,7 +82,9 @@ __device__ void CellManager_Device::set_need_reconnect(int need){
 }
 __device__ CellDeviceWrapper CellManager_Device::alloc_new_cell(){
 	set_need_reconnect(NEED_RECONNECT);
-	return CellDeviceWrapper(this,atomicAdd(ncell, 1));
+	CellDeviceWrapper tmp(this,atomicAdd(ncell, 1));
+	tmp.uid() = atomicAdd(next_uid, 1);
+	return tmp;
 }
 
 __device__ void CellManager_Device::migrate(CellIndex src,CellIndex dest){
@@ -98,6 +108,7 @@ __device__ void CellManager_Device::migrate(CellIndex src,CellIndex dest){
 	MIG(spr_nat_len);
 	MIG(rest_div_times);
 	MIG(dermis_index);
+	MIG(uid);
 #undef MIG
 	if (pair_index[dest] >= 0){
 		pair_index[pair_index[dest]] = dest;
@@ -130,12 +141,14 @@ void CellManager::alloc(){
 	spr_nat_len=tmp.spr_nat_len;
 	rest_div_times=tmp.rest_div_times;
 	dermis_index=tmp.dermis_index;
+	uid = tmp.uid;
 	zmax=tmp.zmax;
 	ncell=tmp.ncell;
 	nder=tmp.nder;
 	nmemb=tmp.nmemb;
 	current_phase=tmp.current_phase;
 	sw=tmp.sw;
+	next_uid = tmp.next_uid;
 	need_reconnect = tmp.need_reconnect;
 	dev_remove_queue_size = reinterpret_cast<unsigned int*>(tmp.remove_queue); //head address points to size (due to Standard Layout)
 
@@ -170,12 +183,14 @@ void CellManager::dealloc(){
 	cudaFree(spr_nat_len);
 	cudaFree(rest_div_times);
 	cudaFree(dermis_index);
+	cudaFree(uid);
 	cudaFree(zmax);
 	cudaFree(ncell);
 	cudaFree(nder);
 	cudaFree(nmemb);
 	cudaFree(current_phase);
 	cudaFree(sw);
+	cudaFree(next_uid);
 
 	cudaFree(dev_ptr);
 	cudaFree(rng_state);
@@ -217,7 +232,7 @@ for (int j = 0; j < _nmemb; j++){
 
 }
 
-__host__ void CellManager::init_with_file(const char* filename){
+__host__ void CellManager::init_with_file(const char* filename,bool resume){
 	std::ifstream dstrm(filename);
 	if(!dstrm){
 		printf("load failed\n");
@@ -239,6 +254,8 @@ __host__ void CellManager::init_with_file(const char* filename){
 	vector<real>hspr_nat_len(MAX_CELL_NUM);
 	vector<real>hrad(MAX_CELL_NUM);
 	vector<int> hrest_div_times(MAX_CELL_NUM);
+	vector<int> huid(MAX_CELL_NUM);
+	vector<real> hIP3(MAX_CELL_NUM);
 
 	string line;
 	int id_count=0;
@@ -305,11 +322,15 @@ __host__ void CellManager::init_with_file(const char* filename){
 				exit(1);
 			}
 
-			//if (state == FIX)printf("FIX\n");
+			if (state == FIX){
+				hrest_div_times[id_count] = DIV_MAX;
+				printf("FIX\n");
+			}
 
 			if (state == MEMB)nmemb++;
 			if (state == DER)nder++;
 			//*(unsigned int*)(&c_pos_h[id_count].w) = c_state_h[id_count];
+			huid.push_back(id_count);
 			printf("Phase %d  Cell loaded:%d\n", phase, id_count++);
 
 		}
@@ -318,6 +339,19 @@ __host__ void CellManager::init_with_file(const char* filename){
 	set_cell_nums(id_count,nmemb,nder);
 	printf("eusyo1\n");
 	memb_init(nmemb, &hconnection_data[0]);
+
+	if (!resume){
+		std::fill(hca2p.begin(), hca2p.end(), ca2p_init);
+		std::fill(hca2p_avg.begin(), hca2p_avg.end(), ca2p_init);
+		std::fill(hex_inert.begin(), hex_inert.end(), ex_inert_init);
+		std::fill(hIP3.begin(), hIP3.end(), IP3_init);
+		for (int i = 0; i < id_count; i++){
+			if (hstate[i] == DEAD){
+				hca2p[i] = CDEF(0.0);
+				hca2p_avg[i] = CDEF(0.0);
+			}
+		}
+	}
 	cudaMemcpy(state, &hstate[0], sizeof(CELL_STATE)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
 		//cudaMemcpy(d->c_radius_d, c_radius_h, sizeof(real)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
 		cudaMemcpy(ageb, &hageb[0], sizeof(real)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
@@ -334,6 +368,11 @@ __host__ void CellManager::init_with_file(const char* filename){
 		cudaMemcpy(pair_index, &hpair_index[0], sizeof(int)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
 		cudaMemcpy(fix_origin, &hfix_origin[0], sizeof(int)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
 		cudaMemcpy(connection_data, &hconnection_data[0], sizeof(CellConnectionData)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
+		cudaMemcpy(uid, &huid[0], sizeof(int)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
+		cudaMemcpy(next_uid, &id_count, sizeof(int), cudaMemcpyHostToDevice);
+
+		cudaMemcpy(IP3[0], &hIP3[0], sizeof(real)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
+		cudaMemcpy(IP3[1], &hIP3[0], sizeof(real)*MAX_CELL_NUM, cudaMemcpyHostToDevice);
 }
 
 __host__ void CellManager::switch_phase(){
@@ -345,6 +384,7 @@ __host__ void CellManager::fetch_cell_nums(){
 	cudaMemcpy(&ncell_host,ncell,sizeof(int),cudaMemcpyDeviceToHost);
 	cudaMemcpy(&nder_host,nder,sizeof(int),cudaMemcpyDeviceToHost);
 	cudaMemcpy(&nmemb_host,nmemb,sizeof(int),cudaMemcpyDeviceToHost);
+	cudaMemcpy(&sw_host, sw, sizeof(int), cudaMemcpyDeviceToHost);
 }
 
 bool CellManager::should_force_reconnect(){
@@ -403,16 +443,19 @@ __device__ float atomicMaxf(float* address, float val)
 	return __int_as_float(old);
 }
 //remain float
-__global__ void get_cell_zmax_impl(int ncell, const CellPos* cpos, float* out_zmax){
+__global__ void get_cell_zmax_impl(int ncell,int offset, const CellPos* cpos,const CELL_STATE* cstate, float* out_zmax){
 	extern __shared__ float shared[];
 
 	int tid = threadIdx.x;
-	int gid = (blockDim.x * blockIdx.x) + tid;
+	int gid = (blockDim.x * blockIdx.x) + tid+offset;
 	shared[tid] = -FLT_MAX;
 
 	//collect out-ranged datas
 	while (gid < ncell) {
-		shared[tid] = fmaxf(shared[tid], (float)cpos[gid].z);
+		const CELL_STATE st = cstate[gid];
+		if (st == DEAD || st == ALIVE || st == MUSUME || st == FIX){
+			shared[tid] = fmaxf(shared[tid], (float)cpos[gid].z);
+		}
 		gid += gridDim.x*blockDim.x;
 	}
 	__syncthreads();
@@ -431,9 +474,10 @@ __global__ void get_cell_zmax_impl(int ncell, const CellPos* cpos, float* out_zm
 real get_cell_zmax(CellManager*cm){
 	float initf = -FLT_MAX;
 	float* zmax;
+	const int offset = cm->nmemb_host + cm->nder_host;
 	cudaMalloc(&zmax, sizeof(float));
 	cudaMemcpy(zmax, &initf, sizeof(float), cudaMemcpyHostToDevice);
-	get_cell_zmax_impl<<<256,256,256*sizeof(float)>>>(cm->ncell_host, cm->current_pos_host(), zmax);
+	get_cell_zmax_impl<<<(cm->ncell_host-offset-1)/256+1,256,256*sizeof(float)>>>(cm->ncell_host,offset, cm->current_pos_host(),cm->state, zmax);
 	cudaMemcpy(&initf, zmax, sizeof(float), cudaMemcpyDeviceToHost);
 	cudaDeviceSynchronize();
 	return (real)initf;

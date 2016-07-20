@@ -24,11 +24,11 @@
 #define N3 64
 #define N2 400
 
-#define SEARCH_GRID_DIM 4
+#define SEARCH_GRID_DIM 5
 
 #define SEARCH_GRID_NUM (SEARCH_GRID_DIM*SEARCH_GRID_DIM*SEARCH_GRID_DIM)
-#define SEARCH_PAR_NUM 8
-#define SEARCH_THREAD_UPPER_LIMIT 64
+#define SEARCH_PAR_NUM 4
+#define SEARCH_THREAD_UPPER_LIMIT 128
 
 #define GET_AREA_INFO_IDX(i) ((i)&0x007fffff)
 #define GET_AREA_INFO_IDX_BY_PTR(ptr) GET_AREA_INFO_IDX(*reinterpret_cast<const unsigned int*>(ptr))
@@ -81,6 +81,7 @@ __global__ void init_grid(int ncell, CellPos* current_pos, CellManager_Device*co
 			: GET_AREA_INFO_IDX(index);
 
 		//if (ismemb&&threadIdx.x == 25)printf("conn:%d\n", cmd->connection_data[index].connect_num);
+		cmd->connection_data[index].last_connect_num = cmd->connection_data[index].connect_num;
 		cmd->connection_data[index].connect_num = ismemb ? 8 : 0;
 
 		if (listidx >= N3){
@@ -137,6 +138,15 @@ __global__ void connect_proc(int nmemb, CellManager_Device*const RESTRICT cmd, c
 				}
 			}
 		}
+		__syncthreads();
+		if (threadIdx.x == 0)
+			if (cmd->connection_data[my_index].connect_num>200){
+				int mcount = 0;
+				for (int i = 0; i < cmd->connection_data[my_index].connect_num; i++){
+					if (cmd->state[cmd->connection_data[my_index].connect_index[i]] == MEMB)mcount++;
+				}
+				printf("many conn:%d memb:%d me:%d\n", cmd->connection_data[my_index].connect_num, mcount, cmd->state[my_index]);
+			}
 	}
 
 }
@@ -175,6 +185,32 @@ __global__ void set_dermis(int ncell, int offset, CellManager_Device* cmd){
 	}
 }
 
+__global__ void refresh_gj(int ncell, CellManager_Device* cmd){
+	const CellIndex index = blockIdx.x*blockDim.x + threadIdx.x;
+	if (index < ncell){
+		CellConnectionData* cdptr = &cmd->connection_data[index];
+		const int conn_num = cdptr->connect_num;
+		cdptr->switch_gj();
+		for (int i = 0; i < conn_num; i++){
+			cdptr->current_gj()[i] = gj_init;
+		}
+		if (cdptr->order_mem.size()>0){
+			
+			for (int i = 0; i < conn_num; i++){
+				const int uid = cmd->uid[cdptr->connect_index[i]];
+				int* iptr = cdptr->order_mem.at(uid);
+				if (iptr != 0){
+					cdptr->current_gj()[i] = cdptr->last_gj()[*iptr];
+				}
+			}
+		}
+		cdptr->order_mem.reset();
+		for (int i = 0; i < conn_num; i++){
+			const int uid = cmd->uid[cdptr->connect_index[i]];
+			cdptr->order_mem.add(uid, i);
+		}
+	}
+}
 
 void dbg_conn_info(unsigned int* aindx,int count){
 	static std::vector<unsigned int> tmp(ANX*ANY*ANZ);
@@ -201,9 +237,15 @@ void connect_cell(CellManager* cm){
 	cudaDeviceSynchronize();
 	complete_area_info << <dim3(ANX, ANY), ANZ >> >(aindx.ptr, area_info.ptr);
 	cudaDeviceSynchronize();
+	//printf("conn start\n");
 	connect_proc << <cm->ncell_host - cm->nmemb_host, SEARCH_THREAD_UPPER_LIMIT*SEARCH_PAR_NUM >> >(cm->nmemb_host, cm->dev_ptr, area_info.ptr);
 	cudaDeviceSynchronize();
+	//printf("conn end\n");
 	set_dermis << <(cm->ncell_host - cm->nmemb_host - cm->nder_host) / 256 + 1, 256 >> >(cm->ncell_host, cm->nder_host + cm->nmemb_host, cm->dev_ptr);
 	cudaDeviceSynchronize();
+#ifndef USE_INACCURATE_GJ
+	refresh_gj << <256, 256 >> >(cm->ncell_host, cm->dev_ptr);
+	cudaDeviceSynchronize();
+#endif
 	cm->no_need_reconnect();
 }

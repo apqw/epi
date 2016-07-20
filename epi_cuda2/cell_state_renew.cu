@@ -14,7 +14,7 @@
 #define S0 (0.1f*0.2f) //TODO:���킩��₷������
 #define delta_L (0.01f*R_max)
 
-#define printf(x,...)
+//#define printf(x,...)
 //#define assert(x)
 __device__ inline bool __is_malig(CellDeviceWrapper cell){
 	return cell.fix_origin() >= 0 && cell.fix_origin() < MALIGNANT;
@@ -223,7 +223,7 @@ __device__ real4 div_direction(CellPos c1, CellPos dermis1,curandState* rs) {
 __device__ inline void cell_divide(CellManager_Device* cmd, CellDeviceWrapper cell,curandState* rs) {
 	CellDeviceWrapper new_cell = cmd->alloc_new_cell();
 
-	new_cell.state() = cell.state();
+	new_cell.state() = MUSUME;
 	new_cell.fix_origin() = cell.fix_origin();
 	new_cell.pos() = cell.pos();
 	new_cell.next_pos() = cell.next_pos();
@@ -247,6 +247,7 @@ __device__ inline void cell_divide(CellManager_Device* cmd, CellDeviceWrapper ce
 	cell.pair_index() = new_cell.index;
 	if (cell.dermis_index() < 0){
 		printf("dermis not found [in divide phase]\n");
+		if (cell.state() == FIX)printf("FIX dermis not found something broken [in divide phase]\n");
 		assert(false);
 	}
 	const real4 div_dir = div_direction(cell.pos(), cmd->current_pos()[cell.dermis_index()],rs);
@@ -522,6 +523,7 @@ __global__ void cell_live_renew_impl(int ncell,int offset,CellManager_Device*con
 			const int connect_num=cmd->connection_data[index].connect_num;
 			__syncthreads();
 			const real uniform_rnd = genrand_real(&cs);
+			//if (threadIdx.x == 0)printf("%d \n", rest_div_times);
 			
 			const bool has_pair = pair_index>=0;
 			const bool musume_diff = state==MUSUME&&dermis_index<0 && !has_pair;
@@ -530,7 +532,7 @@ __global__ void cell_live_renew_impl(int ncell,int offset,CellManager_Device*con
 			
 			const bool divide_ready=(state==MUSUME||state==FIX)&&rest_div_times>0
 				&& is_divide_ready_impl(has_pair, ageb, get_div_age_thresh(state), fix_origin<MALIGNANT ? 1.0f : 0.0f, uniform_rnd);
-				
+			
 			
 			const bool d_a_remove = (state==DEAD||state==AIR)&&agek >= ADHE_CONST&&connect_num <= DISA_conn_num_thresh;
 			const bool musume_remove = musume_diff&&SYSTEM==BASAL;

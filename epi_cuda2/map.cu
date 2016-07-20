@@ -236,6 +236,8 @@ __global__ void setup_map_non_memb_impl(int ncell, int offset, CellPos* cs, unsi
 
 
 	}
+
+	//need wrap?
 }
 
 void setup_map(CellManager* cm, int* cmap1_3d, float* cmap2_3d){

@@ -43,7 +43,9 @@ __global__ void init_ca2p_map(real* air_stim, const real** diffu_map, const real
 __global__ void dead_IP3_calc(int ncell, int offset, const CellConnectionData* conn, const CELL_STATE* state, const real* IP3, real* next_IP3){
 	const CellIndex index = blockIdx.x*blockDim.x + threadIdx.x + offset;
 	if (index < ncell){
+
 		if (state[index] == DEAD){
+
 			const int conn_num = conn[index].connect_num;
 			real tmp = 0.0f;
 			const real my_ip3 = IP3[index];
@@ -188,6 +190,7 @@ __global__ void supra_calc(int ncell, int offset, CellConnectionData* conn,const
 	if (index < ncell){
 		const CELL_STATE st = state[index];
 		if (st == ALIVE || st == FIX || st == MUSUME){
+			diffu[index] = 0.0f;
 			const CellPos cs = pos[index];
 			const int3 lat = {
 				(int)rintf(cs.x*inv_dx) % NX,
@@ -213,12 +216,12 @@ __global__ void supra_calc(int ncell, int offset, CellConnectionData* conn,const
 				const CELL_STATE cst = state[cidx];
 				//printf("%d aaa\n", i);
 				if (cst == ALIVE || cst == DEAD || cst == FIX || cst == MUSUME){
-					tmp_diffu += conn[index].gj[i] * (ca2p[cidx] - my_ca2p);
-					tmp_IP3 += conn[index].gj[i] * (IP3[cidx] - my_ip3);
+					tmp_diffu += conn[index].current_gj()[i] * (ca2p[cidx] - my_ca2p);//TODO:set key
+					tmp_IP3 += conn[index].current_gj()[i] * (IP3[cidx] - my_ip3);
 					
 					if (cst == ALIVE){
 						//if(i>200)printf("%d aaa\n", i);
-						conn[index].gj[i] = DT_Ca*fw(fabsf(ca2p[cidx] - my_ca2p), conn[index].gj[i]);
+						conn[index].current_gj()[i] = DT_Ca*fw(fabsf(ca2p[cidx] - my_ca2p), conn[index].current_gj()[i]);
 					}
 					
 				}
@@ -312,6 +315,29 @@ __global__ void init_ca2p_avg(int ncell, int offset, const CELL_STATE* cstate, r
 	}
 }
 
+/**
+*  細胞にカルシウム濃度の平均値をセットする。
+*/
+__global__ void set_cell_ca2p(int ncell, int offset, real* ca2p_avg, const CELL_STATE* state, real* ca2p,real* next_ca2p){
+	const CellIndex index = blockIdx.x*blockDim.x + threadIdx.x + offset;
+	if (index < ncell){
+		CELL_STATE st = state[index];
+		if (st == ALIVE || st == FIX || st == MUSUME){
+			ca2p_avg[index] /= Ca_ITR;
+		}
+		else{
+			ca2p_avg[index] = 0.0f;
+			ca2p[index] = 0.0f;
+			next_ca2p[index] = 0.0f;
+		}
+	}
+}
+
+__host__ void update_values(int* switch_param_host, real* diffu_arr){
+	*switch_param_host = 1 - *switch_param_host;
+	cudaMemset(diffu_arr, 0, sizeof(real)*MAX_CELL_NUM);
+}
+
 void calc_ca2p(CellManager*cm,const real*const ext_stim,const int*const cmap1,const float*const cmap2,real zmax)
 {
 	//using namespace cont;
@@ -327,6 +353,8 @@ void calc_ca2p(CellManager*cm,const real*const ext_stim,const int*const cmap1,co
 	static device_alloc_ctor<const real*> cell_diffu_map((NX + 1)*(NY + 1)*(NZ + 1));
 	static device_alloc_ctor<real> cell_diffu(MAX_CELL_NUM);
 	static device_alloc_ctor<real> dummy_diffu(1);
+	static int current_ca2p_switch = 0;
+	static real* ATP[2] = { ATP1.ptr, ATP2.ptr };
 	cudaMemset(dummy_diffu.ptr, 0, sizeof(real));
 
 	//static RawArr3D<uint_fast8_t> air_stim_flg;
@@ -343,41 +371,25 @@ void calc_ca2p(CellManager*cm,const real*const ext_stim,const int*const cmap1,co
 			offset,
 			cm->connection_data,
 			cm->state,
-			cm->IP3[cm->current_phase_host],
-			cm->IP3[1 - cm->current_phase_host]);
+			cm->IP3[current_ca2p_switch],
+			cm->IP3[1 - current_ca2p_switch]);
 
-		//cudaDeviceSynchronize();
-		/*
-		if ((ee=cudaGetLastError()) != 0){
-			printf("2 error code:%d\n", ee);
-			system("pause");
-		}
-		*/
-		//printf("2 error code:%d\n", cudaGetLastError());
 		
-		supra_calc << <(cm->ncell_host - offset - 1) / 128 + 1, 128 >> >(cm->ncell_host, offset, cm->connection_data, cm->current_pos_host(), cm->state, cm->agek, cm->IP3[cm->current_phase_host],
-			cm->IP3[1 - cm->current_phase_host], cm->ca2p[cm->current_phase_host], cm->ca2p[1 - cm->current_phase_host], cm->ca2p_avg, cm->ex_inert, cell_diffu.ptr, ext_stim, ATP1.ptr);
+		supra_calc << <(cm->ncell_host - offset - 1) / 128 + 1, 128 >> >(cm->ncell_host, offset, cm->connection_data, cm->current_pos_host(), cm->state, cm->agek, cm->IP3[current_ca2p_switch],
+			cm->IP3[1 - current_ca2p_switch], cm->ca2p[current_ca2p_switch], cm->ca2p[1 - current_ca2p_switch], cm->ca2p_avg, cm->ex_inert, cell_diffu.ptr, ext_stim, ATP1.ptr);
 
 
 		cudaDeviceSynchronize();
-		/*
-		if ((ee = cudaGetLastError()) != 0){
-			printf("3 error code:%d\n", ee);
-			system("pause");
-		}
-		*/
-		ATP_refresh << <dim3(NX, NY), iz_bound, (shmem_border)*sizeof(int) + (iz_bound + 1)*sizeof(float) >> >(ATP1.ptr, ATP2.ptr, cell_diffu_map.ptr, air_stim_arr.ptr, cmap2, iz_bound,shmem_border);
+		ATP_refresh << <dim3(NX, NY), iz_bound, (shmem_border)*sizeof(int) + (iz_bound + 1)*sizeof(float) >> >(ATP[current_ca2p_switch], ATP[1 - current_ca2p_switch], cell_diffu_map.ptr, air_stim_arr.ptr, cmap2, iz_bound, shmem_border);
 		cudaDeviceSynchronize();
-		/*
-		if ((ee = cudaGetLastError()) != 0){
-			printf("4 error code:%d\n", ee);
-			system("pause");
-		}
-		*/
+
 		//update_values(cman, ATP);
+		update_values(&current_ca2p_switch, cell_diffu.ptr);
 
 
 	}
-	system("pause");
+	set_cell_ca2p << <(cm->ncell_host - offset - 1) / 128 + 1, 128 >> >(cm->ncell_host, offset, cm->ca2p_avg, cm->state, cm->ca2p[current_ca2p_switch], cm->ca2p[1 - current_ca2p_switch]);
+	cudaDeviceSynchronize();
+	//system("pause");
 	//set_cell_ca2p(cman);
 }

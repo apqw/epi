@@ -12,7 +12,7 @@
 /*
 MEMB_calc
 */
-#define P_MEMB (1.0f/COMPRESS_FACTOR)
+#define P_MEMB (1.0f/(real)COMPRESS_FACTOR)
 
 /** êLÇ—íeê´åWêî */
 #define DER_DER_CONST (0.05f)
@@ -47,7 +47,7 @@ __device__ inline real bend_calc_1(const real dot_rme, const  real dot_l, const 
 }//dummy
 #define __bend_calc_m(x)\
 -(1.0f - dot_rme)*(n_r.x - dot_rme*n_rme.x)*n_rme.w\
-+ (1.0f - dot_l)*(n_rme.x - dot_l*n_l.x)*n_l.w - (n_l.x - dot_l*n_rme.x)*n_rme.w\
++ (1.0f - dot_l)*((n_rme.x - dot_l*n_l.x)*n_l.w - (n_l.x - dot_l*n_rme.x)*n_rme.w)\
 + (1.0f - dot_ll)*(n_ll.x - dot_ll*n_l.x)*n_l.w
 template<>
 __device__ inline real bend_calc_1<0>(const real dot_rme, const real dot_l, const  real dot_ll, const  real4 n_r, const real4 n_rme, const real4 n_l, const  real4 n_ll){
@@ -61,6 +61,10 @@ __device__ inline real bend_calc_1<1>(const real dot_rme, const real dot_l, cons
 template<>
 __device__ inline real bend_calc_1<2>(const real dot_rme, const real dot_l, const  real dot_ll, const  real4 n_r, const real4 n_rme, const real4 n_l, const  real4 n_ll){
 	return __bend_calc_m(z);
+}
+
+__device__ inline bool collide_with_wall(real cellz,real rad) {
+	return cellz < rad;
 }
 
 __device__ inline real4 bend_calc_main(const CellPos cme, const CellPos cu, const CellPos cl, const CellPos cb, const CellPos cr,
@@ -97,7 +101,9 @@ __device__ inline real4 bend_calc_main(const CellPos cme, const CellPos cu, cons
 __global__ void memb_bend_apply(int nmemb,const CellPos*const RESTRICT cs, CellPos*const RESTRICT new_cs){
 	const CellIndex i = blockIdx.x*blockDim.x + threadIdx.x;
 	if (i < nmemb){
+		
 		const CellPos cme = cs[i];
+		
 		CellPos cu = cs[get_adj_memb_idx<DIR_U>(i)];
 		CellPos cl = cs[get_adj_memb_idx<DIR_L>(i)];
 		CellPos cb = cs[get_adj_memb_idx<DIR_B>(i)];
@@ -109,7 +115,8 @@ __global__ void memb_bend_apply(int nmemb,const CellPos*const RESTRICT cs, CellP
 		CellPos crr = cs[get_adj_memb_idx<DIR_R>(get_adj_memb_idx<DIR_R>(i))];
 
 		const real4 straight_a = bend_calc_main(cme, cu, cl, cb, cr, cuu, cll, cbb, crr);
-
+		
+		/*
 		cu = cs[get_adj_memb_idx<DIR_L>(get_adj_memb_idx<DIR_U>(i))];
 		cl = cs[get_adj_memb_idx<DIR_B>(get_adj_memb_idx<DIR_L>(i))];
 		cb = cs[get_adj_memb_idx<DIR_R>(get_adj_memb_idx<DIR_B>(i))];
@@ -123,9 +130,10 @@ __global__ void memb_bend_apply(int nmemb,const CellPos*const RESTRICT cs, CellP
 		crr = cs[get_adj_memb_idx<DIR_U>(get_adj_memb_idx<DIR_R>(get_adj_memb_idx<DIR_U>(get_adj_memb_idx<DIR_R>(i))))];
 
 		const real4 diag_a = bend_calc_main(cme, cu, cl, cb, cr, cuu, cll, cbb, crr);
+		*/
 
-
-		new_cs[i] = cme + (DT_Cell*KBEND)*(straight_a + diag_a);
+		//new_cs[i] = cme + (DT_Cell*KBEND)*(straight_a + diag_a);
+		new_cs[i] = cme + (DT_Cell*KBEND)*straight_a;
 	}
 }
 
@@ -141,12 +149,12 @@ __device__ real CI_memb_to_memb(const CellPos c1, const CellPos c2) {
 	const real distSq = p_cell_dist_sq(c1, c2);
 	if (distSq< (cr_dist_sq = rad_sum_sq*P_MEMB*P_MEMB)) {
 		const real LJ6 = POW3(cr_dist_sq) / POW3(distSq);
-		return 4.0f*eps_m*LJ6*(LJ6 - 1.0f) / distSq;
+		return 4.0f*eps_m*LJ6*(LJ6 - CDEF(1.0)) / distSq;
 	}
 	else if (distSq < rad_sum_sq) {
-		const real inv_distlj = rsqrtr(distSq);
+		const real distlj = sqrtr(distSq);
 		const real cr_dist = rad_sum*P_MEMB;
-		return -(DER_DER_CONST) * (1.0f/ cr_dist - inv_distlj);
+		return -(DER_DER_CONST/distlj) * (distlj/ cr_dist - CDEF(1.0));
 	}
 	else {
 		const real distlj = sqrtf(distSq);
@@ -188,6 +196,7 @@ __device__ inline real diff_wall(const CellPos c1,const real rad1){
 	const real distlj = 2.0f*c1.z;
 	const real LJ6 = POW6(rad1) / POW6(c1.z);
 	const real ljm = 4.0f*eps_m*LJ6*(LJ6 - 1.0f) / (distlj*distlj);
+	if (fabs(ljm) > 100)printf("err in wall_int\n");
 	return ljm*2.0f*c1.z;
 }
 
@@ -195,35 +204,108 @@ __device__ inline real CI_other(const CellPos c1, const CellPos c2, real rad1, r
 	return ljmain(c1, c2, rad1, rad2);
 }
 
+__device__ inline bool is_near(const CellPos c1, const CellPos c2, const real rad1, const real rad2) {
+	//double rad_sum = c1->radius + c2->radius;
+	return p_cell_dist_sq(c1, c2) < (rad1 + rad2)*(rad1 + rad2);
+}
+
+__device__ inline real adhesion(const CellPos c1, const CellPos c2, const real rad1, const real rad2, const real spring_const) {
+	//using namespace cont;
+	const real distlj = sqrtf(p_cell_dist_sq(c1, c2));
+	const real rad_sum = rad1 + rad2;
+	//double LJ2_m1;
+
+	const real LJ2_m1 = (distlj / rad_sum) - 1.0f;
+	return (LJ2_m1 + 1 > LJ_THRESH ?
+		0.0f :
+		-(spring_const / distlj)
+		* LJ2_m1*(1.0f - LJ2_m1*LJ2_m1 / ((LJ_THRESH - 1.0f)*(LJ_THRESH - 1.0f))));
+}
+
+//always fix -> memb
+__device__ real CI_fix_and_memb(const CellPos c1, const CellPos c2) {
+	if (is_near(c1, c2, R_max, R_memb)) {
+		return ljmain(c1, c2, R_max, R_memb);
+	}
+	else {
+		const real distlj = sqrtf(p_cell_dist_sq(c1, c2));
+		const real LJ2 = distlj / (R_max + R_memb);
+		return -(Kspring / distlj)*(LJ2 - 1.0f);
+	}
+}
+
+//always mu->memb
+__device__ real CI_mu_and_memb(const CellPos c1, const CellPos c2, const real spring_force_to_memb) {
+	//spring_force_to_membÇ™ê›íËÇ≥ÇÍÇƒÇ¢ÇÈïKóvÇ™Ç†ÇÈ
+	if (is_near(c1, c2, R_max, R_memb)) {
+		return ljmain(c1, c2, R_max, R_memb);
+	}
+	else {
+		return adhesion(c1, c2, R_max, R_memb, spring_force_to_memb);
+	}
+}
+
+__device__ real get_spr_force_to_memb(int rest_div_times, CellIndex pair_idx, const CELL_STATE* state){
+	/*
+	order
+	*/
+	real spring_force_to_memb = CDEF(0.0);
+	if (rest_div_times> 0){
+		spring_force_to_memb = Kspring_d;
+	}
+	if (pair_idx >= 0){
+		if (state[pair_idx] == FIX) {
+			spring_force_to_memb = Kspring;
+		}
+	}
+	return spring_force_to_memb;
+}
 __global__ void memb_interaction_internal(int nmemb,
 	const CellPos*const cs,
 	CellPos*const new_cs,
 	const CellConnectionData*const cis,
 	const CELL_STATE*const cstate,
-	const CellIndex*const dermis_index){
+	const CellIndex*const dermis_index,const CellIndex*const pair_idx_arr,const int*const rdiv){
 	const CellIndex i = blockIdx.x*blockDim.x + threadIdx.x;
 	if (i < nmemb){
 		real4 vel = { 0.0f };
 		const CellPos cme = cs[i];
 		for (int j = 0; j < 4; j++){
 			const CellPos opcs = cs[cis[i].connect_index[j]];
-			vel = vel + CI_memb_to_memb(cme, opcs)*p_diff4(cme, opcs);
+			const real coef = CI_memb_to_memb(cme, opcs);
+			if (fabs(coef) > 100)printf("err in memb_memb_int\n");
+			vel = vel + coef*p_diff4(cme, opcs);
+			
 		}
-
+		/*
 		for (int j = 4; j < 8; j++){
 			const CellPos opcs = cs[cis[i].connect_index[j]];
 			vel = vel + CI_memb_to_memb_diag(i, cis[i].connect_index[j], cme, opcs)*p_diff4(cme, opcs);
 		}
-
+		*/
 		for (int j = 8; j < cis[i].connect_num; j++){
 			const CellIndex opidx = cis[i].connect_index[j];
+			const CellPos opcs = cs[opidx];
+			const real4 vs = p_diff4(cme, opcs);
 			if (i != dermis_index[opidx]){
-				const CellPos opcs = cs[opidx];
-				vel = vel + CI_other(cme, opcs, R_memb, get_radius(cstate[opidx]))*p_diff4(cme, opcs);
+				const real coef = CI_other(cme, opcs, R_memb, get_radius(cstate[opidx]));
+				vel = vel + coef*vs;
+				if (fabs(coef) > 100)printf("err in memb_other_int %d\n",cstate[opidx]);
+			}
+			else if(cstate[opidx]==FIX){
+				const real coef = CI_fix_and_memb(cme, opcs);
+				vel = vel + coef*vs;
+				if (fabs(coef) > 100)printf("err in memb_FIX_dermis_int\n");
+			}
+			else if(cstate[opidx] == MUSUME){
+				const CellIndex pair_idx = pair_idx_arr[opidx];
+				const real coef = CI_mu_and_memb(cme, opcs, get_spr_force_to_memb(rdiv[opidx], pair_idx, cstate));
+				if (fabs(coef) > 100)printf("err in memb_MUSUME_dermis_int\n");
+				vel = vel + coef*vs;
 			}
 		}
 
-		vel.z += diff_wall(cme, R_memb);
+		if(collide_with_wall(cme.z,R_memb))vel.z += diff_wall(cme, R_memb);
 		new_cs[i] = new_cs[i] + DT_Cell*vel; //need add
 	}
 }
@@ -238,7 +320,7 @@ void memb_interacion(CellManager* cm){
 		cm->next_pos_host(),
 		cm->connection_data,
 		cm->state,
-		cm->dermis_index);
+		cm->dermis_index,cm->pair_index,cm->rest_div_times);
 		
 	cudaDeviceSynchronize();
 }
@@ -258,10 +340,8 @@ __device__ inline real ljmain_der_near(const CellPos c1, const CellPos c2) {
 	return 4.0f*eps_m*LJ6*(LJ6 - 1.0f) / (dist*dist2) + para_ljp2;
 }
 
-__device__ inline bool is_near(const CellPos c1, const CellPos c2,const real rad1,const real rad2) {
-	//double rad_sum = c1->radius + c2->radius;
-	return p_cell_dist_sq(c1, c2) < (rad1 + rad2)*(rad1 + rad2);
-}
+
+
 __device__ inline real ljmain_der_far(const CellPos c1, const CellPos c2) {
 	const real dist = sqrtf(p_cell_dist_sq(c1, c2));
 	const real dist2 = dist + delta_R;
@@ -293,23 +373,13 @@ __device__ real4 der_interact_impl(const CellPos cme, const CellConnectionData*c
 
 		const real coef = opstate == DER ? CI_der_and_der(cme, opcs) : CI_other(cme, opcs, R_der, get_radius(opstate));
 		vel = vel + coef*p_diff4(cme, opcs);
+		if (fabs(coef) > 100)printf("err in der_int %d \n", opstate);
 	}
-	vel.z += diff_wall(cme, R_der);
+	if (collide_with_wall(cme.z, R_der))vel.z += diff_wall(cme, R_der);
 	return cme + DT_Cell*vel;
 }
 
-__device__ inline real adhesion(const CellPos c1,const CellPos c2,const real rad1,const real rad2, const real spring_const) {
-	//using namespace cont;
-	const real distlj = sqrtf(p_cell_dist_sq(c1, c2));
-	const real rad_sum = rad1 + rad2;
-	//double LJ2_m1;
 
-	const real LJ2_m1 = (distlj / rad_sum) - 1.0f;
-	return (LJ2_m1 + 1 > LJ_THRESH ?
-		0.0f :
-		-(spring_const / distlj)
-		* LJ2_m1*(1.0f - LJ2_m1*LJ2_m1 / ((LJ_THRESH - 1.0f)*(LJ_THRESH - 1.0f))));
-}
 
 __device__ inline real CI_fix_mu_and_fix_mu(const CellPos c1, const CellPos c2) {
 	//pairÇ©Ç«Ç§Ç©ÇÕäOÇ≈îªíËÇµÇÊÇ§
@@ -321,17 +391,7 @@ __device__ inline real CI_fix_mu_and_fix_mu(const CellPos c1, const CellPos c2) 
 	}
 }
 
-//always fix -> memb
-__device__ real CI_fix_and_memb(const CellPos c1, const CellPos c2) {
-	if (is_near(c1, c2, R_max, R_memb)) {
-		return ljmain(c1, c2, R_max, R_memb);
-	}
-	else {
-		const real distlj = sqrtf(p_cell_dist_sq(c1, c2));
-		const real LJ2 = distlj / (R_max+ R_memb);
-		return -(Kspring / distlj)*(LJ2 - 1.0f);
-	}
-}
+
 
 __device__ real CI_al_air_de_fix_mu_and_al_air_de(const CellPos c1, const CellPos c2, real agek1, real agek2) {
 	if (is_near(c1, c2, R_max, R_max)) {
@@ -360,14 +420,18 @@ __device__ real4 fix_interact_impl(const CellPos cme, const CellConnectionData*c
 		real coef = 0.0f;
 		switch (opstate){
 		case FIX:case MUSUME:
+			
 			coef = CI_fix_mu_and_fix_mu(cme, opcs);
 			break;
 		case MEMB:
 			if (dermis_idx == opidx){
+			//	printf("dermis fix\n");
 				coef = CI_fix_and_memb(cme, opcs);
-				atomicAdd(&new_cs[opidx].x, -DT_Cell*coef*vs.x);
-				atomicAdd(&new_cs[opidx].y, -DT_Cell*coef*vs.y);
-				atomicAdd(&new_cs[opidx].z, -DT_Cell*coef*vs.z);
+				/*
+				atomicAdd(&(new_cs[opidx].x), -DT_Cell*coef*vs.x);
+				atomicAdd(&(new_cs[opidx].y), -DT_Cell*coef*vs.y);
+				atomicAdd(&(new_cs[opidx].z), -DT_Cell*coef*vs.z);
+				*/
 			}
 			else{
 				coef = CI_other(cme, opcs, R_max, R_memb);
@@ -382,20 +446,12 @@ __device__ real4 fix_interact_impl(const CellPos cme, const CellConnectionData*c
 		default:
 			break;
 		}
+		if (fabs(coef) > 100)printf("err in fix_int %d dermis:%d\n",opstate,opidx-dermis_idx);
 		vel = vel + coef*vs;
 	}
 	return cme + DT_Cell*vel;
 }
-//always mu->memb
-__device__ real CI_mu_and_memb(const CellPos c1, const CellPos c2,const real spring_force_to_memb) {
-	//spring_force_to_membÇ™ê›íËÇ≥ÇÍÇƒÇ¢ÇÈïKóvÇ™Ç†ÇÈ
-	if (is_near(c1, c2, R_max,R_memb)) {
-		return ljmain(c1, c2, R_max, R_memb);
-	}
-	else {
-		return adhesion(c1, c2, R_max, R_memb, spring_force_to_memb);
-	}
-}
+
 
 __device__ real4 musume_interact_impl(const CellPos cme, const CellConnectionData*const conn_ptr, const CellPos*const RESTRICT cs, CellPos*const RESTRICT new_cs, //rewrite cs
 	const CELL_STATE*const RESTRICT cstate, const real*const agek_arr, const int my_rest_div_time,const real my_agek, const CellIndex pair_idx, const CellIndex dermis_idx){
@@ -405,17 +461,7 @@ __device__ real4 musume_interact_impl(const CellPos cme, const CellConnectionDat
 	//const int dermis_idx = dermis_arr[index];
 
 
-	real spring_force_to_memb = 0.0f;
-	if (pair_idx >= 0){
-		if (cstate[pair_idx] == FIX) {
-			spring_force_to_memb = Kspring;
-		} else if(my_rest_div_time > 0){
-			spring_force_to_memb = Kspring_d;
-		}
-	}
-	else if (my_rest_div_time > 0) {
-		spring_force_to_memb = Kspring_d;
-	}
+	const real spring_force_to_memb = get_spr_force_to_memb(my_rest_div_time, pair_idx, cstate);
 
 	for (int j = 0; j < conn_ptr->connect_num; j++){
 		const int opidx = conn_ptr->connect_index[j];
@@ -428,14 +474,17 @@ __device__ real4 musume_interact_impl(const CellPos cme, const CellConnectionDat
 		real coef = 0.0f;
 		switch (opstate){
 		case FIX:case MUSUME:
+			
 			coef = CI_fix_mu_and_fix_mu(cme, opcs);
 			break;
 		case MEMB:
 			if (dermis_idx == opidx){
 				coef = CI_mu_and_memb(cme, opcs,spring_force_to_memb);
-				atomicAdd(&new_cs[opidx].x, -DT_Cell*coef*vs.x);
-				atomicAdd(&new_cs[opidx].y, -DT_Cell*coef*vs.y);
-				atomicAdd(&new_cs[opidx].z, -DT_Cell*coef*vs.z);
+				/*
+				atomicAdd(&(new_cs[opidx].x), -DT_Cell*coef*vs.x);
+				atomicAdd(&(new_cs[opidx].y), -DT_Cell*coef*vs.y);
+				atomicAdd(&(new_cs[opidx].z), -DT_Cell*coef*vs.z);
+				*/
 			}
 			else{
 				coef = CI_other(cme, opcs, R_max, R_memb);
@@ -450,7 +499,7 @@ __device__ real4 musume_interact_impl(const CellPos cme, const CellConnectionDat
 		default:
 			break;
 		}
-		if (fabs(coef) > 100)printf("err in musume_int\n");
+		if (fabs(coef) > 100)printf("err in musume_int %d dermis:%d\n", opstate, opidx - dermis_idx);
 		vel = vel + coef*vs;
 	}
 	return cme + DT_Cell*vel;

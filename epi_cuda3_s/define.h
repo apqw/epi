@@ -1,27 +1,14 @@
-/*
- * define.h
- *
- *  Created on: 2016/07/07
- *      Author: yasu7890v
- */
-
-#ifndef DEFINE_H_
-#define DEFINE_H_
-#pragma warning (push)
-#pragma warning( disable : 4819 )
+#pragma once
+#include <cuda.h>
 #include <cuda_runtime.h>
-#include <device_launch_parameters.h>
-#ifdef _WIN32
-#define RESTRICT 
-#else
-#define RESTRICT 
-#endif
+#include <thrust/device_ptr.h>
 #define __CCONC(x,y) x##y
 #define CCONC(x,y) __CCONC(x,y)
 #define EVAL(x) x
 #define USE_FLOAT
 
 #define USE_INACCURATE_GJ
+#define DBG
 
 #ifdef USE_FLOAT
 
@@ -115,55 +102,9 @@ typedef float* CellMap2;
 
 #define ext_stim_init CDEF(0.0)
 
-enum __CST:unsigned int {
-    ALIVE = 0u,
-    DEAD = 1u,
-    DISA = 2u,
-    UNUSED = 3u, //
-    FIX = 4u,
-    BLANK = 5u,
-    DER = 6u,
-    MUSUME = 7u,
-    AIR = 8u,
-    MEMB = 9u
-};
-
-#define SYSTEM 0
-#define WHOLE 0
-#define BASAL 1
-#define STOCHASTIC 1
-
-#define MALIGNANT (0)
-
-
-#define THRESH_DEAD CDEF(22.0)
-
-#define RNG_STATE_NUM 65536
-
-#define Ca_avg_time CDEF(10.0)
-#define  T_TURNOVER 6000.0
-#define NUM_SC_INIT 1
-#define SW_THRESH 20
-#define NUM_ITR (4 * ((int)1e6))
-
-#define DIV_MAX 15
+template<typename T>
+using devPtr = thrust::device_ptr<T>;
 
 template<typename T>
-struct device_alloc_ctor{
-	T* ptr;
-	const size_t _elem_num;
-	device_alloc_ctor(size_t elem_num) :_elem_num(elem_num){
-		cudaMalloc((void**)&ptr, sizeof(T)*elem_num);
-	}
-	~device_alloc_ctor(){
-		cudaFree(ptr);
-	}
+using devRef = thrust::device_reference<T>;
 
-	void set_zero(){
-		cudaMemset(ptr, 0, sizeof(T)*_elem_num);
-	}
-};
-
-
-
-#endif /* DEFINE_H_ */
