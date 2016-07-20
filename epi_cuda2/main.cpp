@@ -230,7 +230,7 @@ int main(int argc,char** argv){
 		//dbg_output(&cm, i);
 		if(i%100==0)printf("tesuya %d\n",i);
 		if (i % 1000 == 0&&i!=0){
-			output("output/" + std::to_string(i / 1000), &cm);
+			output("output/" + std::to_string((unsigned long long)(i / 1000)), &cm);
 		}
 	}
 	cudaFree(cmap1);

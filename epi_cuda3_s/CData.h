@@ -13,7 +13,7 @@ struct CArr{
 	__device__ __host__ operator devPtr<T>(){
 		return ptr;
 	}
-	__device__ __host__ devRef<T>&& operator[](size_t index){
+	__device__ __host__ devRef<T> operator[](size_t index){
 		return ptr[index];
 	}
 	CArr() :ptr(thrust::device_malloc<T>(N)),no_free(false){
@@ -56,13 +56,13 @@ struct CArr{
 template<typename T>
 struct CValue :public CArr<T, 1>{
 	__device__ __host__ operator T()const{
-		return (T)(ptr[0]);
+		return (T)(this->ptr[0]);
 	}
 	__device__ __host__ CValue& operator=(T&& item){
-		ptr[0] = item;
+		this->ptr[0] = item;
 		return *this;
 	}
-	CValue() :CArr(){
+	CValue() :CArr<T,1>(){
 #ifdef DBG
 		printf("CValue default ctor called.\n");
 #endif
@@ -72,7 +72,7 @@ struct CValue :public CArr<T, 1>{
 #ifdef DBG
 		printf("CValue ctor with initial value called.\n");
 #endif
-		ptr[0] = init;
+		this->ptr[0] = init;
 	}
 	
 };
@@ -85,9 +85,9 @@ struct CArr3D :public CArr<T, X*Y*Z>{
 	__device__ __host__ devRef<T> operator()(size_t x, size_t y, size_t z){
 		return this->operator[](_midx(x, y, z));
 	}
-	CArr3D() :CArr(){}
-	CArr3D(devPtr<T>& _ptr, bool _no_free = false) :CArr(ptr, _no_free){}
-	CArr3D(devPtr<T>&& _ptr, bool _no_free = false) :CArr(ptr, _no_free){}
+	CArr3D() :CArr<T,X*Y*Z>(){}
+	CArr3D(devPtr<T>& _ptr, bool _no_free = false) :CArr<T,X*Y*Z>(_ptr, _no_free){}
+	CArr3D(devPtr<T>&& _ptr, bool _no_free = false) :CArr<T,X*Y*Z>(_ptr, _no_free){}
 };
 
 template<typename T>
@@ -102,8 +102,13 @@ public:
 
 	CArrMulti() :ptr(thrust::device_malloc<T>(N*Ch)){
 		//c.reserve(Ch);
+#ifdef DBG
+		printf("CArrMulti ctor called.\n");
+#endif
 		for (size_t i = 0; i < Ch; i++){
-			c.push_back(std::make_unique<Arr>(ptr + i*N, true));
+			c.push_back(
+					std::unique_ptr<Arr>(new Arr(ptr + i*N, true))
+					);
 		}
 	}
 	__host__ Arr& operator[](size_t ch){

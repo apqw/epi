@@ -36,7 +36,7 @@ class ROHashmap{
 	CNode<T>* nodes[N];
 	int count;
 public:
-	__device__ ROHashmap() :count(0),nodes{}{}
+	__device__ ROHashmap() :count(0),nodes(){}
 	__device__ int _hash(int key){
 		return key%N;
 	}
