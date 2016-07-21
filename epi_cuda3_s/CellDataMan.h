@@ -4,20 +4,27 @@
 #include "define.h"
 #include "CData.h"
 #include "switcher.h"
-
+#include "hashmap.h"
 using RField3DSw = Field3DMulti<real, 2>;
 using CPosArrSw = CArrMulti<CellPos, MAX_CELL_NUM, 2>;
+using CPosArr = CPosArrSw::Arr_type;
 using RArrSw = CArrMulti<real, MAX_CELL_NUM, 2>;
 
-using FieldMask3D = Field3D<float>;
+using FieldMask3D = Field3D<FieldMask_t>;
 using IndexMap3D = Field3D<CellIndex>;
+
 struct CellConnectionData{
-	CArr<CellIndex> connect_index;
-	CArr<real> gj;
-	CellConnectionData();
+	int connect_num;
+	CellIndex connect_index[MAX_CONNECT_CELL_NUM];
+	IntegerHashmap<real> gj;
+	
+	//CellConnectionData(){}
 };
 
+//__global__ void cell_connection_device_init(CArr<CellConnectionData> aa);
+void reset_index_map(IndexMap3D* imap);
 
+void reset_field_mask(FieldMask3D* fmask);
 class CellDataMan
 {
 	CPosArrSw _pos;
@@ -62,7 +69,7 @@ public:
 	CArr<real> ex_fat;
 	CArr<real> in_fat;
 	CArr<real> spr_nat_len;
-	CArr<int> uid;
+	//CArr<int> uid;
 	CArr<int> rest_div_times;
 	CArr<CellIndex> dermis_index;
 	CArr<bool> is_malignant;
@@ -72,7 +79,7 @@ public:
 	CValue<int> nder;
 	CValue<int> nmemb;
 	CValue<int> sw;
-	CValue<int> next_uid;
+	//CValue<int> next_uid;
 
 	SwtAccessor<decltype(_ATP)> ATP;
 	SwtAccessor<decltype(_ca2p)> ca2p;
@@ -90,7 +97,7 @@ public:
 	__host__ void ca2p_phase_switch();
 
 	bool check_initialized()const;
-	void init(const std::string& init_data_path, bool use_last = false, const std::string& init_uvp_data = "", const std::string& init_w_data = "");
+	void init(const std::string& init_data_path, bool use_last = false, const std::string& init_uvp_data = "", const std::string& init_w_data = "", const std::string& init_ATP_data="", const std::string& init_ext_stim_data="");
 	
 };
 

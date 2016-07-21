@@ -2,6 +2,7 @@
 #include "define.h"
 #include <thrust/device_malloc.h>
 #include <thrust/device_free.h>
+
 #include <thrust/fill.h>
 #include <vector>
 #include <memory>
@@ -9,7 +10,9 @@
 #include "utils.h"
 #include <array>
 #include <typeinfo>
+#include <fstream>
 #include "fsys.h"
+
 template<typename T, size_t N = MAX_CELL_NUM>
 struct CArr{
 protected:
@@ -44,7 +47,9 @@ public:
 	CArr(devPtr<T>&& _ptr, bool _no_free = false) :ptr(_ptr), no_free(_no_free){
 		dbgprint("CArr ctor with rvalue ptr called.\n");
 	}
-
+	__device__ __host__ devPtr<T> get_ptr(){
+		return ptr;
+	}
 	~CArr(){
 		if (!no_free){
 			dbgprint("CArr dtor called and freed.\n");
@@ -58,6 +63,20 @@ public:
 	__host__ void fill(const T& value){
 		thrust::fill(ptr, ptr + N,value);
 	}
+
+	__host__ void _memset(int byte_as_int){
+		gpuErrchk(cudaMemset(thrust::raw_pointer_cast(ptr), byte_as_int, sizeof(T)*N));
+	}
+
+	__host__ void _memcpy(void* src){
+		gpuErrchk(cudaMemcpy(thrust::raw_pointer_cast(ptr), src,sizeof(T)*N,cudaMemcpyHostToDevice));
+	}
+
+	/*
+	__device__ void fill_device(const T& value){
+		thrust::fill(thrust::device,ptr, ptr + N, value);
+	}
+	*/
 	template<typename F>
 	__host__ void initialize(F&& lmbd){
 		if (initialized){
@@ -76,6 +95,23 @@ public:
 		for (size_t i = 0; i < N; i++){
 			lmbd(ptr[i]);
 		}
+	}
+
+	__host__ void read_binary(const std::string& filename){
+		std::ifstream ifs;
+		char* _fdata = (char*)malloc(sizeof(T)*N);
+		ifs.open(filename, std::ios_base::in | std::ios_base::binary);
+		if (!ifs){
+			report_error([&]{
+				std::cerr << "Field data input error. \nFilename:\t\t" << filename << std::endl;
+			});
+			
+			exit_after_pause();
+		}
+		ifs.read(_fdata, sizeof(T)*N);
+		_memcpy(_fdata);
+		free(_fdata);
+		ifs.close();
 	}
 	
 };
@@ -133,11 +169,14 @@ public:
 		
 	}
 	*/
+	typedef Arr Arr_type;
 	CArrMulti() :ptr(thrust::device_malloc<T>(N*Ch)){
 
 		static_assert(std::is_standard_layout<devPtr<T>>::value, " 'device_ptr' of this version of CUDA is not standard layout.\n");
 		static_assert(std::is_trivially_copyable<devPtr<T>>::value, " 'device_ptr' of this version of CUDA is not trivially copyable.\n");
-		
+		//static_assert(std::is_standard_layout<Arr>::value, "The type used in CArrMulti is not standard layout.");
+		//static_assert(std::is_trivially_copyable<Arr>::value, "The type used in CArrMulti is not trivially copyable.");
+		/*
 		if (!std::is_standard_layout<Arr>::value){
 			report_warn([]{
 				std::cerr << "Type:" << typeid(Arr).name() << " is not standard layout." << std::endl;
@@ -151,7 +190,7 @@ public:
 			});
 			
 		}
-		
+		*/
 		for (size_t i = 0; i < Ch; i++){
 			new(reinterpret_cast<void*>(&reinterpret_cast<Arr*>(c)[i])) Arr(ptr + i*N, true);
 		}

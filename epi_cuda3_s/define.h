@@ -2,6 +2,8 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <thrust/device_ptr.h>
+#include "device_launch_parameters.h"
+#include <cfloat>
 #define __CCONC(x,y) x##y
 #define CCONC(x,y) __CCONC(x,y)
 #define EVAL(x) x
@@ -30,7 +32,9 @@ typedef float3 real3;
 #define sincosr(...) sincosf(__VA_ARGS__)
 #define rsqrtr(...) rsqrtf(__VA_ARGS__)
 #define sqrtr(...) sqrtf(__VA_ARGS__)
+#define floorr(...) floorf(__VA_ARGS__)
 #define R_FMT "%f"
+#define REAL_MAX FLT_MAX
 #else
 typedef double real;
 typedef double4 real4;
@@ -42,10 +46,14 @@ typedef double3 real3;
 #define sincosr(...) sincos(__VA_ARGS__)
 #define rsqrtr(...) rsqrt(__VA_ARGS__)
 #define sqrtr(...) sqrt(__VA_ARGS__)
+#define floorr(...) floor(__VA_ARGS__)
 #define R_FMT "%lf"
+#define REAL_MAX DBL_MAX
 #endif
 
 #define ZERO CDEF(0.0)
+#define R_ONE CDEF(1.0)
+#define R_HALF CDEF(0.5)
 
 //typedef unsigned int CELL_STATE;
 using CELL_STATE_t = unsigned int;
@@ -57,6 +65,9 @@ typedef float* FloatArr;
 typedef real* RealArr;
 typedef int* CellMap1;
 typedef float* CellMap2;
+using FieldMask_t = float;
+#define FieldMask_NONE (0.0f)
+#define FieldMask_EXIST (1.0f)
 
 #define make_cell_pos(x,y,z) make_real4(x,y,z,CDEF(0.0))
 
@@ -76,7 +87,7 @@ enum CELL_STATE :CELL_STATE_t {
 #define MAX_CELL_NUM (65536u)
 #define MAX_CONNECT_CELL_NUM (256u)
 
-#define LX_val 50.0
+#define LX_val 100.0
 #define LY_val 50.0
 #define LZ_val 100.0
 
@@ -84,11 +95,15 @@ enum CELL_STATE :CELL_STATE_t {
 #define LY CDEF(LY_val)
 #define LZ CDEF(LZ_val)
 
+#define INV_LX (CDEF(1.0)/LX)
+#define INV_LY (CDEF(1.0)/LY)
+#define INV_LZ (CDEF(1.0)/LZ)
+
 #define LXf (CCONC(LX_val,f))
 #define LYf (CCONC(LY_val,f))
 #define LZf (CCONC(LZ_val,f))
 
-#define NX (100)
+#define NX (200)
 #define NY (100)
 #define NZ (200)
 
@@ -132,6 +147,8 @@ enum CELL_STATE :CELL_STATE_t {
 
 #define MALIG_NUM (0)
 
+#define MEMB_CONN_NUM (8)
+
 template<typename T>
 using devPtr = thrust::device_ptr<T>;
 
@@ -144,3 +161,17 @@ using devRef = thrust::device_reference<T>;
 #define CUT 1000
 
 #define OUTPUT_DIR "output"
+
+#define MEMSET_NEGATIVE 0x80
+
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true)
+{
+	if (code != cudaSuccess)
+	{
+		fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+		if (abort) exit(code);
+	}
+}
+
+#define DEFAULT_THB_ALL_CELL (MAX_CELL_NUM-1)/256+1,256

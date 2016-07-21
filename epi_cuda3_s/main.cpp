@@ -6,6 +6,8 @@
 #include "fsys.h"
 #include <chrono>
 void proc(const std::string& init_data_path, bool force_cornif,bool use_last = false, const std::string& init_uvp_data = "", const std::string& init_w_data = ""){
+	env_check();
+
 	CellDataMan cm;
 	cm.init(init_data_path, use_last, init_uvp_data, init_w_data);
 
@@ -17,6 +19,7 @@ void proc(const std::string& init_data_path, bool force_cornif,bool use_last = f
 }
 
 int main(int argc,char** argv){
+	cudaDeviceSetLimit(cudaLimitMallocHeapSize, 512*1024*1024);
 	codetest();
 	proc(argv[1],true);
 	pause();

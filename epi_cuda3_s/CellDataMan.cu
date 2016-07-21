@@ -4,6 +4,27 @@
 #include <iostream>
 #include <fstream>
 #include "fsys.h"
+#include "cell_connection.h"
+
+void reset_index_map(IndexMap3D* imap){
+	imap->_memset(MEMSET_NEGATIVE);
+}
+
+void reset_field_mask(FieldMask3D* fmask){
+	fmask->_memset(0);
+}
+
+__global__ void cell_connection_device_init(devPtr<CellConnectionData> data){
+	const int gid = blockDim.x*blockIdx.x + threadIdx.x;
+	if (gid < MAX_CELL_NUM){
+		CellConnectionData& cptr = thrust::raw_reference_cast(data[gid]);
+		memset(cptr.connect_index,MEMSET_NEGATIVE, sizeof(CellIndex)*MAX_CONNECT_CELL_NUM); //negative value
+		cptr.gj.init();
+		//printf("initted %d\n", gid);
+	}
+}
+
+
 CellDataMan::CellDataMan() :ATP(ca2p_swt, _ATP), ca2p(ca2p_swt, _ca2p), IP3(ca2p_swt,_IP3)
 , pos(swt, _pos), ext_stim(swt,_ext_stim)
 {
@@ -47,26 +68,26 @@ bool __init_check_fn(int counter,const First& f, const  Second& s, const  Rest&.
 }
 bool CellDataMan::check_initialized()const{
 	return __init_check_fn(0,
-		state,
-		fix_origin,
-		connection_data,
-		pair_index,
-		ca2p_avg,
-		ex_inert,
-		agek,
-		ageb,
-		ex_fat,
-		in_fat,
-		spr_nat_len,
-		uid,
-		rest_div_times,
-		dermis_index,
-		zmax,
+		state,				//0
+		fix_origin,			//1
+		connection_data,	//2
+		pair_index,			//3
+		ca2p_avg,			//4
+		ex_inert,			//5
+		agek,				//6
+		ageb,				//7
+		ex_fat,				//8
+		in_fat,				//9
+		spr_nat_len,		//10
+		//uid,				
+		rest_div_times,		//11
+		dermis_index,		//12
+		zmax,				
 		ncell,
 		nder,
 		nmemb,
 		sw,
-		next_uid,
+		//next_uid,
 		ATP.current(),
 		ATP.next(),
 		ca2p.current(),
@@ -204,23 +225,27 @@ void CellDataMan::_load_from_file(const std::string& path){
 		printf("Phase %d  Cell loaded:%d\n", phase, id_count++);
 
 	}
-	nmemb = _nmemb;
-	nder = _nder;
+	nmemb = _nmemb; nmemb.mark_as_initialized();
+	nder = _nder; nder.mark_as_initialized();
+	ncell = id_count; ncell.mark_as_initialized();
 }
 
-void CellDataMan::init(const std::string& init_data_path, bool use_last, const std::string& init_uvp_data, const std::string& init_w_data){
+
+
+void CellDataMan::init(const std::string& init_data_path, bool use_last, const std::string& init_uvp_data, 
+	const std::string& init_w_data, const std::string& init_ATP_data, const std::string& init_ext_stim_data){
 	
 	state.fill(UNUSED);
 	fix_origin.fill(-1);
-	pos.foreach([](decltype(pos.current())& _p){
+	pos.foreach([] __device__ __host__ (decltype(pos.current())& _p){
 		_p.fill(make_cell_pos(ZERO, ZERO, ZERO));
 	});
 
-	ca2p.foreach([](decltype(ca2p.current())& _p){
+	ca2p.foreach([] __device__ __host__ (decltype(ca2p.current())& _p){
 		_p.fill(ca2p_init);
 	});
 	ca2p_avg.fill(ca2p_init);
-	IP3.foreach([](decltype(IP3.current())& _p){
+	IP3.foreach([] __device__ __host__(decltype(IP3.current())& _p){
 		_p.fill(IP3_init);
 	});
 	ex_inert.fill(ex_inert_init);
@@ -232,17 +257,21 @@ void CellDataMan::init(const std::string& init_data_path, bool use_last, const s
 	rest_div_times.fill(0);
 	is_malignant.fill(false);
 	pair_index.fill(-1);
+	//uid.fill(-1);
+
 	_load_from_file(init_data_path);
+
+
 	state.mark_as_initialized();
 	fix_origin.mark_as_initialized();
-	pos.foreach([](decltype(pos.current())& _p){
+	pos.foreach([]__device__ __host__(decltype(pos.current())& _p){
 		_p.mark_as_initialized();
 	});
-	ca2p.foreach([](decltype(ca2p.current())& _p){
+	ca2p.foreach([]__device__ __host__(decltype(ca2p.current())& _p){
 		_p.mark_as_initialized();
 	});
 	ca2p_avg.mark_as_initialized();
-	IP3.foreach([](decltype(IP3.current())& _p){
+	IP3.foreach([]__device__ __host__(decltype(IP3.current())& _p){
 		_p.mark_as_initialized();
 	});
 	ex_inert.mark_as_initialized();
@@ -255,5 +284,48 @@ void CellDataMan::init(const std::string& init_data_path, bool use_last, const s
 	is_malignant.mark_as_initialized();
 	pair_index.mark_as_initialized();
 
+	zmax = -REAL_MAX; zmax.mark_as_initialized();
+	sw = 0; sw.mark_as_initialized();
+	if (use_last){
+		ATP.foreach([&] __device__ __host__(decltype(ATP.current())& _p){
+			_p.read_binary(init_ATP_data);
+		});
+
+		ext_stim.foreach([&] __device__ __host__(decltype(ext_stim.current())& _p){
+			_p.read_binary(init_ext_stim_data);
+		});
+	}
+	else{
+		ATP.foreach([] __device__ __host__(decltype(ATP.current())& _p){
+			_p.fill(ATP_init);
+		});
+
+		ext_stim.foreach([] __device__ __host__(decltype(ext_stim.current())& _p){
+			_p.fill(ext_stim_init);
+		});
+	}
+	ATP.foreach([] __device__ __host__(decltype(ATP.current())& _p){
+		_p.mark_as_initialized();
+	});
+	ext_stim.foreach([] __device__ __host__(decltype(ext_stim.current())& _p){
+		_p.mark_as_initialized();
+	});
+	reset_field_mask(&field_mask);
+	reset_index_map(&index_map);
+	field_mask.mark_as_initialized();
+	index_map.mark_as_initialized();
+
 	
+		cell_connection_device_init << <DEFAULT_THB_ALL_CELL >> >(connection_data);
+		gpuErrchk(cudaDeviceSynchronize());
+		//test
+		for (int k = 0; k < 100; k++){
+			connect_cell(this);
+		}
+	connection_data.mark_as_initialized();
+	//dbgprint("conn v:%d\n", ((CellConnectionData)connection_data[0]).connect_index[0]);
+	pause();
 }
+
+
+
