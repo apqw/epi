@@ -5,6 +5,7 @@
 #include <fstream>
 #include "fsys.h"
 #include "cell_connection.h"
+#include <device_functions.h>
 
 void reset_index_map(IndexMap3D* imap){
 	imap->_memset(MEMSET_NEGATIVE);
@@ -24,6 +25,17 @@ __global__ void cell_connection_device_init(devPtr<CellConnectionData> data){
 	}
 }
 
+
+__device__ void CellPackedInfo::set_info(CellPos cp, CellIndex i){
+	x = __float2half(cp.x);
+	y = __float2half(cp.y);
+	z = __float2half(cp.z);
+	idx = i;
+}
+
+__device__ float3 CellPackedInfo::get_pos()const{
+	return make_float3(__half2float(x), __half2float(y), __half2float(z));
+}
 
 CellDataMan::CellDataMan() :ATP(ca2p_swt, _ATP), ca2p(ca2p_swt, _ca2p), IP3(ca2p_swt,_IP3)
 , pos(swt, _pos), ext_stim(swt,_ext_stim)
@@ -319,8 +331,9 @@ void CellDataMan::init(const std::string& init_data_path, bool use_last, const s
 		cell_connection_device_init << <DEFAULT_THB_ALL_CELL >> >(connection_data);
 		gpuErrchk(cudaDeviceSynchronize());
 		//test
-		for (int k = 0; k < 100; k++){
+		for (int k = 0; k < 10000; k++){
 			connect_cell(this);
+			if (k % 100 == 0)printf("done %d\n", k);
 		}
 	connection_data.mark_as_initialized();
 	//dbgprint("conn v:%d\n", ((CellConnectionData)connection_data[0]).connect_index[0]);

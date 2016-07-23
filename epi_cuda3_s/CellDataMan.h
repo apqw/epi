@@ -5,6 +5,7 @@
 #include "CData.h"
 #include "switcher.h"
 #include "hashmap.h"
+#include <cuda_fp16.h>
 using RField3DSw = Field3DMulti<real, 2>;
 using CPosArrSw = CArrMulti<CellPos, MAX_CELL_NUM, 2>;
 using CPosArr = CPosArrSw::Arr_type;
@@ -20,6 +21,29 @@ struct CellConnectionData{
 	
 	//CellConnectionData(){}
 };
+
+struct CellPackedInfo{
+	half x;
+	half y;
+	half z;
+	unsigned short count;
+
+	CellIndex idx;
+	__device__ void set_info(CellPos cp, CellIndex i);
+	__device__ float3 get_pos()const;
+};
+struct CellInfoStore{
+	int count;
+	CellIndex arr[GRID_STORE_MAX];
+	__device__ int get_stored_num()const{
+		return count;
+	}
+
+	__device__ int* get_stored_num_ptr(){
+		return &count;
+	}
+};
+using CellInfoGrid = CArr3D<CellInfoStore, ANX, ANY, ANZ>;
 
 //__global__ void cell_connection_device_init(CArr<CellConnectionData> aa);
 void reset_index_map(IndexMap3D* imap);
@@ -89,6 +113,7 @@ public:
 
 	FieldMask3D field_mask;
 	IndexMap3D index_map;
+	CellInfoGrid cell_info_grid;
 	
 	CellDataMan();
 	~CellDataMan();

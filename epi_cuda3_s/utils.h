@@ -1,4 +1,5 @@
 #pragma once
+#include "define.h"
 #include <array>
 #include <cstdio>
 #include <string>
@@ -76,3 +77,41 @@ struct __midx{
 };
 
 using f3di = __midx<NX + 1, NY + 1, NZ + 1>;
+
+/*
+__device__ short atomicAddShort(short* address, short val)
+
+{
+
+	unsigned int *base_address = (unsigned int *)((size_t)address & ~2);
+
+	unsigned int long_val = ((size_t)address & 2) ? ((unsigned int)val << 16) : (unsigned short)val;
+
+
+
+	unsigned int long_old = atomicAdd(base_address, long_val);
+
+	if ((size_t)address & 2) {
+
+		return (short)(long_old >> 16);
+
+	}
+	else {
+
+		unsigned int overflow = ((long_old & 0xffff) + long_val) & 0xffff0000;
+
+		if (overflow)
+
+			atomicSub(base_address, overflow);
+
+		return (short)(long_old & 0xffff);
+
+	}
+
+}
+*/
+
+__device__ unsigned short atomicIncrementShort_no_overflow(unsigned short* address);
+
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true);

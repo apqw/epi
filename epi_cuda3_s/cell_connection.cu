@@ -1,30 +1,51 @@
 #include "define.h"
 #include "CData.h"
 #include "CellDataMan.h"
-#define PRE_GRID_SIZE (R_max*CDEF(2.0))
-
-#define CALC_GRID_DIV(x) ((int)((x)/PRE_GRID_SIZE)-1)
-#define ANX CALC_GRID_DIV(LX)
-#define ANY CALC_GRID_DIV(LY)
-#define ANZ CALC_GRID_DIV(LZ)
-
-#define CALC_GRID_POS_X(x) ((int)(ANX*(x)/LX))
-#define CALC_GRID_POS_Y(y) ((int)(ANY*(y)/LY))
-#define CALC_GRID_POS_Z(z) ((int)(ANZ*(z)/LZ))
+#include <cuda_fp16.h>
 
 
+#define CELL_IN_BLOCK 2
+#define PAR_NUM 8
+struct half3{
+	half x;
+	half y;
+	half z;
+};
+/*
+struct CellPackedInfo{
+	half x;
+	half y;
+	half z;
+	unsigned short count;
 
-#define MEMB_FOLD_LAYER_ASSUMPTION (2)
+	CellIndex idx;
+	__device__ void set_info(CellPos cp,CellIndex i){
+		x = __float2half(cp.x);
+		y = __float2half(cp.y);
+		z = __float2half(cp.z);
+		idx = i;
+	}
+	__device__ float3 get_pos()const{
+		return make_float3(__half2float(x), __half2float(y), __half2float(z));
+	}
+};
+struct CellInfoStore{
+	int count;
+	CellPackedInfo arr[GRID_STORE_MAX];
+	__device__ int get_stored_num()const{
+		return count;
+	}
 
-#define GRID_STORE_MAX (2*2*2+(int)(2*COMPRESS_FACTOR*2*COMPRESS_FACTOR*MEMB_FOLD_LAYER_ASSUMPTION))
-
-struct CellIndexStore{
-	CellIndex arr[GRID_STORE_MAX];
+	__device__ int* get_stored_num_ptr(){
+		return &count;
+	}
 };
 
-using CellIndexGrid = CArr3D<CellIndexStore, ANX, ANY, ANZ>;
+using CellInfoGrid = CArr3D<CellInfoStore, ANX, ANY, ANZ>;
+*/
 using CellCountGrid = CArr3D<int, ANX, ANY, ANZ>;
 using gi = __midx<ANX, ANY, ANZ>;
+texture<real4, 1, cudaReadModeElementType> pos_tex;
 
 void grid_condition_check(){
 	static_assert(ANX >= 3, "X grid div num has to be >=3");
@@ -38,7 +59,7 @@ __global__ void reset_connect_count(CValue<int>::ptr_type ncell,CValue<int>::ptr
 		thrust::raw_reference_cast(conn[index]).connect_num = index < (int)nmemb[0] ? MEMB_CONN_NUM : 0;
 	}
 }
-__global__ void build_grid(const CValue<int>::ptr_type ncell, const CPosArr::ptr_type current_pos, CellIndexGrid::ptr_type idx_grd, CellCountGrid::ptr_type count_grd){
+__global__ void build_grid(const CValue<int>::ptr_type ncell,const CValue<int>::ptr_type nmemb, const CPosArr::ptr_type current_pos, CellInfoGrid::ptr_type idx_grd){
 	const CellIndex index = blockDim.x*blockIdx.x + threadIdx.x;
 	if (index < (int)ncell[0]){
 		const CellPos cpos = current_pos[index];
@@ -59,51 +80,67 @@ __global__ void build_grid(const CValue<int>::ptr_type ncell, const CPosArr::ptr
 			assert(aiz < ANZ&&aiz >= 0);
 		}
 		const int gpos = gi::idx(aix, aiy, aiz);
-		const int my_count = atomicAdd(count_grd.get() + gpos, 1);
-		thrust::raw_reference_cast(idx_grd[gpos]).arr[my_count] = index;
+		const int my_count = atomicAdd(thrust::raw_reference_cast(idx_grd[gpos]).get_stored_num_ptr(), 1);
+		/*
+		printf("%d count\n", my_count);
+		if (!(my_count < GRID_STORE_MAX)){
+			for (int i = 0; i < 100; i++){
+				printf("broken conn count:%d\n", my_count);
+			}
+
+			assert(my_count < GRID_STORE_MAX);
+		}
+		*/
 		assert(my_count < GRID_STORE_MAX);
+		thrust::raw_reference_cast(idx_grd[gpos]).arr[my_count] = index;
+		
+
+		//if (thrust::raw_reference_cast(idx_grd[gpos]).arr[my_count].idx >= MAX_CELL_NUM)printf("%d broke idx\n", thrust::raw_reference_cast(idx_grd[gpos]).arr[my_count].idx);
 	}
 }
 
-void reset_grid_count(CellCountGrid* cg){
+void reset_grid_count(CellInfoGrid* cg){
 	cg->_memset(0);
 }
 
-__global__ void connect_proc(const int ncell, const CellIndex start
-	, const CPosArr::ptr_type cpos, const CArr<CELL_STATE>::ptr_type cstate
+__global__ void connect_proc(const int ncell,const int nmemb
+	, const CPosArr cpos
 	, CArr<CellConnectionData>::ptr_type conndata
-	, const CellIndexGrid::ptr_type idx_grd, const CellCountGrid::ptr_type count_grd){
+	, const CellInfoGrid::ptr_type idx_grd){
 	
-	const int my_proc_id = threadIdx.x % 32;
+	const int my_proc_id = (threadIdx.x/PAR_NUM) % (32);
+	const int my_par_offset = threadIdx.x%PAR_NUM;
 	if (my_proc_id >= 3 * 3 * 3)return;
 	
 	
 	//__shared__ CellIndex start;
-	__shared__ CellPos pos_set[32];
-	__shared__ int4 grd_set[32];
+	__shared__ real3 pos_set[CELL_IN_BLOCK];
+	__shared__ int3 grd_set[CELL_IN_BLOCK];
+	__shared__ CellConnectionData* myconn[CELL_IN_BLOCK];
 
-	const int virtual_id = threadIdx.x / 32;
+	const int virtual_id = threadIdx.x / (PAR_NUM * 32);
 	__syncthreads();
 	
 	
 	
-	const CellIndex index = blockDim.x*blockIdx.x / 32 + virtual_id + start;
+	const CellIndex index = blockIdx.x*CELL_IN_BLOCK + virtual_id + nmemb;
 	if (index < ncell){
 		
-		if (my_proc_id == 0){
-
-			pos_set[virtual_id] = cpos[index];
-			grd_set[virtual_id] = make_int4(
+		if (my_proc_id == 0&&my_par_offset==0){
+			const CellPos tmpc = cpos[index];
+			pos_set[virtual_id] = make_real3(tmpc.x,tmpc.y,tmpc.z);
+			grd_set[virtual_id] = make_int3(
 				CALC_GRID_POS_X(pos_set[virtual_id].x),
 				CALC_GRID_POS_Y(pos_set[virtual_id].y),
-				CALC_GRID_POS_Z(pos_set[virtual_id].z), 0);
+				CALC_GRID_POS_Z(pos_set[virtual_id].z));
+			myconn[virtual_id]=thrust::raw_pointer_cast(conndata + index);
 		}
 		__syncthreads();
-		const CellPos my_pos = pos_set[virtual_id];
-		const int4 my_grd = grd_set[virtual_id];
-		
-		if (my_proc_id == 0){
+		const real3& my_pos = pos_set[virtual_id];
+		const int3& my_grd = grd_set[virtual_id];
 #ifdef DBG
+		if (my_proc_id == 0){
+
 			if (!(my_grd.x < ANX&&my_grd.x >= 0)){
 				printf("my aix error:%d\n", my_grd.x);
 				assert((my_grd.x < ANX&&my_grd.x >= 0));
@@ -116,26 +153,39 @@ __global__ void connect_proc(const int ncell, const CellIndex start
 				printf("my aiz error:%d\n", my_grd.z);
 				assert((my_grd.z < ANZ&&my_grd.z >= 0));
 			}
-#endif
+			
+
 		}
+#endif
 		const int proc_x = my_proc_id%3+my_grd.x-1;
 		const int proc_y = (my_proc_id / 3) % 3 + my_grd.y - 1;
 		const int proc_z = (my_proc_id / 9) +my_grd.z - 1;
 		const int arr_idx = gi::idx(proc_x, proc_y, proc_z);
-		const int stored_num = count_grd[arr_idx];
-		const CellIndexStore& conn = thrust::raw_reference_cast(idx_grd[arr_idx]);
-		for (int i = 0; i < stored_num; i++){
+		const CellInfoStore& conn = thrust::raw_reference_cast(idx_grd[arr_idx]);
+		const int stored_num = conn.get_stored_num();
+		//if(threadIdx.x%10==0)printf("%d aa\n", stored_num);
+		for (int i = my_par_offset; i < stored_num; i+=PAR_NUM){
+			
 			const CellIndex opidx = conn.arr[i];
 			if (index <= opidx)continue;
-			const CellPos oppos = cpos[opidx];
-			const CELL_STATE cst = cstate[opidx];
-			const real rad_sum = R_max + cst == MEMB ? R_memb : R_max;
-			if (p_dist_sq(my_pos, oppos) <= LJ_THRESH*LJ_THRESH*rad_sum*rad_sum){
-				CellConnectionData& my_cdata = thrust::raw_reference_cast(conndata[index]);
-				CellConnectionData& op_cdata = thrust::raw_reference_cast(conndata[opidx]);
-				my_cdata.connect_index[atomicAdd(&my_cdata.connect_num, 1)] = opidx;
-				op_cdata.connect_index[atomicAdd(&op_cdata.connect_num, 1)] = index;
+			const CellPos oppos = tex1Dfetch(pos_tex, opidx);
+			const real rad_sum = R_max + (opidx<nmemb ? R_memb : R_max);
+			const real diffx = p_diff_x(my_pos.x, oppos.x);
+			const real diffy = p_diff_y(my_pos.y, oppos.y);
+			const real diffz = my_pos.z- oppos.z;
+			
+			if (diffx*diffx+diffy*diffy+diffz*diffz <= LJ_THRESH*LJ_THRESH*rad_sum*rad_sum){
+				
+				
+				CellConnectionData* op_cdata = thrust::raw_pointer_cast(conndata + opidx);
+				
+				myconn[virtual_id]->connect_index[atomicAdd(&myconn[virtual_id]->connect_num, 1)] = opidx;
+				
+				//if(opidx>=MAX_CELL_NUM)printf("%d opidx\n", opidx);
+				op_cdata->connect_index[atomicAdd(&op_cdata->connect_num, 1)] = index;
+				
 			}
+			
 		}
 
 
@@ -143,20 +193,38 @@ __global__ void connect_proc(const int ncell, const CellIndex start
 
 }
 
+__global__ void see_connection(CArr<CellConnectionData>::ptr_type conn){
+	const CellIndex index = blockDim.x*blockIdx.x + threadIdx.x;
+	if (index < 60000){
+		CellConnectionData& my_cdata = thrust::raw_reference_cast(conn[index]);
+
+		if(index%100==0)printf("conn num:%d\n", my_cdata.connect_num);
+	}
+}
+
 void connect_cell(CellDataMan* cm){
-	static CellIndexGrid cidxg;
-	static CellCountGrid ccntg;
-
-	reset_grid_count(&ccntg);
-
+	//static CellInfoGrid cidxg;
+	//static CellCountGrid ccntg;
+	//for test
+	static bool flg = false;
+	if (!flg){
+		flg = true;
+		cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<real4>();
+		cudaBindTexture(NULL, pos_tex, cm->pos.current().get_ptr().get(), channelDesc);
+	}
+	reset_grid_count(&cm->cell_info_grid);
 	reset_connect_count << <DEFAULT_THB_ALL_CELL >> >(cm->ncell, cm->nmemb, cm->connection_data);
-	build_grid << <DEFAULT_THB_ALL_CELL >> >(cm->ncell, cm->pos.current(), cidxg, ccntg);
+	build_grid << <DEFAULT_THB_ALL_CELL >> >(cm->ncell, cm->nmemb, cm->pos.current(), cm->cell_info_grid);
 	gpuErrchk(cudaDeviceSynchronize());
-
-	const CellIndex start = (int)cm->nmemb + (int)cm->nder;
+	const int nmemb = cm->nmemb;
 	const int ncell = cm->ncell;
-	connect_proc << <(ncell - start - 1) / 32 + 1, 32 * 32 >> >(ncell, start, cm->pos.current(), cm->state, cm->connection_data, cidxg, ccntg);
+	connect_proc << <(ncell - nmemb - 1) / CELL_IN_BLOCK + 1, PAR_NUM*CELL_IN_BLOCK * 32 >> >(ncell, nmemb, cm->pos.current(), cm->connection_data, cm->cell_info_grid);
 	gpuErrchk(cudaDeviceSynchronize());
+	//cudaUnbindTexture(pos_tex);
+	/*
+	see_connection << <DEFAULT_THB_ALL_CELL >> >(cm->connection_data);
+	gpuErrchk(cudaDeviceSynchronize());
+	*/
 	//need connect reset
 
 

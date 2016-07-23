@@ -19,7 +19,7 @@ void proc(const std::string& init_data_path, bool force_cornif,bool use_last = f
 }
 
 int main(int argc,char** argv){
-	cudaDeviceSetLimit(cudaLimitMallocHeapSize, 512*1024*1024);
+	cudaDeviceSetLimit(cudaLimitMallocHeapSize, 1024*1024*1024);
 	codetest();
 	proc(argv[1],true);
 	pause();

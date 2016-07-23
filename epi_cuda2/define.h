@@ -63,7 +63,7 @@ typedef float* CellMap2;
 #define MAX_CELL_NUM (65536u)
 #define MAX_CONNECT_CELL_NUM (256u)
 
-#define LX_val 50.0
+#define LX_val 100.0
 #define LY_val 50.0
 #define LZ_val 100.0
 
@@ -75,7 +75,7 @@ typedef float* CellMap2;
 #define LYf (CCONC(LY_val,f))
 #define LZf (CCONC(LZ_val,f))
 
-#define NX (100)
+#define NX (200)
 #define NY (100)
 #define NZ (200)
 
@@ -93,13 +93,13 @@ typedef float* CellMap2;
 
 #define LJ_THRESH CDEF(1.2)
 
-#define NMX (100)
-#define NMY (100)
+#define NMX (150)
+#define NMY (150)
 
 #define DT_Cell CDEF(0.01)
 #define DT_Ca CDEF(0.01)
 
-#define COMPRESS_FACTOR (4u)
+#define COMPRESS_FACTOR (6u)
 
 #define THRESH_SP CDEF(3.0)
 

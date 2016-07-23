@@ -10,7 +10,7 @@
 #define USE_FLOAT
 
 #define USE_INACCURATE_GJ
-#define DBG
+//#define DBG
 
 #ifdef DBG
 #define dbgprint(...) printf(__VA_ARGS__)
@@ -164,14 +164,22 @@ using devRef = thrust::device_reference<T>;
 
 #define MEMSET_NEGATIVE 0x80
 
-#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true)
-{
-	if (code != cudaSuccess)
-	{
-		fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-		if (abort) exit(code);
-	}
-}
 
 #define DEFAULT_THB_ALL_CELL (MAX_CELL_NUM-1)/256+1,256
+
+#define PRE_GRID_SIZE (LJ_THRESH*R_max*CDEF(2.0))
+
+#define CALC_GRID_DIV(x) ((int)((x)/PRE_GRID_SIZE-0.5))
+#define ANX CALC_GRID_DIV(LX)
+#define ANY CALC_GRID_DIV(LY)
+#define ANZ CALC_GRID_DIV(LZ)
+
+#define CALC_GRID_POS_X(x) ((int)(ANX*(x)/LX))
+#define CALC_GRID_POS_Y(y) ((int)(ANY*(y)/LY))
+#define CALC_GRID_POS_Z(z) ((int)(ANZ*(z)/LZ))
+
+
+
+#define MEMB_FOLD_LAYER_ASSUMPTION (2.0)
+
+#define GRID_STORE_MAX (2*2*2+(int)(2*COMPRESS_FACTOR*2*COMPRESS_FACTOR*MEMB_FOLD_LAYER_ASSUMPTION))
