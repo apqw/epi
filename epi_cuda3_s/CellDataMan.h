@@ -14,10 +14,16 @@ using RArrSw = CArrMulti<real, MAX_CELL_NUM, 2>;
 using FieldMask3D = Field3D<FieldMask_t>;
 using IndexMap3D = Field3D<CellIndex>;
 
+struct gj_value{
+	bool checked = false;
+	real value=gj_init;
+	__device__ __host__ gj_value(real v=gj_init):value(v){}
+};
+
 struct CellConnectionData{
 	int connect_num;
 	CellIndex connect_index[MAX_CONNECT_CELL_NUM];
-	IntegerHashmap<real> gj;
+	IntegerHashmap<gj_value> gj;
 	
 	//CellConnectionData(){}
 };

@@ -45,7 +45,6 @@ using CellInfoGrid = CArr3D<CellInfoStore, ANX, ANY, ANZ>;
 */
 using CellCountGrid = CArr3D<int, ANX, ANY, ANZ>;
 using gi = __midx<ANX, ANY, ANZ>;
-texture<real4, 1, cudaReadModeElementType> pos_tex;
 
 void grid_condition_check(){
 	static_assert(ANX >= 3, "X grid div num has to be >=3");
@@ -161,14 +160,16 @@ __global__ void connect_proc(const int ncell,const int nmemb
 		const int proc_y = (my_proc_id / 3) % 3 + my_grd.y - 1;
 		const int proc_z = (my_proc_id / 9) +my_grd.z - 1;
 		const int arr_idx = gi::idx(proc_x, proc_y, proc_z);
+		printf("%d arridx\n", arr_idx);
 		const CellInfoStore& conn = thrust::raw_reference_cast(idx_grd[arr_idx]);
-		const int stored_num = conn.get_stored_num();
+
+		const int stored_num = conn.count;
 		//if(threadIdx.x%10==0)printf("%d aa\n", stored_num);
 		for (int i = my_par_offset; i < stored_num; i+=PAR_NUM){
 			
 			const CellIndex opidx = conn.arr[i];
 			if (index <= opidx)continue;
-			const CellPos oppos = tex1Dfetch(pos_tex, opidx);
+			const CellPos oppos = cpos[opidx];
 			const real rad_sum = R_max + (opidx<nmemb ? R_memb : R_max);
 			const real diffx = p_diff_x(my_pos.x, oppos.x);
 			const real diffy = p_diff_y(my_pos.y, oppos.y);
@@ -193,6 +194,28 @@ __global__ void connect_proc(const int ncell,const int nmemb
 
 }
 
+__global__ void refresh_gj(const CValue<int>::ptr_type ncell,CArr<CellConnectionData>::ptr_type conn){
+	const CellIndex index = blockDim.x*blockIdx.x + threadIdx.x;
+	if (index < (int)ncell[0]){
+		auto& connref = thrust::raw_reference_cast(conn[index]);
+		using HashType = decltype(connref.gj);
+		connref.gj.foreach([]__host__ __device__(HashType::node_type*node, CellIndex key, gj_value& value){
+			value.checked = false;
+		});
+
+		const int cnum = connref.connect_num;
+		for (int i = 0; i < cnum; i++){
+			connref.gj.at_with_emplace(connref.connect_index[i]).checked = true;
+		}
+
+		connref.gj.foreach([]__host__ __device__(HashType::node_type*node, CellIndex key, gj_value& value){
+			if (!value.checked){
+				value.value = gj_init;
+			}
+		});
+	}
+}
+
 __global__ void see_connection(CArr<CellConnectionData>::ptr_type conn){
 	const CellIndex index = blockDim.x*blockIdx.x + threadIdx.x;
 	if (index < 60000){
@@ -206,12 +229,6 @@ void connect_cell(CellDataMan* cm){
 	//static CellInfoGrid cidxg;
 	//static CellCountGrid ccntg;
 	//for test
-	static bool flg = false;
-	if (!flg){
-		flg = true;
-		cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<real4>();
-		cudaBindTexture(NULL, pos_tex, cm->pos.current().get_ptr().get(), channelDesc);
-	}
 	reset_grid_count(&cm->cell_info_grid);
 	reset_connect_count << <DEFAULT_THB_ALL_CELL >> >(cm->ncell, cm->nmemb, cm->connection_data);
 	build_grid << <DEFAULT_THB_ALL_CELL >> >(cm->ncell, cm->nmemb, cm->pos.current(), cm->cell_info_grid);
@@ -219,6 +236,8 @@ void connect_cell(CellDataMan* cm){
 	const int nmemb = cm->nmemb;
 	const int ncell = cm->ncell;
 	connect_proc << <(ncell - nmemb - 1) / CELL_IN_BLOCK + 1, PAR_NUM*CELL_IN_BLOCK * 32 >> >(ncell, nmemb, cm->pos.current(), cm->connection_data, cm->cell_info_grid);
+	gpuErrchk(cudaDeviceSynchronize());
+	refresh_gj << <DEFAULT_THB_ALL_CELL >> >(cm->ncell, cm->connection_data);
 	gpuErrchk(cudaDeviceSynchronize());
 	//cudaUnbindTexture(pos_tex);
 	/*

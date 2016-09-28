@@ -2,6 +2,7 @@
 #include "define.h"
 #include <cassert>
 
+
 template<typename U, typename UKey_t = int>
 class Node{
 public:
@@ -19,16 +20,32 @@ public:
 			return next->find(fkey);
 		}
 	}
-	__device__ __host__ bool find_assign(UKey_t fkey, U v){
+
+
+	__device__ __host__ Node* find_emplace(UKey_t fkey){
+		if (key == fkey){
+			return this;
+		}
+		else if (next == nullptr){
+			next = new Node<U, UKey_t>(fkey);
+			return next;
+		}
+		else{
+			return next->find(fkey);
+		}
+	}
+
+	template<typename...Param>
+	__device__ __host__ bool find_assign(UKey_t fkey, Param... v){
 		if (key == fkey){
 			return false;
 		}
 		else if (next == nullptr){
-			next = new Node<U, UKey_t>(fkey, v);
+			next = new Node<U, UKey_t>(fkey, v...);
 			return true;
 		}
 		else{
-			return next->find_assign(fkey, v);
+			return next->find_assign(fkey, v...);
 		}
 	}
 
@@ -59,6 +76,18 @@ public:
 			return next->remove(fkey);
 		}
 	}
+
+	__device__ __host__ void copy_data_from(Node* ptr){
+		key = ptr->key;
+		value = ptr->value;
+	}
+
+	__device__ __host__ void remove_this(){
+		Node* tmp = next->next;
+		copy_data_from(next);
+		delete next;
+		next = tmp;
+	}
 	template<typename F>
 	__device__ __host__ void forward_foreach(F&& lmbd){
 
@@ -70,7 +99,8 @@ public:
 		}
 		lmbd(this);
 	}
-	__device__ __host__ Node(UKey_t k, U v) :key(k), value(v){}
+	template<typename...Param>
+	__device__ __host__ Node(UKey_t k, Param... v) :key(k), value(v...){}
 };
 
 template<typename T,typename Key_t=int>
@@ -81,6 +111,7 @@ class IntegerHashmap{
 	int current_size=16;
 	int bucket_count = 0;
 public:
+	typedef Node<T, Key_t> node_type;
 	__device__ __host__ int _hash(Key_t key)const{
 		return key%current_size;
 	}
@@ -95,15 +126,26 @@ public:
 		return nptr->find(key)->value; //assume key will found
 	}
 
-	__device__ __host__ void emplace(Key_t key, T value){
+	__device__ __host__ T& at_with_emplace(Key_t key){
+		const int hash = _hash(key);
+		Node<T, Key_t>** pptr = &bucket_slot[hash];
+		if (*pptr == nullptr){
+			*pptr = new Node<T, Key_t>(key); //call default ctro
+			return (*pptr)->value;
+		}
+		return (*pptr)->find_emplace(key)->value; 
+	}
+
+	template<typename...Param>
+	__device__ __host__ void emplace(Key_t key, Param... value){
 		rehash_check();
 		const int hash = _hash(key);
 		Node<T, Key_t>** pptr = &bucket_slot[hash];
 		if (*pptr == nullptr){
-			*pptr = new Node<T, Key_t>(key, value);
+			*pptr = new Node<T, Key_t>(key, value...);
 			bucket_count++;
 		}
-		else if ((*pptr)->find_assign(key, value)){
+		else if ((*pptr)->find_assign(key, value...)){
 			bucket_count++;
 		}
 		dbgprint("emplaced count:%d\n", bucket_count);
@@ -172,6 +214,15 @@ public:
 		bucket_count = 0;
 	}
 	
+	template<typename F>
+	__device__ __host__ void foreach(F&& lmbd){
+		for (int i = 0; i < current_size; i++){
+			if (bucket_slot[i] != nullptr)bucket_slot[i]->forward_foreach([&](Node<T, Key_t>* cn){
+				lmbd(cn,cn->key, cn->value);
+			});
+		}
+	}
+
 	__device__ __host__ void destroy(){
 		
 		for (int i = 0; i < current_size ; i++){
