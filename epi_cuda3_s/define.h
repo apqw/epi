@@ -180,6 +180,6 @@ using devRef = thrust::device_reference<T>;
 
 
 
-#define MEMB_FOLD_LAYER_ASSUMPTION (2.0)
+#define MEMB_FOLD_LAYER_ASSUMPTION (3.0)
 
 #define GRID_STORE_MAX (2*2*2+(int)(2*COMPRESS_FACTOR*2*COMPRESS_FACTOR*MEMB_FOLD_LAYER_ASSUMPTION))

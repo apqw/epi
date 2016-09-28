@@ -67,7 +67,52 @@ void CellManager::_memb_init()
 {
 	using namespace cont;
 	auto&cells = *this;
+    #ifdef TRI_MEMB
+    //1pass
 	cells.memb_foreach_with_index([&](CellPtr& cptr, size_t j) {
+
+        size_t jj=j%NMX;
+        size_t kk=j/NMX;
+            if(jj==0){ //most left
+                cptr->md.memb[3]=cells[j+NMX-1];
+            }else{
+                cptr->md.memb[3]=cells[j-1];
+            }
+
+            if(jj==NMX-1){
+                cptr->md.memb[0]=cells[j-(NMX-1)];
+            }else{
+                cptr->md.memb[0]=cells[j+1];
+            }
+
+});
+    //2pass
+    cells.memb_foreach_with_index([&](CellPtr& cptr, size_t j) {
+
+        size_t jj=j%NMX;
+        size_t kk=j/NMX;
+       // size_t YNUM=NMY/y_comp_ratio;
+        size_t top=(j-NMX+cells.nmemb)%(cells.nmemb);
+        size_t bot=(j+NMX)%(cells.nmemb);
+        if(kk%2==0){
+
+            cptr->md.memb[1]=cells[top];
+            cptr->md.memb[2]=cells[top]->md.memb[3];
+            cptr->md.memb[4]=cells[bot]->md.memb[3];
+            cptr->md.memb[5]=cells[bot];
+
+        }else{
+            cptr->md.memb[1]=cells[top]->md.memb[0];
+            cptr->md.memb[2]=cells[top];
+            cptr->md.memb[4]=cells[bot];
+            cptr->md.memb[5]=cells[bot]->md.memb[0];
+        }
+        for(int i=0;i<6;i++){
+            cptr->connected_cell.push_back(cptr->md.memb[i]);
+        }
+    });
+#else
+   cells.memb_foreach_with_index([&](CellPtr& cptr, size_t j) {
 		size_t jj = j%NMX;
 		size_t kk = j / NMX;
 		if (jj == 0) {
@@ -116,11 +161,13 @@ void CellManager::_memb_init()
 		cptr->connected_cell.push_back(cptr->md.memb_r);
 		cptr->connected_cell.push_back(cptr->md.memb_b);
 		cptr->connected_cell.push_back(cptr->md.memb_u);
+
 	});
+   #endif
 
     //2pass
     //直接周囲8つ接続することも可能だが、4つ接続するだけで位置関係は定義できているのでそれを利用していきたい
-
+#ifdef DIAG_BEND
     cells.memb_foreach_with_index([&](CellPtr& cptr, size_t j) {
 
         cptr->connected_cell.push_back(cptr->md.memb_l->md.memb_u);
@@ -128,10 +175,10 @@ void CellManager::_memb_init()
         cptr->connected_cell.push_back(cptr->md.memb_r->md.memb_b);
         cptr->connected_cell.push_back(cptr->md.memb_u->md.memb_r);
     });
-
+#endif
 
     //see cont::MEMB_ADJ_CONN_NUM
-    cell_shuffle(0, nmemb - 1);
+    //cell_shuffle(0, nmemb - 1);
 }
 
 void CellManager::swap_cell_index(size_t c1, size_t c2) {
@@ -268,6 +315,10 @@ void CellManager::_load_from_file(std::string path)
 
 	}
 	cman.nmemb = nmemb;
+#ifdef TRI_MEMB
+    assert(nmemb==(NMX*NMY_tri));
+    assert(NMY_tri%2==0);
+#endif
 	cman.nder = nder;
 }
 

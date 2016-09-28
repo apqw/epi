@@ -6,6 +6,8 @@
 #include <functional>
 #include <cmath>
 #include <tbb/task_group.h>
+#include "vec3.h"
+#include <cstdio>
 /**
  *  @file ×–EŠÔ‚Ì‘ŠŒÝì—p(Žå‚ÉˆÊ’u)‚ÉŠÖ‚·‚é’è‹`
  */
@@ -24,7 +26,7 @@ static constexpr double eps_m				= 0.01;
 static constexpr double P_MEMB				= 1. / cont::COMPRESS_FACTOR;
 
 /** L‚Ñ’e«ŒW” */
-static constexpr double DER_DER_CONST		= 0.05;
+static constexpr double DER_DER_CONST		= 0.2;
 static constexpr double K_TOTAL				= 3.0;
 static constexpr double K_DESMOSOME_RATIO	= 0.01;
 static constexpr double K_DESMOSOME			= K_TOTAL*K_DESMOSOME_RATIO;
@@ -32,7 +34,7 @@ static constexpr double Kspring				= 25.0;
 static constexpr double Kspring_d			= 5.0;
 
 /** ‹È‚°’e«ŒW” */
-static constexpr double KBEND = 0.25;//0.5->0.25
+static constexpr double KBEND = 0.5;//0.5->0.25
 
 /*
 	DER_calc
@@ -46,7 +48,7 @@ static constexpr double Kspring_division	= 5.0;
 template<class Fn>
 inline void cell_interaction_apply(Cell*const RESTRICT c1, Cell*const RESTRICT c2) {
 	const double coef = Fn::CIFuncCName(c1, c2);
-    if (fabs(coef) > 100) {
+    if (fabs(coef) > 1000) {
         printf("Too strong interaction:%d and %d\n", (int)(c1->state), (int)(c2->state));
         assert(false);
         exit(1);
@@ -77,9 +79,6 @@ inline bool is_der_near(const Cell*const RESTRICT der1, const Cell*const RESTRIC
 }
 
 inline double ljmain_der_near(const Cell*const RESTRICT der1, const Cell*const RESTRICT der2) {
-	/*
-		‹——£‚Ì2æ‚¾‚¯‚Å‚Í•s‰Â
-	*/
 	const double dist = sqrt(p_cell_dist_sq(der1, der2));
 	const double dist2 = dist + delta_R;
 	const double rad_sum = der1->radius + der2->radius;
@@ -449,7 +448,62 @@ inline void _memb_bend_calc3(Cell *const RESTRICT memb)
 
 }
 
+vec3 ctov(const Cell* const RESTRICT c1){
+    return vec3(c1->x(),c1->y(),c1->z());
+}
+
+vec3 tri_normal(const Cell* const RESTRICT c1,const Cell* const RESTRICT c2,const Cell* const RESTRICT c3){
+vec3 c1v=ctov(c1);
+vec3 c2v=ctov(c2);
+vec3 c3v=ctov(c3);
+vec3 cr = vec3::cross(c1v-c3v,c2v-c3v);
+return cr.normalize();
+}
+
+vec3 tri_rho(const vec3& n1,const vec3& b1){
+    return b1-(vec3::dot(n1,b1)*n1);
+}
+
+
+vec3 tri_bend_1(const Cell* const RESTRICT r1,const Cell* const RESTRICT a1,const Cell* const RESTRICT b1,const Cell* const RESTRICT c1){
+    vec3 r1v = ctov(r1),a1v=ctov(a1),b1v=ctov(b1),c1v=ctov(c1);
+    vec3 norm1_pre=vec3::cross(vpsub(r1v,b1v),vpsub(a1v,b1v));
+    vec3 norm1=norm1_pre.normalize(),norm2=vec3::cross(vpsub(a1v,b1v),vpsub(c1v,b1v)).normalize();
+    double dot1=vec3::dot(norm1,norm2);
+    return _memb_bend_diff_factor(dot1)*(vec3::cross(vpsub(a1v,b1v),tri_rho(norm1,norm2))/norm1_pre.norm());
+}
+
+vec3 tri_bend_2(const Cell* const RESTRICT r1,const Cell* const RESTRICT a1,const Cell* const RESTRICT b1,const Cell* const RESTRICT c1){
+    vec3 r1v = ctov(r1),a1v=ctov(a1),b1v=ctov(b1),c1v=ctov(c1);
+    vec3 norm1_pre=vec3::cross(vpsub(r1v,c1v),vpsub(b1v,c1v));vec3 norm2_pre=vec3::cross(vpsub(r1v,b1v),vpsub(a1v,b1v));
+
+    vec3 norm1=norm1_pre.normalize(),norm2=norm2_pre.normalize();
+assert(norm1_pre.norm()<100);
+
+
+    double dot1=vec3::dot(norm1,norm2);
+    return _memb_bend_diff_factor(dot1)*(vec3::cross(vpsub(b1v,c1v),tri_rho(norm1,norm2))/norm1_pre.norm() + vec3::cross(vpsub(a1v,b1v),tri_rho(norm2,norm1))/norm2_pre.norm());
+}
+
+void tri_memb_bend(Cell* const RESTRICT memb){
+vec3 dr={0,0,0};
+for(int i=0;i<6;i++){
+dr+=tri_bend_1(memb,memb->md.memb[i],memb->md.memb[(i+1)%6],memb->md.memb[(i+1)%6]->md.memb[i]);
+}
+for(int i=0;i<6;i++){
+dr+=tri_bend_2(memb,memb->md.memb[i],memb->md.memb[(i+1)%6],memb->md.memb[(i+2)%6]);
+}
+memb->x+=cont::DT_Cell*KBEND*dr.x;
+memb->y+=cont::DT_Cell*KBEND*dr.y;
+memb->z+=cont::DT_Cell*KBEND*dr.z;
+}
+
 inline void memb_bend(CellManager& cman) {
+#ifdef TRI_MEMB
+    cman.memb_foreach_parallel_native([](Cell*const RESTRICT c) {
+        tri_memb_bend(c);
+    });
+#else
 	cman.memb_foreach_parallel_native([&](Cell*const RESTRICT c) {
 		_memb_bend_calc1(c);
 	});
@@ -461,6 +515,7 @@ inline void memb_bend(CellManager& cman) {
 	cman.memb_foreach_parallel_native([](Cell*const RESTRICT c) {
 		_memb_bend_calc3(c);
 	});
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -477,16 +532,18 @@ inline void _MEMB_interaction(Cell*const RESTRICT memb) {
 	}
 
 	size_t sz = memb->connected_cell.size();
-	for (size_t i = 0; i < 4; i++) {
+    for (size_t i = 0; i < cont::MEMB_ADJ_CONN_NUM; i++) {
 		if (memb->connected_cell[i]->state == MEMB&&no_double_count(memb, memb->connected_cell[i])) {
 			cell_interaction_apply<CI_memb_to_memb>(memb, memb->connected_cell[i]);
 		}
 	}
+#ifdef DIAG_BEND
     for (size_t i = 4; i < sz; i++) {
         if (memb->connected_cell[i]->state == MEMB&&no_double_count(memb, memb->connected_cell[i])) {
             cell_interaction_apply<CI_memb_to_memb_diag>(memb, memb->connected_cell[i]);
         }
     }
+#endif
 }
 
 void _DER_interaction(Cell*const RESTRICT der) {

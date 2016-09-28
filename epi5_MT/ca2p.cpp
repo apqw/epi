@@ -13,9 +13,7 @@
 /** カルシウムの平均化に使うイテレーション回数 */
 static constexpr unsigned Ca_ITR = (int)(cont::Ca_avg_time / cont::DT_Ca);
 
-/** @todo 分かりやすい命名 */                                      
 static constexpr double Kpp		= 0.3;
-/** @todo 分かりやすい命名 */
 static constexpr double dp		= 0.1;
 
 
@@ -88,7 +86,7 @@ inline double ca2p_reaction_factor(double u, double ER_domain3_deactive, double 
 
 }
 
-/** @todo 分かりやすい命名 */
+
 inline double calc_th(bool is_alive,double agek) {
 	
 	static constexpr double thgra		= 0.2;
@@ -102,7 +100,6 @@ inline double calc_th(bool is_alive,double agek) {
 		thpri;
 }
 
-/** @todo 分かりやすい命名 */
 inline double calc_Kpa(bool is_alive,double agek) {
 	
 	static constexpr double kpa			= 4.0;
@@ -116,7 +113,6 @@ inline double calc_Kpa(bool is_alive,double agek) {
 		Kpri;
 }
 
-/** @todo 分かりやすい命名 */
 inline double calc_IAG(bool is_alive,double agek) {
 	static constexpr double delta_I = 1.5;
 	static constexpr double iage_kitei = 0;//ok
@@ -126,14 +122,12 @@ inline double calc_IAG(bool is_alive,double agek) {
 		iage_kitei;
 }
 
-/** @todo 分かりやすい命名 */
 inline double ex_inert_diff(double ca2p, double current_ex_inert,double _th) {
 	static constexpr double para_k2 = 0.7;
 	using namespace cont;
 	return ((para_k2*para_k2 / (para_k2*para_k2 + ca2p*ca2p) - current_ex_inert) / _th);
 }
 
-/** @todo 分かりやすい命名 */
 inline double IP3_default_diff(double _Kpa,double a_avg,double current_IP3) {
 	static constexpr double H0 = 0.5;
 
@@ -141,7 +135,6 @@ inline double IP3_default_diff(double _Kpa,double a_avg,double current_IP3) {
 	return (_Kpa*a_avg / (H0 + a_avg) - Kpp*current_IP3);
 }
 
-/** @todo 分かりやすい命名 */
 inline double fw(double diff, double w)
 {
 	static constexpr double wd = 0.1;//ok
@@ -290,7 +283,6 @@ void init_ca2p_map(RawArr3D<uint_fast8_t>& air_stim_flg, RawArr3D<const double*>
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-/** @todo 分かりやすい命名 */
 inline double fa(double diffu, double A) {
 	static constexpr double STIM11 = 0.002;//ok
 	static constexpr double Kaa = 0.5;//ok

@@ -134,13 +134,18 @@ public:
 		}
 		dbgprint("removed count:%d\n", bucket_count);
 	}
-
-	__device__ __host__ Node<T, Key_t>** IntegerHashmap<T, Key_t>::alloc_bucket_slot(int size){
+/*
+	Node<T, Key_t>** alloc_bucket_slot(int size){
 		void* tmp = malloc(sizeof(Node<T, Key_t>*)*size);
 		memset(tmp, 0, sizeof(Node<T, Key_t>*)*size);//nullptr
 		return (Node<T, Key_t>**)tmp;
 	}
-
+	*/
+	__device__ Node<T, Key_t>** 	alloc_bucket_slot(int size){
+		void* tmp = malloc(sizeof(Node<T, Key_t>*)*size);
+		memset(tmp, 0, sizeof(Node<T, Key_t>*)*size);//nullptr
+		return (Node<T, Key_t>**)tmp;
+	}
 
 	__device__ __host__ void rehash_check(){
 		if (should_rehash()){
@@ -166,7 +171,7 @@ public:
 	}
 	*/
 	
-	__device__ __host__ void init(int size = 16){
+	__device__ void init(int size = 16){
 		current_size = size;
 		bucket_slot = alloc_bucket_slot(size);
 		bucket_count = 0;

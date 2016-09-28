@@ -53,6 +53,10 @@ class Cell:public std::enable_shared_from_this<Cell>
         /** 2Ç¬ç∂ÇÃmemb */
         Cell* memb_ll;
 
+
+#ifdef TRI_MEMB
+        Cell* memb[6];
+#endif
 		double nv[3]; double ipn;
 		double mv[3]; double ipm;
 		double dn, dm;

@@ -168,7 +168,7 @@ __global__ void connect_proc(const int ncell,const int nmemb
 			
 			const CellIndex opidx = conn.arr[i];
 			if (index <= opidx)continue;
-			const CellPos oppos = tex1Dfetch(pos_tex, opidx);
+			const CellPos oppos = cpos[opidx];
 			const real rad_sum = R_max + (opidx<nmemb ? R_memb : R_max);
 			const real diffx = p_diff_x(my_pos.x, oppos.x);
 			const real diffy = p_diff_y(my_pos.y, oppos.y);
@@ -206,12 +206,14 @@ void connect_cell(CellDataMan* cm){
 	//static CellInfoGrid cidxg;
 	//static CellCountGrid ccntg;
 	//for test
+	/*
 	static bool flg = false;
 	if (!flg){
 		flg = true;
 		cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<real4>();
 		cudaBindTexture(NULL, pos_tex, cm->pos.current().get_ptr().get(), channelDesc);
 	}
+	*/
 	reset_grid_count(&cm->cell_info_grid);
 	reset_connect_count << <DEFAULT_THB_ALL_CELL >> >(cm->ncell, cm->nmemb, cm->connection_data);
 	build_grid << <DEFAULT_THB_ALL_CELL >> >(cm->ncell, cm->nmemb, cm->pos.current(), cm->cell_info_grid);
