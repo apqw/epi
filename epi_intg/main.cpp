@@ -13,6 +13,7 @@
 #include "parser.h"
 int main(int argc,char** argv){
 	Params pa;
+	pa.load("/home/yasu7890v/wau/ppsss");
 	pa.ANX=1010;
 
 	PW.init_params(pa);

@@ -12,4 +12,5 @@ typedef double real;
 
 
 
+
 #endif /* DEFINE_H_ */
