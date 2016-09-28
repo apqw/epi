@@ -1,0 +1,85 @@
+/*
+template<typename VarTy>
+void try_set_with_cast(VarTy& v,const std::string& item){
+	v=try_get_with_cast<VarTy>(item);
+}
+
+template<typename VarTy,typename K,typename V,typename FirstKey,typename... Keys>
+VarTy force_vget(const std::map<K,V>& mp,FirstKey first,Keys... k){
+	auto it = get_first_match(mp,first,k...);
+	if(it!=mp.end()){
+		return try_get_with_cast(it->second);
+		//std::cout<<first<<"="<<v<<std::endl;
+
+		//return true;
+	}else{
+		throw std::logic_error(std::string(first)+" must be specified.");
+	}
+}
+*/
+
+
+/*
+template<typename K,typename V,typename VarTy,typename FirstKey,typename... Keys>
+bool force_vdef(const std::map<K,V>& mp,VarTy& v,FirstKey first,Keys... k){
+	auto it = get_first_match(mp,first,k...);
+	if(it!=mp.end()){
+		try_set_with_cast(v,it->second);
+		std::cout<<first<<"="<<v<<std::endl;
+		return true;
+
+		//return true;
+	}else{
+		throw std::logic_error(std::string(first)+" must be specified.");
+		return false;
+	}
+}
+
+template<typename K,typename V,typename VarTy>
+bool force_vdef(const std::map<K,V>& mp,VarTy& v,const std::vector<K>& kv){
+	for(auto& key:kv){
+		auto it=mp.find(key);
+		if(it!=mp.end()){
+			try_set_with_cast(v,it->second);
+			std::cout<<key<<"="<<v<<std::endl;
+			return true;
+		}
+	}
+}
+
+template<typename K,typename V,typename VarTy,typename DefVarTy,typename FirstKey,typename... Keys>
+bool vdef(const std::map<K,V>& mp,VarTy& v,DefVarTy default_value,FirstKey first,Keys... k){
+	auto it = get_first_match(mp,first,k...);
+	if(it!=mp.end()){
+		try_set_with_cast(v,it->second);
+		std::cout<<first<<"="<<v<<std::endl;
+		return true;
+	}else{
+		v=default_value;
+		std::cout<<first<<"="<<v<<std::endl;
+		return false;
+	}
+}
+*/
+
+			/*
+			if(!std::is_same<Ty,unsigned int>::value){
+				throw std::invalid_argument(std::string("The parameter type is 'unsigned int' but '")+typeid(Ty).name()+"' is given.");
+			}
+			*/
+			
+			template<typename K,typename V,typename First>
+auto get_first_match(const std::map<K,V>& mp,First f)->typename std::map<K,V>::const_iterator {
+	return mp.find(f);
+}
+
+template<typename K,typename V,typename First,typename Second,typename... Rest>
+auto get_first_match(const std::map<K,V>& mp,First f,Second s,Rest... rest)->typename std::map<K,V>::const_iterator {
+	auto it=get_first_match(mp,f);
+	if(it!=mp.end()){
+		return it;
+	}else{
+		return get_first_match(mp,s,rest...);
+	}
+
+}
