@@ -24,7 +24,7 @@ auto str_cast(const std::string& str)->unsigned int{
 Params::Params(){}
 void Params::load(const char* path){
 	auto kvmap = parse_paramtext(path);
-	MEMB_NUM_X =
+	//MEMB_NUM_X
 }
 
 ParamsWrapper::ParamsWrapper():param_is_set(false){}
