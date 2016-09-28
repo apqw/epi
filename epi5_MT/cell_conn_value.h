@@ -29,8 +29,8 @@ public:
 
 class gj_value:public cell_conn_value<double>{
 public:
-    gj_value():cell_conn_value(cont::gj_init){}
-    gj_value(double d):cell_conn_value(d){}
+    gj_value():cell_conn_value<double>(cont::gj_init){}
+    gj_value(double d):cell_conn_value<double>(d){}
     inline void reset(){
         _value=cont::gj_init;
     }

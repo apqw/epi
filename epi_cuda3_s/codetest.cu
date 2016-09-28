@@ -32,6 +32,7 @@ void codetest(){
 	printf("f %f\n", (real)pp(10, 10, 10));
 	CArr3DMulti<real, 10, 10, 20, 3> mull;
 	printf("f %f\n", (real)pp(10, 10, 10));
+	/*
 	CellConnectionData cchh;
 	cchh.gj.init();
 	cchh.gj.emplace(13234, 35435.55f);
@@ -44,6 +45,7 @@ void codetest(){
 	}
 	printf("hashh %f\n", cchh.gj.at(703));
 	cchh.gj.destroy();
+	*/
 	static_assert(std::is_trivially_copyable<IntegerHashmap<real>>::value, "real hashmap is not trivially copyable");
 	/*
 	for (int i = 0; i < 1000; i++){

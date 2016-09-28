@@ -8,6 +8,7 @@
 #include <math.h>
 #include <cassert>
 #include <iostream>
+
 /**
  *  @file 細胞の状態更新に関する操作を定義。
  */

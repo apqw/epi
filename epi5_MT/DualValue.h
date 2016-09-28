@@ -16,7 +16,7 @@ public:
 
 class dual_double :public DualValue<double, atomic_double> {
 public:
-    dual_double(double v) :DualValue(v, v)
+    dual_double(double v) :DualValue<double,atomic_double>(v, v)
 	{
 	}
 

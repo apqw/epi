@@ -177,7 +177,7 @@ void CellDataMan::_load_from_file(const std::string& path){
 			(CELL_STATE_t*)&_state, &rad, &_ageb, &_agek, &_ca2p, &x, &y, &z, &_ca2p_avg, &div_times, &_ex_fat, &_fat, &touch, &_spr_len, &pair_cell_id, &stem_orig_id);
 
 		/*
-		BLANK‚É‚½‚Ç‚è’…‚¢‚½‚çI—¹
+		BLANKï¿½É‚ï¿½ï¿½Ç‚è’…ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Iï¿½ï¿½
 		*/
 		if (_state == BLANK)break;
 
@@ -299,11 +299,11 @@ void CellDataMan::init(const std::string& init_data_path, bool use_last, const s
 	zmax = -REAL_MAX; zmax.mark_as_initialized();
 	sw = 0; sw.mark_as_initialized();
 	if (use_last){
-		ATP.foreach([&] __device__ __host__(decltype(ATP.current())& _p){
+		ATP.foreach([=] __device__ __host__(decltype(ATP.current())& _p){
 			_p.read_binary(init_ATP_data);
 		});
 
-		ext_stim.foreach([&] __device__ __host__(decltype(ext_stim.current())& _p){
+		ext_stim.foreach([=] __device__ __host__(decltype(ext_stim.current())& _p){
 			_p.read_binary(init_ext_stim_data);
 		});
 	}

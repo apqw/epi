@@ -20,8 +20,8 @@ protected:
 	bool initialized=false;
 	devPtr<T> ptr;
 public:
-	typedef typename devPtr<T> ptr_type;
-	typedef typename T value_type;
+	typedef devPtr<T> ptr_type;
+	typedef T value_type;
 
 	__host__ bool has_initialized()const{
 		return initialized;

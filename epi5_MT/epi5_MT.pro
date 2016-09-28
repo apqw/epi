@@ -1,6 +1,6 @@
 TEMPLATE = app
 CONFIG += console
-CONFIG -=c++11
+#CONFIG -=c++11
 CONFIG -= app_bundle
 CONFIG -= qt
 
@@ -20,7 +20,8 @@ SOURCES += main.cpp \
     Random_gen.cpp \
     utils.cpp \
     ca2p.cpp \
-    fsys.cpp
+    fsys.cpp \
+    vec3.cpp
 
 HEADERS += \
     cell.h \
@@ -42,10 +43,11 @@ HEADERS += \
     utils.h \
     cell_conn_value.h \
     ca2p.h \
-    fsys.h
+    fsys.h \
+    vec3.h
 QMAKE_INCDIR+=/opt/intel/tbb44_20160526oss/include
 QMAKE_CXXFLAGS_RELEASE-=-O2
-QMAKE_CXXFLAGS+=-std=c++11 -O3 -ipo -xHost -no-prec-div
-QMAKE_LFLAGS+=-std=c++11 -O3 -ipo -xHost -no-prec-div -L/opt/intel/tbb44_20160526oss/intel64/gcc4.4  -L/home/yasu7890v/opt/intel/lib/intel64 -ltbb -ltbbmalloc
-#QMAKE_CXXFLAGS+=-std=c++11 -Ofast
-#QMAKE_LFLAGS+=-Ofast -L/opt/intel/tbb44_20160526oss/intel64/gcc4.4 -L/home/yasu7890v/opt/intel/lib/intel64 -ltbb -ltbbmalloc
+#QMAKE_CXXFLAGS+=-std=c++11 -O3 -ipo -xHost -no-prec-div
+#QMAKE_LFLAGS+=-std=c++11 -O3 -ipo -xHost -no-prec-div -L/opt/intel/tbb44_20160526oss/intel64/gcc4.4  -L/home/yasu7890v/opt/intel/lib/intel64 -ltbb -ltbbmalloc
+QMAKE_CXXFLAGS+=-O3
+QMAKE_LFLAGS+=-Ofast -L/opt/intel/tbb44_20160526oss/intel64/gcc4.4 -L/home/yasu7890v/opt/intel/lib/intel64 -ltbb -ltbbmalloc
