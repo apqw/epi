@@ -19,6 +19,7 @@ int main(int argc,char** argv){
 	PW.init_params(pa);
 
 	ParamsWrapper pw;
+    //test VC
 	pw.init_params(pa);
 	//pw.init_params(pa);
 
