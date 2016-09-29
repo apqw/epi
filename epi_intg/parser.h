@@ -10,8 +10,8 @@
 
 #include <map>
 #include <string>
-
-std::map<std::string,std::string> parse_paramtext(const char* path);
+static const constexpr char delim = '=';
+std::map<std::string,std::string> parse_paramtext(const std::string&);
 
 
 

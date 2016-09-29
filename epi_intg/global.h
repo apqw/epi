@@ -8,8 +8,8 @@
 #ifndef GLOBAL_H_
 #define GLOBAL_H_
 #include "Params.h"
-extern ParamsWrapper PW;
-
+#include <memory>
+extern std::unique_ptr<const Params> pm;
 
 
 #endif /* GLOBAL_H_ */

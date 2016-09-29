@@ -13,7 +13,7 @@
 #include <cstdlib>
 #include <regex>
 #include <array>
-static const constexpr char delim='=';
+
 static const constexpr std::array<const char*,2> comment_out_signature= {"#","//"};
 bool is_commented_out(const std::string& ln){
 	for(const char* co:comment_out_signature){
@@ -24,7 +24,10 @@ bool is_commented_out(const std::string& ln){
 	}
 	return false;
 }
-std::map<std::string,std::string> parse_paramtext(const char* path){
+std::string remove_LR_space(const std::string& str) {
+    return std::regex_replace(str, std::regex("^ +| +$|( ) +"), "$1");
+}
+std::map<std::string,std::string> parse_paramtext(const std::string& path){
 	std::ifstream tf(path);
 	if(!tf){
 		std::cerr<<"Parse failed."<<path<<std::endl;
@@ -46,8 +49,9 @@ std::map<std::string,std::string> parse_paramtext(const char* path){
 
 		std::istringstream st(line);
 		std::getline(st,key,delim);
-		key=std::regex_replace(key, std::regex("^ +| +$|( ) +"), "$1");
+        key = remove_LR_space(key);
 		std::getline(st,rest); //extract the rest ( because this does not include endl)
+        rest = remove_LR_space(rest);
 		kvset.insert(std::make_pair(key,rest));
 	}
 	return kvset;

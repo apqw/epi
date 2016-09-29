@@ -5,7 +5,5 @@
  *      Author: yasu7890v
  */
 #include "global.h"
-
-ParamsWrapper PW=ParamsWrapper();
-
+std::unique_ptr<const Params> pm = std::unique_ptr<const Params>();
 
