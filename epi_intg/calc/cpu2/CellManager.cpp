@@ -7,6 +7,9 @@ std::vector<Cell*> CellLoadProc::tmp_pair;
 CellManager::CellManager(size_t N):Lockfree_push_stack_dyn<Cell*>(N),remove_queue(N)
 {
 }
+CellManager::CellManager() : Lockfree_push_stack_dyn<Cell*>(0), remove_queue(0)
+{
+}
 
 Cell* CellManager::create(CELL_STATE _state, int stem_orig_id, double _x, double _y, double _z, double _radius, double _ca2p, double _ca2p_avg, double _IP3, double _ex_inert, double _agek, double _ageb, double _ex_fat, double _in_fat, double _spr_nat_len, int _rest_div_times, bool _is_malignant)
 {
@@ -45,6 +48,7 @@ CellLoadProc::CellLoadProc() {
 }
 
 void CellLoadProc::operator()(CellManager&cman, const CellTempStruct& cts) {
+    cman.test_realloc();
     auto cptr = cman.create(
         cts.state,
         cts.stem_orig_id,
@@ -75,4 +79,5 @@ void CellLoadProc::operator()(CellManager&cman, const CellTempStruct& cts) {
             tmp_pair[cts.pair_cell_id] = cptr;
         }
     }
+    
 }

@@ -241,7 +241,7 @@ void visualize() {
     
     init_internal();
 
-    CellManager cman(100000);
+    CellManager cman;
     
     auto on = OnCellLoadVis();
     for (int i = vp.start; i <= vp.end; i++) {

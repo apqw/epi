@@ -58,6 +58,7 @@ class CellManager:public Lockfree_push_stack_dyn<Cell*>
     size_t nmemb, nder;
     void memb_init();
 public:
+    CellManager();
     CellManager(size_t);
     Cell* create(CELL_STATE _state, int stem_orig_id, real _x = 0, real _y = 0, real _z = 0,
         real _radius = pm->R_max, real _ca2p = pm->ca2p_init, real _ca2p_avg = pm->ca2p_init,

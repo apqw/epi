@@ -6,7 +6,7 @@
 #include <cassert>
 #include <algorithm>
 #include <cstdlib>
-
+#include <iostream>
 template<typename FPTy>
 struct atomic_fp {
 private:
@@ -77,8 +77,10 @@ public:
     Lockfree_push_stack_dyn<T>(size_t N):_next(0),_data(N) {}
 
     void test_realloc() {
-        if (_next / (double)_data.size() > 0.8) {
-            _data.resize(_data.size() * 2);
+        if (_data.size()==0||_next / (double)_data.size() > 0.8) {
+            size_t origsize = _data.size();
+            _data.resize(_data.size() == 0?2:_data.size() * 2);
+            std::cout << "LFStack resized:"_s + std::to_string(origsize) + "->" + std::to_string(_data.size()) << std::endl;
         }
     }
 

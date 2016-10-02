@@ -153,6 +153,8 @@ public:
         }
     }
 
+    static bool compare_as_data(const ParamInfo& p1, const ParamInfo& p2);
+
 };
 
 #define gpa(name,...) ParamInfo(name,#name,__VA_ARGS__)
@@ -169,6 +171,7 @@ public:
      virtual void init();
      virtual void generate_paramfile(const char* out_path)const;
 	 virtual void load(const std::string& paramfile);
+     static void diff(const Params& p1, const Params& p2);
 };
 
 
