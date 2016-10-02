@@ -113,7 +113,7 @@ void Params::load(const std::string& path){
     }
 }
 
-void Params::generate_paramfile(const char* out_path)const {
+void Params::generate_paramfile(const std::string& out_path)const {
     std::ofstream of(out_path);
     if (!of) {
         throw std::runtime_error("Failed to create the file:"_s + out_path);

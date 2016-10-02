@@ -20,26 +20,36 @@
 
 int main(int argc,char** argv){
     cmdline::parser cp;
-
-    cp.add<std::string>("mode", 'm', "Specify a mode shown below. \n\t\tc:Calculate with CPU.\n\t\tg:Calculate with GPU.\n\t\tv:Visualize the result.\n\t\td:Diff parameter file.");
+    const std::string udelim = "\n\t\t";
+    cp.add<std::string>("mode", 'm', 
+        "Specify a mode shown below."_s+udelim+
+        "c:Calculate with CPU." + udelim +
+        "g:Calculate with GPU." + udelim +
+        "v:Visualize the result." + udelim + 
+        "d:Diff parameter file." + udelim + 
+        "i:Generate default parameter files.");
     /*
     cp.add("cpu", 'c', "Calculate with CPU.");
     cp.add("gpu", 'g', "Calculate with GPU.");
     cp.add("visualize", 'v', "Visualize the result.");
     */
-    cp.add<std::string>("cparam", '\0', "Specify an parameter file path for calculation.");
-    cp.add<std::string>("cparam2", '\0', "Additional parameter file (for diff)");
-    cp.add<std::string>("vparam", '\0', "Specify an parameter file path for visualization.");
+    cp.add<std::string>("cparam", '\0', "Specify an parameter file path for calculation.",false);
+    cp.add<std::string>("cparam2", '\0', "Additional parameter file (for diff)",false);
+    cp.add<std::string>("vparam", '\0', "Specify an parameter file path for visualization.",false);
     cp.parse_check(argc, argv);
+    /*
     if (!cp.exist("mode")) {
         std::cerr << "Mode must be specified." << std::endl;
+        std::cout<<cp.usage() << std::endl;
         std::exit(1);
     }
+    */
     auto mode = cp.get<std::string>("mode");
     bool is_gpu = mode == "g";
     bool is_vis = mode == "v";
     bool is_cpu = mode == "c";
     bool is_diff = mode == "d";
+    bool is_gen = mode == "i";
     Lockfree_push_stack_dyn<size_t> oooo(100);
 #pragma omp parallel for
     for (int i = 0; i < 50; i++) {
@@ -54,7 +64,18 @@ int main(int argc,char** argv){
     }
     oooo.test_realloc();
     std::cout << oooo.max_size() << std::endl;
+    if (is_gen) {
+        if (cp.exist("cparam")) {
+            std::cout << "Generate cparam as " << cp.get<std::string>("cparam")  << std::endl;
+            CalcParams().generate_paramfile(cp.get<std::string>("cparam"));
+        }
 
+        if (cp.exist("vparam")) {
+            std::cout << "Generate vparam as " << cp.get<std::string>("vparam") << std::endl;
+            VisParams().generate_paramfile(cp.get<std::string>("vparam"));
+        }
+
+    }
     if (is_diff) {
         if (!cp.exist("cparam")|| !cp.exist("cparam2")) {
             std::cerr << "--cparam and --cparam2 must be specified." << std::endl;

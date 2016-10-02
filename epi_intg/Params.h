@@ -169,7 +169,7 @@ public:
 	 Params();
      Params(const std::string& paramfile);
      virtual void init();
-     virtual void generate_paramfile(const char* out_path)const;
+     virtual void generate_paramfile(const std::string& out_path)const;
 	 virtual void load(const std::string& paramfile);
      static void diff(const Params& p1, const Params& p2);
 };
