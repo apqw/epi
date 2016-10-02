@@ -23,16 +23,17 @@ int main(int argc,char** argv){
     const std::string udelim = "\n\t\t";
     cp.add<std::string>("mode", 'm', 
         "Specify a mode shown below."_s+udelim+
-        "c:Calculate with CPU." + udelim +
-        "g:Calculate with GPU." + udelim +
-        "v:Visualize the result." + udelim + 
-        "d:Diff parameter file." + udelim + 
-        "i:Generate default parameter files.");
+        "c:Calculate with CPU. Need --cparam,--input" + udelim +
+        "g:Calculate with GPU. Need --cparam,--input" + udelim +
+        "v:Visualize the result.Need --cparam,--vparam" + udelim + 
+        "d:Diff calc parameter file. Need --cparam,--cparam2" + udelim + 
+        "i:Generate default parameter files. Use --cparam,--vparam for output.");
     /*
     cp.add("cpu", 'c', "Calculate with CPU.");
     cp.add("gpu", 'g', "Calculate with GPU.");
     cp.add("visualize", 'v', "Visualize the result.");
     */
+    cp.add<std::string>("input", 'i', "Cell data file.", false);
     cp.add<std::string>("cparam", '\0', "Specify an parameter file path for calculation.",false);
     cp.add<std::string>("cparam2", '\0', "Additional parameter file (for diff)",false);
     cp.add<std::string>("vparam", '\0', "Specify an parameter file path for visualization.",false);
@@ -98,6 +99,11 @@ int main(int argc,char** argv){
             std::exit(1);
         }
 
+        if (!cp.exist("input")) {
+            std::cerr << "An input file must be specified." << std::endl;
+            std::exit(1);
+        }
+
         try {
             pm = std::unique_ptr<const CalcParams>(new const CalcParams(cp.get<std::string>("cparam")));
         }
@@ -105,10 +111,9 @@ int main(int argc,char** argv){
             std::cerr << e.what() << std::endl;
             std::exit(1);
         }
-        pm->generate_paramfile("opop");
         CellManager cman;
         try {
-            cman.load("../epi5_MT/input_2layer_nfix16.dat");
+            cman.load(cp.get<std::string>("input"));
         }
         catch (std::exception& e) {
             std::cerr << e.what() << std::endl;
@@ -130,7 +135,6 @@ int main(int argc,char** argv){
             std::cerr << e.what() << std::endl;
             std::exit(1);
         }
-       // pm->generate_paramfile("opop2");
 
         if (!cp.exist("vparam")) {
             std::cerr << "A vis parameter file must be specified." << std::endl;
