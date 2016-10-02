@@ -5,5 +5,5 @@
  *      Author: yasu7890v
  */
 #include "global.h"
-std::unique_ptr<const Params> pm = std::unique_ptr<const Params>();
+std::unique_ptr<const CalcParams> pm = std::unique_ptr<const CalcParams>();
 

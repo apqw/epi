@@ -1,0 +1,17 @@
+datadir="../epi5_MT/output"
+output="pp"
+MALIGNANT=0
+start=600
+end=1000
+X0=0
+Y0=0
+elevation=175
+azimuth=0
+z_level=-10
+mode=0
+disp_musume=1
+disp_alive=2
+disp_dead=1
+width=800
+height=600
+#-m v --cparam ./ppsss --vparam ./vp

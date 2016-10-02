@@ -7,9 +7,9 @@
 
 #ifndef GLOBAL_H_
 #define GLOBAL_H_
-#include "Params.h"
+#include "calc/CalcParams.h"
 #include <memory>
-extern std::unique_ptr<const Params> pm;
+extern std::unique_ptr<const CalcParams> pm;
 
 
 #endif /* GLOBAL_H_ */
