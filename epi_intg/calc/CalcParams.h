@@ -167,6 +167,7 @@ public:
     real DUR_DEAD;
     real DB;
 
+    real y_tri_comp_ratio;
     unsigned int SYSTEM;
     unsigned int CUT;
     bool NEW_BEND_POT;

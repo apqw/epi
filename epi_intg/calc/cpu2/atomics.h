@@ -117,7 +117,7 @@ public:
     }
 
     void resize(size_t sz) {
-        if (sz <= _next)throw std::logic_error("Failed to resize the stack. Target size:"_s + sz + " Current element num.:" + _next.load());
+        if (sz <= _next)throw std::logic_error("Failed to resize the stack. Target size:"_s + std::to_string(sz) + " Current element num.:" + std::to_string(_next.load()));
         _data.resize(sz);
     }
 

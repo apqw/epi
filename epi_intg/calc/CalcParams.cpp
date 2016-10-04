@@ -1,5 +1,5 @@
 #include "CalcParams.h"
-
+#include <cmath>
 #include <iostream>
 
 CalcParams::CalcParams(){
@@ -9,7 +9,18 @@ CalcParams::CalcParams(const std::string& path){
     s_Ctor(path);
 }
 
+static int32_t evenify(int32_t n){
+	return n&(~0x1);
+}
 void CalcParams::calculate_param() {
+
+	 P_MEMB = 1.0 / COMPRESS_FACTOR;
+const double pratio=2.0*P_MEMB;
+	MEMB_NUM_X = LX/(R_memb*pratio);
+	MEMB_NUM_Y=LY/(R_memb*pratio);
+	if(USE_TRI_MEMB){
+		MEMB_NUM_Y=evenify(MEMB_NUM_Y*y_tri_comp_ratio);
+	}
     agki_max_fix = fac*agki_max;
     Ca_ITR = (int)(Ca_avg_time / DT_Ca);
     leak_from_storage = CA_OUT*beta_zero;
@@ -18,7 +29,7 @@ void CalcParams::calculate_param() {
     ANX = (unsigned int)(LX / AREA_GRID_ORIGINAL + 0.5);
     ANY = (unsigned int)(LY / AREA_GRID_ORIGINAL + 0.5);
     ANZ = (unsigned int)(LZ / AREA_GRID_ORIGINAL);
-    P_MEMB = 1.0 / COMPRESS_FACTOR;
+
     K_DESMOSOME = K_TOTAL*K_DESMOSOME_RATIO;
     delta_R = delta_R_coef*R_der;
     delta_L = delta_L_coef*R_max;
@@ -29,8 +40,8 @@ void CalcParams::calculate_param() {
 void CalcParams::init() {
     //std::cout << "sub" << std::endl;
     piset = {
-        gpa(MEMB_NUM_X,"NMX"),
-        gpa(MEMB_NUM_Y,"NMY"),
+        //gpa(MEMB_NUM_X,"NMX"),
+        //gpa(MEMB_NUM_Y,"NMY"),
         gp1(MAX_CONNECT_CELL_NUM),
         gp1(DT_Cell),
         gp1(DT_Ca),
@@ -146,8 +157,8 @@ void CalcParams::init() {
         gp1(outputdir)
     };
 
-    MEMB_NUM_X = 100;
-    MEMB_NUM_Y = 100;
+  //  MEMB_NUM_X = 100;
+  //  MEMB_NUM_Y = 100;
     MAX_CONNECT_CELL_NUM = 400;
     DT_Cell = 0.01;
     DT_Ca = 0.01;
@@ -178,7 +189,7 @@ void CalcParams::init() {
     SW_THRESH = 20;
     T_TURNOVER = 6000.0;
     NUM_SC_INIT = 1;
-    USE_TRI_MEMB = false;
+    USE_TRI_MEMB = true;
     agki_max = 6.0;
     fac = 1.0;
     div_max = 15;
@@ -256,6 +267,7 @@ void CalcParams::init() {
     CUT = 1000;
     NEW_BEND_POT = true;
     outputdir = "output";
+    y_tri_comp_ratio=2.0/sqrt(3);
     calculate_param();
 }
 

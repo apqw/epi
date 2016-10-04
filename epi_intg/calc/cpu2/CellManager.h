@@ -69,14 +69,25 @@ public:
         int _rest_div_times = 0,
         bool _is_malignant = false);
 
+    Cell* create_resizable(CELL_STATE _state, int stem_orig_id, real _x = 0, real _y = 0, real _z = 0,
+            real _radius = pm->R_max, real _ca2p = pm->ca2p_init, real _ca2p_avg = pm->ca2p_init,
+            real _IP3 = pm->IP3_init, real _ex_inert = pm->ex_inert_init,
+            real _agek = 0, real _ageb = 0,
+            real _ex_fat = 0, real _in_fat = 0,
+            real _spr_nat_len = 0,
+            int _rest_div_times = 0,
+            bool _is_malignant = false);
+
     void add_remove_queue(size_t idx);
     void remove_exec();
+    void output(const std::string&filename,bool binary_mode=false);
+    void init_value();
 
     template<typename Fn=CellLoadProc>
     void load(const std::string& path, Fn on=CellLoadProc()) {
         auto&cman = *this;
         /*
-        ƒtƒ@ƒCƒ‹“Ç‚İ‚İs
+        ï¿½tï¿½@ï¿½Cï¿½ï¿½ï¿½Ç‚İï¿½ï¿½İï¿½ï¿½s
         */
         std::ifstream dstrm(path);
 
@@ -86,7 +97,7 @@ public:
 
 
         /*
-        “Ç‚İ‚İ—pˆê•Ï”
+        ï¿½Ç‚İï¿½ï¿½İ—pï¿½êï¿½Ïï¿½
         */
         CELL_STATE state = UNUSED;
         std::string line;
@@ -94,16 +105,16 @@ public:
         double rad, ageb, agek, x, y, z, fat, spr_len, ex_fat, ca2p_avg, ca2p;
 
         /*
-        ×–E‚ÌƒCƒ“ƒfƒbƒNƒX‚ÌƒJƒEƒ“ƒg
-        (1s‚É1×–E‚ ‚é‚Ì‚ÅA1s“Ç‚İ‚Ş‚²‚Æ‚ÉƒCƒ“ƒNƒŠƒƒ“ƒg‚·‚é)
+        ï¿½×–Eï¿½ÌƒCï¿½ï¿½ï¿½fï¿½bï¿½Nï¿½Xï¿½ÌƒJï¿½Eï¿½ï¿½ï¿½g
+        (1ï¿½sï¿½ï¿½1ï¿½×–Eï¿½ï¿½ï¿½ï¿½Ì‚ÅA1ï¿½sï¿½Ç‚İï¿½ï¿½Ş‚ï¿½ï¿½Æ‚ÉƒCï¿½ï¿½ï¿½Nï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½gï¿½ï¿½ï¿½ï¿½)
         */
         int id_count = 0;
 
         /*
-        ƒyƒA‚ğˆê“I‚É•Û‘¶‚·‚évector
+        ï¿½yï¿½Aï¿½ï¿½ï¿½êï¿½Iï¿½É•Û‘ï¿½ï¿½ï¿½ï¿½ï¿½vector
 
-        ƒyƒA‚ğ‚Â×–E‚ğ‰‚ß‚ÄŒ©‚Â‚¯‚½‚Æ‚«A‚»‚ÌƒyƒA‚ÌƒCƒ“ƒfƒbƒNƒX‚Í•K‚¸©•ª‚æ‚èŒã‚È‚Ì‚Å‚Ü‚¾¶¬‚³‚ê‚Ä‚¢‚È‚¢B
-        ‚»‚Ì‚½‚ßAƒyƒA‚ğ‚Â×–E‚ª‚ ‚ê‚ÎA©•ª‚ÌƒCƒ“ƒfƒbƒNƒX‚ğƒL[‚Æ‚µ‚Äˆê“I‚É“ü‚ê‚Ä‚¨‚«A‚»‚ÌƒyƒA‚É‚½‚Ç‚è’…‚¢‚½‚Æ‚«‚ÉŒİ‚¢‚ÌƒIƒuƒWƒFƒNƒg‚É“o˜^‚·‚éB
+        ï¿½yï¿½Aï¿½ï¿½ï¿½ï¿½ï¿½Â×–Eï¿½ï¿½ï¿½ï¿½ï¿½ß‚ÄŒï¿½ï¿½Â‚ï¿½ï¿½ï¿½ï¿½Æ‚ï¿½ï¿½Aï¿½ï¿½ï¿½Ìƒyï¿½Aï¿½ÌƒCï¿½ï¿½ï¿½fï¿½bï¿½Nï¿½Xï¿½Í•Kï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È‚Ì‚Å‚Ü‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½È‚ï¿½ï¿½B
+        ï¿½ï¿½ï¿½Ì‚ï¿½ï¿½ßAï¿½yï¿½Aï¿½ï¿½ï¿½ï¿½ï¿½Â×–Eï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÎAï¿½ï¿½ï¿½ï¿½ï¿½ÌƒCï¿½ï¿½ï¿½fï¿½bï¿½Nï¿½Xï¿½ï¿½ï¿½Lï¿½[ï¿½Æ‚ï¿½ï¿½Äˆêï¿½Iï¿½É“ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½Ìƒyï¿½Aï¿½É‚ï¿½ï¿½Ç‚è’…ï¿½ï¿½ï¿½ï¿½ï¿½Æ‚ï¿½ï¿½ÉŒİ‚ï¿½ï¿½ÌƒIï¿½uï¿½Wï¿½Fï¿½Nï¿½gï¿½É“oï¿½^ï¿½ï¿½ï¿½ï¿½B
         */
         //tmp_pair.resize(pm->MEMB_NUM_X*pm->MEMB_NUM_Y + 100000, nullptr);
         //std::fill(tmp_pair.begin(), tmp_pair.end(), nullptr);
@@ -118,7 +129,7 @@ public:
                 (uint_fast8_t*)&state, &rad, &ageb, &agek, &ca2p, &x, &y, &z, &ca2p_avg, &div_times, &ex_fat, &fat, &touch, &spr_len, &pair_cell_id, &stem_orig_id);
 
             /*
-            BLANK‚É‚½‚Ç‚è’…‚¢‚½‚çI—¹
+            BLANKï¿½É‚ï¿½ï¿½Ç‚è’…ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Iï¿½ï¿½
             */
             if (state == BLANK)break;
 

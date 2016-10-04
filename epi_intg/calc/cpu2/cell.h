@@ -3,14 +3,30 @@
 #include "../../define.h"
 #include "atomics.h"
 #include "DualValue.h"
+#include <string>
 class Cell
 {
 private:
     const Cell* _dermis=nullptr;
     size_t index;
     struct ctor_cookie{};
+
 public:
     friend class CellManager;
+    struct Memb_data{
+        	/*
+        	 * counterclockwise (starts from +x axis direction)
+        	 */
+        	std::vector<Cell*> memb;
+
+        	real nv[3]; real ipn;
+        	real mv[3]; real ipm;
+        	real dn, dm;
+
+        	real nv_a[3]; real ipn_a;
+        	real mv_a[3]; real ipm_a;
+        	real dn_a, dm_a;
+        } md;
     dual_real x, y, z;
     Lockfree_push_stack_dyn<Cell*> connected_cell;
     CELL_STATE state;
@@ -31,6 +47,8 @@ public:
     int lat[3];
     real diff_u;
     real div_age_thresh;
+    bool is_touch;
+    real spring_force_to_memb;
     const Cell* dermis()const;
     void set_dermis(const Cell *const);
     static real get_div_age_thresh(CELL_STATE state);
@@ -46,10 +64,11 @@ public:
     void set_index(size_t idx);
     size_t get_index()const;
     void migrate(size_t destidx);
+    std::string cell_info_str();
     ~Cell();
 };
 
-/** ŽüŠú‹«ŠEðŒ‚ðl—¶‚µ‚½×–EŠÔ‹——£ */
+/** ï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½lï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×–Eï¿½Ô‹ï¿½ï¿½ï¿½ */
 inline real p_cell_dist_sq(const Cell*const RESTRICT c1, const Cell*const RESTRICT c2)
 {
     return p_dist_sq(c1->x(), c1->y(), c1->z(), c2->x(), c2->y(), c2->z());

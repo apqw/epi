@@ -1,4 +1,4 @@
 #pragma once
-
-void calc_with_cpu();
+class CellManager;
+void calc_with_cpu(CellManager&);
 void calc_with_gpu();

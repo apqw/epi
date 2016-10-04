@@ -4,8 +4,9 @@
 
 #include "../calc/cpu2/CellManager.h"
 //#include "../opencsg/opencsg.h"
-#include <gl/glew.h>
-#include <gl/glut.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <GL/glut.h>
 //#include <gl/osmesa.h>
 #include "../lodepng/lodepng.h"
 #include <algorithm>

@@ -33,3 +33,30 @@ real p_dist_sq(const real x1, const real y1, const real z1, const real x2, const
 real min0(const real a) {
     return a > 0 ? a : 0;
 }
+
+std::string state_to_str(CELL_STATE st){
+	switch(st){
+	case ALIVE:
+		return "ALIVE";
+	case DEAD:
+		return "DEAD";
+	case DISA:
+		return "DISA";
+	case UNUSED:
+		return "UNUSED";
+	case FIX:
+		return "FIX";
+	case BLANK:
+		return "BLANK";
+	case DER:
+		return "DER";
+	case MUSUME:
+		return "MUSUME";
+	case AIR:
+		return "AIR";
+	case MEMB:
+		return "MEMB";
+	default:
+		throw std::logic_error("Unknown state number:"+std::to_string((unsigned)st));
+	}
+}

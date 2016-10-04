@@ -30,5 +30,4 @@ static constexpr unsigned int BASAL = 1;
 #define RESTRICT __restrict__
 #endif
 
-
 #endif /* DEFINE_H_ */

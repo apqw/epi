@@ -1,17 +1,17 @@
 #include "cell.h"
-
-/** ×–E‚ÌƒXƒe[ƒg‚É‰‚¶‚½•ª—ôŠJnè‡’l‚ğæ“¾‚·‚é */
+#include <sstream>
+/** ï¿½×–Eï¿½ÌƒXï¿½eï¿½[ï¿½gï¿½É‰ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Jï¿½nè‡’lï¿½ï¿½ï¿½æ“¾ï¿½ï¿½ï¿½ï¿½ */
 real Cell::get_div_age_thresh(CELL_STATE state) {
     return state == FIX ? pm->agki_max_fix
         : state == MUSUME ? pm->agki_max
         : 0;
 }
 
-/** ×–E‚ÌƒXƒe[ƒg‚É‰‚¶‚½•ª—ô‰Â”\‰ñ”‚ğŒvZ */
+/** ï¿½×–Eï¿½ÌƒXï¿½eï¿½[ï¿½gï¿½É‰ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â”\ï¿½ñ”‚ï¿½ï¿½vï¿½Z */
 int Cell::correct_div_times(CELL_STATE state, int given_times) {
     return state == FIX ? pm->div_max : given_times;
 }
-/** dermis‚Ö‚ÌQÆ‚ğƒZƒbƒg */
+/** dermisï¿½Ö‚ÌQï¿½Æ‚ï¿½ï¿½Zï¿½bï¿½g */
 void Cell::set_dermis(const Cell *const d)
 {
     _dermis = d;
@@ -28,7 +28,7 @@ void Cell::migrate(size_t destidx) {
     set_index(destidx);
 }
 
-/** dermis‚Ö‚ÌQÆ‚ğæ“¾ */
+/** dermisï¿½Ö‚ÌQï¿½Æ‚ï¿½ï¿½æ“¾ */
 const Cell * Cell::dermis() const
 {
     return _dermis;
@@ -60,7 +60,25 @@ Cell::Cell(ctor_cookie,CELL_STATE _state, int _fix_origin,
     is_malignant(_is_malignant), diff_u(0)
 {
 }
-
+std::string Cell::cell_info_str(){
+	std::stringstream ss;
+	ss<<"Cell information"<<std::endl
+			<<"index:"<<index<<std::endl
+			<<"state:"<<state_to_str(state)<<std::endl
+			<<"x:"<<x()<<std::endl
+			<<"y:"<<y()<<std::endl
+			<<"z:"<<z()<<std::endl
+			<<"radius:"<<radius<<std::endl
+			<<"ca2p_avg:"<<ca2p_avg<<std::endl
+			<<"agek:"<<agek<<std::endl
+			<<"ageb:"<<ageb<<std::endl
+			<<"ex_fat:"<<ex_fat<<std::endl
+			<<"in_fat:"<<in_fat<<std::endl
+			<<"spring nat len:"<<spr_nat_len<<std::endl
+			<<"rest div times:"<<rest_div_times<<std::endl
+			<<"fix_origin:"<<fix_origin<<std::endl;
+	return ss.str();
+}
 
 Cell::~Cell()
 {
