@@ -214,3 +214,15 @@ inline void _memb_bend_calc1(Cell *const RESTRICT memb)
 
 }
 
+inline void _memb_bend_calc2(Cell *const RESTRICT memb)
+{
+	memb->md.ipn =
+		memb->md.nv[0] * memb->md.memb[0]->md.nv[0]
+		+ memb->md.nv[1] * memb->md.memb[0]->md.nv[1]
+		+ memb->md.nv[2] * memb->md.memb[0]->md.nv[2];
+
+	memb->md.ipm =
+		memb->md.mv[0] * memb->md.memb[1]->md.mv[0]
+		+ memb->md.mv[1] * memb->md.memb[1]->md.mv[1]
+		+ memb->md.mv[2] * memb->md.memb[1]->md.mv[2];
+}
