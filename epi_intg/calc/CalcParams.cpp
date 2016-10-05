@@ -1,6 +1,7 @@
 #include "CalcParams.h"
 #include <cmath>
 #include <iostream>
+#include <cstdint>
 
 CalcParams::CalcParams(){
     s_Ctor();
@@ -9,26 +10,26 @@ CalcParams::CalcParams(const std::string& path){
     s_Ctor(path);
 }
 
-static int32_t evenify(int32_t n){
-	return n&(~0x1);
+inline static uint32_t evenify(uint32_t n){
+	return n&(~static_cast<uint32_t>(0x1u));
 }
 void CalcParams::calculate_param() {
 
 	 P_MEMB = 1.0 / COMPRESS_FACTOR;
 const double pratio=2.0*P_MEMB;
-	MEMB_NUM_X = LX/(R_memb*pratio);
-	MEMB_NUM_Y=LY/(R_memb*pratio);
+	MEMB_NUM_X = static_cast<unsigned int>(LX/(R_memb*pratio));
+    MEMB_NUM_Y = static_cast<unsigned int>(LY / (R_memb*pratio));
 	if(USE_TRI_MEMB){
-		MEMB_NUM_Y=evenify(MEMB_NUM_Y*y_tri_comp_ratio);
+		MEMB_NUM_Y= static_cast<unsigned int>(evenify(static_cast<uint32_t>(MEMB_NUM_Y*y_tri_comp_ratio)));
 	}
     agki_max_fix = fac*agki_max;
-    Ca_ITR = (int)(Ca_avg_time / DT_Ca);
+    Ca_ITR = static_cast<int>(Ca_avg_time / DT_Ca);
     leak_from_storage = CA_OUT*beta_zero;
     Kgra = kpa;
     AREA_GRID = AREA_GRID_ORIGINAL + 1e-7;
-    ANX = (unsigned int)(LX / AREA_GRID_ORIGINAL + 0.5);
-    ANY = (unsigned int)(LY / AREA_GRID_ORIGINAL + 0.5);
-    ANZ = (unsigned int)(LZ / AREA_GRID_ORIGINAL);
+    ANX = static_cast<unsigned int>(LX / AREA_GRID_ORIGINAL + 0.5);
+    ANY = static_cast<unsigned int>(LY / AREA_GRID_ORIGINAL + 0.5);
+    ANZ = static_cast<unsigned int>(LZ / AREA_GRID_ORIGINAL);
 
     K_DESMOSOME = K_TOTAL*K_DESMOSOME_RATIO;
     delta_R = delta_R_coef*R_der;
@@ -177,7 +178,7 @@ void CalcParams::init() {
     THRESH_SP = 3.0;
     LJ_THRESH = 1.2;
     THRESH_DEAD = 22.0;
-    NUM_ITR = 4 * (unsigned int)1e6;
+    NUM_ITR = 4 * static_cast<unsigned int>(1e6);
     Ca_avg_time = 10.0;
     ca2p_init = 0.122;
     ex_inert_init = 0.97;

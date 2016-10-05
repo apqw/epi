@@ -19,8 +19,10 @@
 #include "vis/visualize.h"
 #include "vis/VisParams.h"
 #include "calc/init_gen.h"
-
+#include "util/vec/Vec.h"
 struct ErrorHandling{
+
+
 	cmdline::parser& cp;
 
 	template<typename First>
@@ -62,6 +64,7 @@ void set_param(const cmdline::parser& cp){
 }
 
 int main(int argc,char** argv){
+
     cmdline::parser cp;
     const std::string udelim = "\n\t\t";
     cp.add<std::string>("mode", 'm',

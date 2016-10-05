@@ -4,6 +4,7 @@
 #include "atomics.h"
 #include "DualValue.h"
 #include <string>
+#include "../../util/vec/Vec.h"
 class Cell
 {
 private:
@@ -65,10 +66,14 @@ public:
     size_t get_index()const;
     void migrate(size_t destidx);
     std::string cell_info_str();
-    ~Cell();
+    Vec<3, real> pos_as_vector()const;
 };
 
-/** ���E�������l�������זE�ԋ��� */
+/** ダブルカウントの回避条件 */
+inline bool no_double_count(const Cell*const c1, const Cell*const c2) {
+    return c1->get_index() > c2->get_index();
+}
+
 inline real p_cell_dist_sq(const Cell*const RESTRICT c1, const Cell*const RESTRICT c2)
 {
     return p_dist_sq(c1->x(), c1->y(), c1->z(), c2->x(), c2->y(), c2->z());

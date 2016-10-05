@@ -79,7 +79,7 @@ std::string Cell::cell_info_str(){
 			<<"fix_origin:"<<fix_origin<<std::endl;
 	return ss.str();
 }
-
-Cell::~Cell()
-{
+Vec<3, real> Cell::pos_as_vector()const {
+    return Vec<3, real>({ x(),y(),z() });
 }
+

@@ -23,7 +23,7 @@
 static void relaxation(CellManager& cman,int nfix,double Z_LEVEL){
 	const size_t NB=cman.size()-nfix;
 	double distlj;
-	for(int j=NB;j<NB+nfix;j++){
+	for(size_t j=NB;j<NB+nfix;j++){
 		Cell* fixp=cman[j];
 		if(fixp->state!=FIX){
 			throw std::logic_error("Non-FIX cell found at last section.");
@@ -51,7 +51,7 @@ void init_gen(const std::string& filename,int nfix,int der){
 
 	CellManager cman;
 	using namespace std::placeholders;
-	auto cgen=std::bind(&CellManager::create_resizable,&cman,_1,_2,_3,_4,_5,_6,0,0,0,0,0,0,0,0,0,0,0);
+	auto cgen=std::bind(&CellManager::create_resizable,&cman,_1,_2,_3,_4,_5,_6,0,0,0,0,0,0,0,0,0,0,false);
 	double pratio=2*pm->P_MEMB;
 	const double Z_LEVEL = der*2.0*pm->R_der;
 
@@ -76,8 +76,8 @@ void init_gen(const std::string& filename,int nfix,int der){
 	}
 
 
-	const int NX_DER=pm->LX/(2.0*pm->R_der);
-	const int NY_DER=pm->LY/(2.0*pm->R_der);
+	const unsigned int NX_DER=static_cast<unsigned int>(pm->LX/(2.0*pm->R_der));
+    const unsigned int NY_DER = static_cast<unsigned int>(pm->LY / (2.0*pm->R_der));
 	for(int l=0;l<der;l++){
 		for(unsigned int k=0;k<NY_DER;k++){
 			for(unsigned int j=0;j<NX_DER;j++){

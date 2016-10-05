@@ -16,7 +16,7 @@ static void initialize(CellManager&cman){
 void calc_with_cpu(CellManager&cman){
 	for(size_t i=0;i<pm->NUM_ITR;i++){
 		if(i%pm->CUT==0){
-			output_cell_data(cman,i/pm->CUT);
+			output_cell_data(cman, static_cast<int>(i/pm->CUT));
 		}
 
 	}
