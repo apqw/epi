@@ -237,3 +237,113 @@ void CellManager::init_value(){
 		}
 	});
 }
+
+
+/**
+*  基底膜の初期化
+*/
+void CellManager::_memb_init()
+{
+    auto&cells = *this;
+    if (pm->USE_TRI_MEMB) {
+        //1pass
+        cells.memb_foreach_with_index([&](Cell* cptr, size_t j) {
+            cptr->md.memb.resize(6);
+            size_t jj = j%pm->MEMB_NUM_X;
+            size_t kk = j / pm->MEMB_NUM_X;
+            if (jj == 0) { //most left
+                cptr->md.memb[3] = cells[j + pm->MEMB_NUM_X - 1];
+            }
+            else {
+                cptr->md.memb[3] = cells[j - 1];
+            }
+
+            if (jj == pm->MEMB_NUM_X - 1) {
+                cptr->md.memb[0] = cells[j - (pm->MEMB_NUM_X - 1)];
+            }
+            else {
+                cptr->md.memb[0] = cells[j + 1];
+            }
+
+        });
+        //2pass
+        cells.memb_foreach_with_index([&](Cell* cptr, size_t j) {
+
+            size_t jj = j%pm->MEMB_NUM_X;
+            size_t kk = j / pm->MEMB_NUM_X;
+            // size_t YNUM=NMY/y_comp_ratio;
+            size_t top = (j - pm->MEMB_NUM_X + cells.nmemb) % (cells.nmemb);
+            size_t bot = (j + pm->MEMB_NUM_X) % (cells.nmemb);
+            if (kk % 2 == 0) {
+
+                cptr->md.memb[1] = cells[top];
+                cptr->md.memb[2] = cells[top]->md.memb[3];
+                cptr->md.memb[4] = cells[bot]->md.memb[3];
+                cptr->md.memb[5] = cells[bot];
+
+            }
+            else {
+                cptr->md.memb[1] = cells[top]->md.memb[0];
+                cptr->md.memb[2] = cells[top];
+                cptr->md.memb[4] = cells[bot];
+                cptr->md.memb[5] = cells[bot]->md.memb[0];
+            }
+            for (int i = 0; i < 6; i++) {
+                cptr->connected_cell.push_back(cptr->md.memb[i]);
+            }
+        });
+    }
+    else {
+        cells.memb_foreach_with_index([&](Cell* cptr, size_t j) {
+            cptr->md.memb.resize(4);
+            size_t jj = j%pm->MEMB_NUM_X;
+            size_t kk = j / pm->MEMB_NUM_X;
+            if (jj == 0) {
+                cptr->md.memb[2] = cells[j + pm->MEMB_NUM_X - 1];
+            }
+            else {
+                cptr->md.memb[2] = cells[j - 1];
+            }
+
+
+            if (jj == pm->MEMB_NUM_X - 1) {
+                cptr->md.memb[0]= cells[j - (pm->MEMB_NUM_X - 1)];
+            }
+            else {
+                cptr->md.memb[0] = cells[j + 1];
+            }
+
+            if (kk == 0) {
+                cptr->md.memb[3] = cells[j + pm->MEMB_NUM_X*pm->MEMB_NUM_Y - pm->MEMB_NUM_X];
+            }
+            else {
+                cptr->md.memb[3] = cells[j - pm->MEMB_NUM_X];
+            }
+
+
+            if (kk == pm->MEMB_NUM_Y - 1) {
+                cptr->md.memb[1] = cells[j - (pm->MEMB_NUM_X*pm->MEMB_NUM_Y - pm->MEMB_NUM_X)];
+            }
+            else {
+                cptr->md.memb[1] = cells[j + pm->MEMB_NUM_X];
+            }
+            //assert(cptr->md.memb_l && cptr->md.memb_r && cptr->md.memb_b && cptr->md.memb_u);
+            for (int i = 0; i < 4; i++) {
+                cptr->connected_cell.push_back(cptr->md.memb[i]);
+            }
+
+        });
+    }
+
+
+    //see cont::MEMB_ADJ_CONN_NUM
+    //cell_shuffle(0, nmemb - 1);
+}
+
+void CellManager::pos_update() {
+    this->all_foreach_parallel_native([](Cell* c) {
+        c->x.update();
+        c->y.update();
+        c->z.update();
+    });
+}

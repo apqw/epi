@@ -193,7 +193,8 @@ public:
     D_CELL_LOOP_ACCESSOR(der, nmemb, nder + nmemb);
     D_CELL_LOOP_ACCESSOR(other, nder + nmemb, size());
     D_CELL_LOOP_ACCESSOR(non_memb, nmemb, size());
-
+    void _memb_init();
+    void pos_update();
     //~CellManager();
 };
 
