@@ -307,29 +307,30 @@ Vec<3,real> tri_normal(const Cell* const RESTRICT c1, const Cell* const RESTRICT
     return Vec<3, real>::cross(c1v - c3v,c2v - c3v).normalize();
 }
 
-Vec<3, real> tri_rho(const Vec<3, real>& n1, const Vec<3, real>& b1) {
+inline Vec<3, real> tri_rho(const Vec<3, real>& n1, const Vec<3, real>& b1) {
     return b1 - (Vec<3, real>::dot(n1,b1)*n1);
 }
 
 template<class Fn>
 Vec<3, real>  tri_bend_1(const Cell* const RESTRICT r1, const Cell* const RESTRICT a1, const Cell* const RESTRICT b1, const Cell* const RESTRICT c1,Fn _memb_bend_diff_factor) {
-    Vec<3, real>  r1v = r1->pos_as_vector(), a1v = a1->pos_as_vector(), b1v = b1->pos_as_vector(), c1v = c1->pos_as_vector();
-
-    Vec<3, real> norm1 = Vec<3, real>::cross(vpsub(r1v, b1v), vpsub(a1v, b1v));
+    const Vec<3, real>  r1v = r1->pos_as_vector(), a1v = a1->pos_as_vector(), b1v = b1->pos_as_vector(), c1v = c1->pos_as_vector();
+    const Vec<3, real> sub1 = vpsub(a1v, b1v);
+    Vec<3, real> norm1 = Vec<3, real>::cross(vpsub(r1v, b1v), sub1);
 
     real norm1_norm = norm1.normalize_with_norm();
-    Vec<3, real> norm2 = Vec<3, real>::cross(vpsub(a1v, b1v), vpsub(c1v, b1v)).normalize();
-    return _memb_bend_diff_factor(Vec<3, real>::dot(norm1, norm2))*(Vec<3, real>::cross(vpsub(a1v, b1v), tri_rho(norm1, norm2)) / norm1_norm);
+    Vec<3, real> norm2 = Vec<3, real>::cross(sub1, vpsub(c1v, b1v)).normalize();
+    return _memb_bend_diff_factor(Vec<3, real>::dot(norm1, norm2))*(Vec<3, real>::cross(sub1, tri_rho(norm1, norm2)) / norm1_norm);
 }
 
 template<class Fn>
 Vec<3, real>  tri_bend_2(const Cell* const RESTRICT r1, const Cell* const RESTRICT a1, const Cell* const RESTRICT b1, const Cell* const RESTRICT c1, Fn _memb_bend_diff_factor) {
-    Vec<3, real>  r1v = r1->pos_as_vector(), a1v = a1->pos_as_vector(), b1v = b1->pos_as_vector(), c1v = c1->pos_as_vector();
-    Vec<3, real> norm1 = Vec<3, real>::cross(vpsub(r1v, c1v), vpsub(b1v, c1v));
-    Vec<3, real> norm2 = Vec<3, real>::cross(vpsub(r1v, b1v), vpsub(a1v, b1v));
+    const Vec<3, real>  r1v = r1->pos_as_vector(), a1v = a1->pos_as_vector(), b1v = b1->pos_as_vector(), c1v = c1->pos_as_vector();
+    const Vec<3, real> sub1 = vpsub(b1v, c1v), sub2 = vpsub(a1v, b1v);
+    Vec<3, real> norm1 = Vec<3, real>::cross(vpsub(r1v, c1v), sub1);
+    Vec<3, real> norm2 = Vec<3, real>::cross(vpsub(r1v, b1v), sub2);
 
     real norm1_norm = norm1.normalize_with_norm(), norm2_norm = norm2.normalize_with_norm();
-    return _memb_bend_diff_factor(Vec<3, real>::dot(norm1, norm2))*(Vec<3, real>::cross(vpsub(b1v, c1v), tri_rho(norm1, norm2)) / norm1_norm + Vec<3, real>::cross(vpsub(a1v, b1v), tri_rho(norm2, norm1)) / norm2_norm);
+    return _memb_bend_diff_factor(Vec<3, real>::dot(norm1, norm2))*(Vec<3, real>::cross(sub1, tri_rho(norm1, norm2)) / norm1_norm + Vec<3, real>::cross(sub2, tri_rho(norm2, norm1)) / norm2_norm);
 }
 
 template<class Fn>
