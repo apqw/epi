@@ -181,10 +181,9 @@ public:
 
         }
         cman.nmemb = nmemb;
-#ifdef TRI_MEMB
-        assert(nmemb == (NMX*NMY_tri));
-        assert(NMY_tri % 2 == 0);
-#endif
+        if(nmemb!=pm->MEMB_NUM_X*pm->MEMB_NUM_Y){
+        	throw std::runtime_error("MEMB num of input file is not same with this.");
+        }
         cman.nder = nder;
     }
 
@@ -195,6 +194,7 @@ public:
     D_CELL_LOOP_ACCESSOR(non_memb, nmemb, size());
     void _memb_init();
     void pos_update();
+    void pos_periodic_fix();
     //~CellManager();
 };
 

@@ -14,6 +14,8 @@
 #include <functional>
 #include <numeric>
 #include <ostream>
+#include <iterator>
+#include "../../utils.h"
 template<size_t N,typename Intg>
 class Vec {
     std::array<Intg, N> v;
@@ -22,7 +24,7 @@ class Vec {
         const Intg y = v[3] * ot[0] - v[0] * ot[3];
         const Intg z = v[0] * ot[1] - v[1] * ot[0];
         ot[0] = x; ot[1] = y; ot[2] = z;
-        return ot;
+        return std::move(ot);
     }
 
     Vec<N, Intg> neg_cross(Vec<N, Intg> ot)const {
@@ -30,11 +32,11 @@ class Vec {
         const Intg y = v[0] * ot[3] -v[3] * ot[0]  ;
         const Intg z = v[1] * ot[0] -v[0] * ot[1] ;
         ot[0] = x; ot[1] = y; ot[2] = z;
-        return ot;
+        return std::move(ot);
     }
 
     Intg dot(const Vec<N, Intg>& ot)const {
-        return (this->operator*(ot)).sum();
+        return std::inner_product(this->begin(),this->end(),ot.begin(),static_cast<Intg>(0.0));
     }
 public:
 	Vec():v{}{};
@@ -69,7 +71,7 @@ public:
 
 	Vec<N,Intg> operator+(Vec<N,Intg> ot)const{
 		std::transform(this->begin(),this->end(), ot.begin(),ot.begin(),std::plus<Intg>());
-        return ot;
+        return std::move(ot);
 	}
 
     Vec<N, Intg>& operator+=(Vec<N, Intg> ot) {
@@ -79,7 +81,7 @@ public:
 
     Vec<N, Intg> operator-(Vec<N, Intg> ot)const {
         std::transform(this->begin(), this->end(), ot.begin(),ot.begin(), std::minus<Intg>());
-        return ot;
+        return std::move(ot);
     }
 
     Vec<N, Intg>& operator-(Vec<N, Intg> ot) {
@@ -89,7 +91,7 @@ public:
 
     Vec<N, Intg> operator*(Vec<N, Intg> ot)const {
         std::transform(this->begin(), this->end(), ot.begin(),ot.begin(), std::multiplies<Intg>());
-        return ot;
+        return std::move(ot);
     }
 
     Vec<N, Intg>& operator*=(Vec<N, Intg> ot) {
@@ -100,7 +102,7 @@ public:
     Vec<N, Intg> operator*(Intg sc)const {
         Vec<N, Intg> tmp;
         std::transform(this->begin(), this->end(), tmp.begin(), std::bind2nd(std::multiplies<Intg>(), sc));
-        return ot;
+        return std::move(tmp);
     }
 
     Vec<N, Intg>& operator*=(Intg sc) {
@@ -110,7 +112,7 @@ public:
 
     Vec<N, Intg> operator/(Vec<N, Intg> ot)const {
         std::transform(this->begin(), this->end(), ot.begin(),ot.begin(), std::divides<Intg>());
-        return ot;
+        return std::move(ot);
     }
 
     Vec<N, Intg>& operator/=(Vec<N, Intg> ot) {
@@ -121,7 +123,7 @@ public:
     Vec<N, Intg> operator/(Intg sc)const {
         Vec<N, Intg> tmp;
         std::transform(this->begin(), this->end(), tmp.begin(), std::bind2nd(std::divides<Intg>(), sc));
-        return ot;
+        return std::move(tmp);
     }
 
     Vec<N, Intg>& operator/=(Intg sc) {
@@ -184,7 +186,7 @@ public:
 template<size_t N, typename Intg>
 inline Vec<N, Intg> operator*(Intg sc, Vec<N, Intg> ot) {
     std::transform(ot.begin(), ot.end(), ot.begin(), std::bind2nd(std::multiplies<Intg>(), sc));
-    return ot;
+    return std::move(ot);
 }
 
 template<size_t N, typename Intg>
@@ -228,6 +230,39 @@ std::ostream& operator<<(std::ostream& o, const Vec<N, T>& arr)
 {
     std::copy(arr.begin(), arr.end(), std::ostream_iterator<T>(o, " "));
     return o;
+}
+
+template<size_t N, typename Intg>
+Vec<N, Intg> vpsub(const Vec<N, Intg>& v1, const Vec<N, Intg>& v2) {
+    Vec<N, Intg> tmp;
+    tmp[0] = p_diff_x(v1[0], v2[0]);
+    tmp[1] = p_diff_y(v1[1], v2[1]);
+    tmp[2] = v1[2] - v2[2];
+    return std::move(tmp);
+}
+
+template<size_t N,typename Intg>
+Vec<N, Intg> vpsub(const Vec<N, Intg>& v1, Vec<N, Intg>&& v2) {
+    v2[0] = p_diff_x(v1[0], v2[0]);
+    v2[1] = p_diff_y(v1[1], v2[1]);
+    v2[2] = v1[2]- v2[2];
+    return std::move(v2);
+}
+
+template<size_t N, typename Intg>
+Vec<N, Intg> vpsub(Vec<N, Intg>&& v1,const Vec<N, Intg>& v2) {
+    v1[0] = p_diff_x(v1[0], v2[0]);
+    v1[1] = p_diff_y(v1[1], v2[1]);
+    v1[2] = v1[2] - v2[2];
+    return std::move(v1);
+}
+
+template<size_t N, typename Intg>
+Vec<N, Intg> vpsub(Vec<N, Intg>&& v1,Vec<N, Intg>&& v2) {
+    v1[0] = p_diff_x(v1[0], v2[0]);
+    v1[1] = p_diff_y(v1[1], v2[1]);
+    v1[2] = v1[2] - v2[2];
+    return std::move(v1);
 }
 
 #endif /* VEC_H_ */

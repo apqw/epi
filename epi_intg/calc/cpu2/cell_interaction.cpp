@@ -22,7 +22,7 @@ template<class Fn>
 void cell_interaction_apply(Cell*const RESTRICT c1, Cell*const RESTRICT c2) {
 	const real coef = Fn::CIFuncCName(c1, c2);
     if (fabs(coef) > 1000) {
-    	throw std::logic_error("Too strong interaction between following two cells:\n"_s
+    	throw std::logic_error("Too strong interaction(coef="_s+std::to_string(coef)+") between following two cells:\n"_s
     			+"1.\n"+c1->cell_info_str()+"\n2.\n"+c2->cell_info_str());
     }
 	const real dumx = pm->DT_Cell*coef*p_diff_x(c1->x(), c2->x());
@@ -326,12 +326,16 @@ Vec<3, real>  tri_bend_2(const Cell* const RESTRICT r1, const Cell* const RESTRI
     Vec<3, real> norm1 = Vec<3, real>::cross(vpsub(r1v, c1v), vpsub(b1v, c1v)); Vec<3, real> norm2 = Vec<3, real>::cross(vpsub(r1v, b1v), vpsub(a1v, b1v));
 
     real norm1_norm = norm1.normalize_with_norm(), norm2_norm = norm2.normalize_with_norm();
+    if(norm1_norm>=100||norm2_norm>=100){
+    	throw std::runtime_error("bug:"_s+std::to_string(norm1_norm)+":"+std::to_string(norm2_norm));
+    }
+    assert(norm1_norm<100 && norm2_norm<100);
     return _memb_bend_diff_factor(Vec<3, real>::dot(norm1, norm2))*(Vec<3, real>::cross(vpsub(b1v, c1v), tri_rho(norm1, norm2)) / norm1_norm + Vec<3, real>::cross(vpsub(a1v, b1v), tri_rho(norm2, norm1)) / norm2_norm);
 }
 
 template<class Fn>
 void tri_memb_bend(Cell* const RESTRICT memb, Fn _memb_bend_diff_factor) {
-    Vec<3, real> dr = { 0,0,0 };
+    Vec<3, real> dr = { 0.0,0.0,0.0 };
     const size_t msz = memb->md.memb.size();
     for (int i = 0; i<msz; i++) {
         dr += tri_bend_1(memb, memb->md.memb[i], memb->md.memb[(i + 1) % msz], memb->md.memb[(i + 1) % msz]->md.memb[i], _memb_bend_diff_factor);
@@ -339,6 +343,7 @@ void tri_memb_bend(Cell* const RESTRICT memb, Fn _memb_bend_diff_factor) {
     for (int i = 0; i<msz; i++) {
         dr += tri_bend_2(memb, memb->md.memb[i], memb->md.memb[(i + 1) % msz], memb->md.memb[(i + 2) % msz], _memb_bend_diff_factor);
     }
+    std::cout<<dr<<std::endl;
     memb->x += pm->DT_Cell*pm->KBEND*dr[0];
     memb->y += pm->DT_Cell*pm->KBEND*dr[1];
     memb->z += pm->DT_Cell*pm->KBEND*dr[2];
@@ -480,6 +485,7 @@ inline void _pair_interaction(Cell*const RESTRICT paired) {
 
 void cell_interaction(CellManager & cman)
 {
+	std::cout<<"ci"<<std::endl;
     if (pm->NEW_BEND_POT) {
         memb_bend(cman,MEMB_bend_diff_factor_orig());
     }

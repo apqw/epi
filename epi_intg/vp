@@ -1,13 +1,13 @@
-datadir="/home/yasu7890v/wau/bx10e08/output"
-output="/home/yasu7890v/wau/bx10e08/tmp"
+datadir="/home/yasu7890v/wau/bx20e006/output"
+output="/home/yasu7890v/wau/bx20e006/tmp"
 MALIGNANT=0
 start=0
 end=3999
 X0=0
 Y0=0
-elevation=175
+elevation=165
 azimuth=0
-z_level=-20
+z_level=0
 mode=0
 disp_musume=0
 disp_alive=0

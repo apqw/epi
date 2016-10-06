@@ -347,3 +347,26 @@ void CellManager::pos_update() {
         c->z.update();
     });
 }
+
+/**
+ *  周期境界を考慮して全細胞の位置を修正
+ */
+void CellManager::pos_periodic_fix() {
+
+	this->all_foreach_parallel_native([&](Cell*const c) {
+		if (c->x._next() > pm->LX) {
+			c->x._set(c->x._next()-pm->LX);
+		}
+		else if (c->x._next() < 0) {
+			c->x._set(c->x._next() + pm->LX);
+		}
+
+		if (c->y._next() > pm->LY) {
+			c->y._set(c->y._next() - pm->LY);
+		}
+		else if (c->y._next() < 0) {
+			c->y._set(c->y._next() + pm->LY);
+		}
+	});
+
+}

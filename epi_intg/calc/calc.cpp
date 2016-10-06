@@ -21,6 +21,7 @@ static void initialize(CellManager&cman){
 
 static void cell_dynamics(CellManager&cman) {
     cell_interaction(cman);
+    cman.pos_periodic_fix();
 }
 void calc_with_cpu(CellManager&cman){
     initialize(cman);
