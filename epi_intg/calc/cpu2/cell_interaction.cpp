@@ -303,7 +303,7 @@ inline void _memb_bend_calc3(Cell *const RESTRICT memb,Fn _memb_bend_diff_factor
 Vec<3,real> tri_normal(const Cell* const RESTRICT c1, const Cell* const RESTRICT c2, const Cell* const RESTRICT c3) {
     Vec<3, real> c1v = c1->pos_as_vector();
     Vec<3, real> c2v = c2->pos_as_vector();
-    Vec<3, real> c3v = c2->pos_as_vector();
+    Vec<3, real> c3v = c3->pos_as_vector();
     return Vec<3, real>::cross(c1v - c3v,c2v - c3v).normalize();
 }
 
@@ -314,7 +314,9 @@ Vec<3, real> tri_rho(const Vec<3, real>& n1, const Vec<3, real>& b1) {
 template<class Fn>
 Vec<3, real>  tri_bend_1(const Cell* const RESTRICT r1, const Cell* const RESTRICT a1, const Cell* const RESTRICT b1, const Cell* const RESTRICT c1,Fn _memb_bend_diff_factor) {
     Vec<3, real>  r1v = r1->pos_as_vector(), a1v = a1->pos_as_vector(), b1v = b1->pos_as_vector(), c1v = c1->pos_as_vector();
+
     Vec<3, real> norm1 = Vec<3, real>::cross(vpsub(r1v, b1v), vpsub(a1v, b1v));
+
     real norm1_norm = norm1.normalize_with_norm();
     Vec<3, real> norm2 = Vec<3, real>::cross(vpsub(a1v, b1v), vpsub(c1v, b1v)).normalize();
     return _memb_bend_diff_factor(Vec<3, real>::dot(norm1, norm2))*(Vec<3, real>::cross(vpsub(a1v, b1v), tri_rho(norm1, norm2)) / norm1_norm);
@@ -323,13 +325,10 @@ Vec<3, real>  tri_bend_1(const Cell* const RESTRICT r1, const Cell* const RESTRI
 template<class Fn>
 Vec<3, real>  tri_bend_2(const Cell* const RESTRICT r1, const Cell* const RESTRICT a1, const Cell* const RESTRICT b1, const Cell* const RESTRICT c1, Fn _memb_bend_diff_factor) {
     Vec<3, real>  r1v = r1->pos_as_vector(), a1v = a1->pos_as_vector(), b1v = b1->pos_as_vector(), c1v = c1->pos_as_vector();
-    Vec<3, real> norm1 = Vec<3, real>::cross(vpsub(r1v, c1v), vpsub(b1v, c1v)); Vec<3, real> norm2 = Vec<3, real>::cross(vpsub(r1v, b1v), vpsub(a1v, b1v));
+    Vec<3, real> norm1 = Vec<3, real>::cross(vpsub(r1v, c1v), vpsub(b1v, c1v));
+    Vec<3, real> norm2 = Vec<3, real>::cross(vpsub(r1v, b1v), vpsub(a1v, b1v));
 
     real norm1_norm = norm1.normalize_with_norm(), norm2_norm = norm2.normalize_with_norm();
-    if(norm1_norm>=100||norm2_norm>=100){
-    	throw std::runtime_error("bug:"_s+std::to_string(norm1_norm)+":"+std::to_string(norm2_norm));
-    }
-    assert(norm1_norm<100 && norm2_norm<100);
     return _memb_bend_diff_factor(Vec<3, real>::dot(norm1, norm2))*(Vec<3, real>::cross(vpsub(b1v, c1v), tri_rho(norm1, norm2)) / norm1_norm + Vec<3, real>::cross(vpsub(a1v, b1v), tri_rho(norm2, norm1)) / norm2_norm);
 }
 
@@ -339,14 +338,16 @@ void tri_memb_bend(Cell* const RESTRICT memb, Fn _memb_bend_diff_factor) {
     const size_t msz = memb->md.memb.size();
     for (int i = 0; i<msz; i++) {
         dr += tri_bend_1(memb, memb->md.memb[i], memb->md.memb[(i + 1) % msz], memb->md.memb[(i + 1) % msz]->md.memb[i], _memb_bend_diff_factor);
+
     }
     for (int i = 0; i<msz; i++) {
         dr += tri_bend_2(memb, memb->md.memb[i], memb->md.memb[(i + 1) % msz], memb->md.memb[(i + 2) % msz], _memb_bend_diff_factor);
     }
-    std::cout<<dr<<std::endl;
+
     memb->x += pm->DT_Cell*pm->KBEND*dr[0];
     memb->y += pm->DT_Cell*pm->KBEND*dr[1];
     memb->z += pm->DT_Cell*pm->KBEND*dr[2];
+
 }
 
 template<class Fn>
@@ -485,13 +486,14 @@ inline void _pair_interaction(Cell*const RESTRICT paired) {
 
 void cell_interaction(CellManager & cman)
 {
-	std::cout<<"ci"<<std::endl;
+
     if (pm->NEW_BEND_POT) {
         memb_bend(cman,MEMB_bend_diff_factor_orig());
     }
     else {
         memb_bend(cman, MEMB_bend_diff_factor_new());
     }
+
     cman.memb_foreach_parallel_native([](Cell*const RESTRICT c) {
         _MEMB_interaction(c);
     });

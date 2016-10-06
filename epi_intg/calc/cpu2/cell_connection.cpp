@@ -90,7 +90,7 @@ static const Cell* find_dermis(const Cell*const RESTRICT c) {
     c->connected_cell.foreach([&](const Cell*const cptr) { //no restrict
         if (cptr->state == MEMB) {
             distanceSq = p_cell_dist_sq(c, cptr);
-            if (distanceSq < d1Sq) {//2æ‚É‚È‚Á‚Ä‚È‚©‚Á‚½
+            if (distanceSq < d1Sq) {//2ï¿½ï¿½É‚È‚ï¿½ï¿½Ä‚È‚ï¿½ï¿½ï¿½ï¿½ï¿½
                 d1Sq = distanceSq;
                 dermis = cptr;
             }

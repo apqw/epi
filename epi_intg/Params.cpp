@@ -88,7 +88,6 @@ void Params::s_Ctor() {
 }
 
 void Params::s_Ctor(const std::string& path) {
-    std::cout << "super s_ctor w path" << std::endl;
     init();
     const_cast<Params*>(this)->load(path);
 }

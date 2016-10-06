@@ -245,6 +245,7 @@ void visualize() {
     CellManager cman;
     
     auto on = OnCellLoadVis();
+    std::cout<<"Visualize:\nGenerating images..."<<std::endl;
     for (int i = vp.start; i <= vp.end; i++) {
         clear_gl_buffer();
 
@@ -259,6 +260,6 @@ void visualize() {
         glutSwapBuffers();
 
         output_img_from_buffer(i);
-        
+        std::cout<<"Done "<<i<<std::endl;
     }
 }

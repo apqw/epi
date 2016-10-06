@@ -15,13 +15,14 @@
 #include <numeric>
 #include <ostream>
 #include <iterator>
+#include <iostream>
 #include "../../utils.h"
 template<size_t N,typename Intg>
 class Vec {
     std::array<Intg, N> v;
     Vec<N, Intg> cross(Vec<N, Intg> ot)const {
         const Intg x = v[1] * ot[2] - v[2] * ot[1];
-        const Intg y = v[3] * ot[0] - v[0] * ot[3];
+        const Intg y = v[2] * ot[0] - v[0] * ot[2];
         const Intg z = v[0] * ot[1] - v[1] * ot[0];
         ot[0] = x; ot[1] = y; ot[2] = z;
         return std::move(ot);
@@ -29,7 +30,7 @@ class Vec {
 
     Vec<N, Intg> neg_cross(Vec<N, Intg> ot)const {
         const Intg x = v[2] * ot[1] -v[1] * ot[2]  ;
-        const Intg y = v[0] * ot[3] -v[3] * ot[0]  ;
+        const Intg y = v[0] * ot[2] -v[2] * ot[0]  ;
         const Intg z = v[1] * ot[0] -v[0] * ot[1] ;
         ot[0] = x; ot[1] = y; ot[2] = z;
         return std::move(ot);
@@ -149,12 +150,13 @@ public:
     }
 
     Vec<N, Intg>& normalize() {
-        std::transform(this->begin(), this->end(), this->begin(), std::bind2nd(std::divides<Intg>(), this->norm_sq()));
+
+        std::transform(this->begin(), this->end(), this->begin(), std::bind2nd(std::divides<Intg>(), this->norm()));
         return *this;
     }
 
     Intg normalize_with_norm() {
-        Intg const nm = this->norm_sq();
+        Intg const nm = this->norm();
         std::transform(this->begin(), this->end(), this->begin(), std::bind2nd(std::divides<Intg>(), nm));
         return nm;
     }
@@ -241,6 +243,7 @@ Vec<N, Intg> vpsub(const Vec<N, Intg>& v1, const Vec<N, Intg>& v2) {
     return std::move(tmp);
 }
 
+
 template<size_t N,typename Intg>
 Vec<N, Intg> vpsub(const Vec<N, Intg>& v1, Vec<N, Intg>&& v2) {
     v2[0] = p_diff_x(v1[0], v2[0]);
@@ -264,5 +267,6 @@ Vec<N, Intg> vpsub(Vec<N, Intg>&& v1,Vec<N, Intg>&& v2) {
     v1[2] = v1[2] - v2[2];
     return std::move(v1);
 }
+
 
 #endif /* VEC_H_ */

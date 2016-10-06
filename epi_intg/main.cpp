@@ -64,7 +64,6 @@ void set_param(const cmdline::parser& cp){
 }
 
 int main(int argc,char** argv){
-
     cmdline::parser cp;
     const std::string udelim = "\n\t\t";
     cp.add<std::string>("mode", 'm',
