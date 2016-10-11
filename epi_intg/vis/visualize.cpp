@@ -183,10 +183,11 @@ struct OnCellLoadVis {
     static const float diffuse[4];// = { 1.0, 1.0, 1.0, 1.0 };
     static const float specular[4];// = { 0.3, 0.3, 0.3, 1.0 };
     static const float ambient[4];// = { 0.3, 0.3, 0.3, 1.0 };
+    static int count;
     OnCellLoadVis() {
     }
     void operator()(CellManager&cman, const CellTempStruct&cts) {
-
+    	count++;
         if (!should_draw(cts))return;
         
 
@@ -208,6 +209,8 @@ struct OnCellLoadVis {
         //cman.test_realloc();
     }
 };
+
+int OnCellLoadVis::count=0;
 
 const float OnCellLoadVis::diffuse[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 const float OnCellLoadVis::specular[4] = { 0.3f, 0.3f, 0.3f, 1.0f };
@@ -247,19 +250,19 @@ void visualize() {
     auto on = OnCellLoadVis();
     std::cout<<"Visualize:\nGenerating images..."<<std::endl;
     for (int i = vp.start; i <= vp.end; i++) {
+    	on.count=0;
         clear_gl_buffer();
 
         begin_draw_setting();
         
         glPushMatrix();
         cman.load(vp.datadir+"/"+std::to_string(i), on);
-        
         glPopMatrix();
         end_draw_setting();
 
         glutSwapBuffers();
 
         output_img_from_buffer(i);
-        std::cout<<"Done "<<i<<std::endl;
+        std::cout<<"Done "<<i<<" cell num:"<<on.count<<std::endl;
     }
 }

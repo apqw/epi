@@ -8,6 +8,8 @@
 
 
 #include <iostream>
+#include <tuple>
+#include <regex>
 #include "Params.h"
 #include "global.h"
 #include "parser.h"
@@ -63,6 +65,16 @@ void set_param(const cmdline::parser& cp){
      }
 }
 
+std::tuple<unsigned int,unsigned int> parse_init_setting(const std::string& st){
+	std::regex re("^ *(\\d+),(\\d+) *$");
+	std::smatch sm;
+	std::regex_match(st,sm,re);
+	if(sm.size()!=3){
+		throw std::runtime_error("Failed to parse the following init setting str:"_s+st);
+	}
+	return std::tuple<unsigned int,unsigned int>(std::stoul(sm[1]),std::stoul(sm[2]));
+}
+
 int main(int argc,char** argv){
     cmdline::parser cp;
     const std::string udelim = "\n\t\t";
@@ -79,6 +91,7 @@ int main(int argc,char** argv){
     cp.add<std::string>("cparam", '\0', "Specify an parameter file path for calculation.",false);
     cp.add<std::string>("cparam2", '\0', "Additional parameter file (for diff)",false);
     cp.add<std::string>("vparam", '\0', "Specify an parameter file path for visualization.",false);
+    cp.add<std::string>("initial", '\0', "Start calculation with initial state (without specifying initial data file)",false);
     cp.parse_check(argc, argv);
     auto mode = cp.get<std::string>("mode");
     bool is_gpu = mode == "g";
@@ -95,7 +108,7 @@ int main(int argc,char** argv){
     	EH.check("cparam","output");
     	set_param(cp);
     	try{
-    	init_gen(cp.get<std::string>("output"),16,8);
+    	init_gen_output(cp.get<std::string>("output"),16,8);
     	}catch(std::exception& e){
     		  std::cerr << e.what() << std::endl;
     		            std::exit(1);
@@ -132,8 +145,14 @@ int main(int argc,char** argv){
     	EH.check("cparam","input");
     	set_param(cp);
         CellManager cman;
+
         try {
+            if(cp.exist("initial")){
+            	auto inum=parse_init_setting(cp.get<std::string>("initial"));
+            	cman=init_gen(std::get<0>(inum),std::get<1>(inum));
+            }else{
             cman.load(cp.get<std::string>("input"));
+            }
         }
         catch (std::exception& e) {
             std::cerr << e.what() << std::endl;

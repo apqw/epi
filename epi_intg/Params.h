@@ -69,6 +69,17 @@ VarTy force_vget(const std::map<K, V>& mp, const std::vector<K2>& kv) {
     throw std::logic_error(std::string(kv[0]) + " must be specified.");
 }
 
+template<typename T, typename... Rest>
+struct is_same_multiple : std::false_type {};
+
+template<typename T, typename First>
+struct is_same_multiple<T, First> : std::is_same<T, First> {};
+
+template<typename T, typename First, typename... Rest>
+struct is_same_multiple<T, First, Rest...>
+    : std::integral_constant<bool, std::is_same<T, First>::value && is_same_multiple<T, Rest...>::value>
+{};
+
 struct ParamInfo {
 private:
     enum TypeEnum {
@@ -99,14 +110,21 @@ private:
 public:
     std::vector<const char*> name;
 
+    bool optional;
     
-    
-    template<typename Ty, typename... Nm,class = typename std::enable_if<sizeof...(Nm)>=1>::type>
+    template<typename Ty, typename... Nm,class = typename std::enable_if<sizeof...(Nm)>=1 && is_same_multiple<const char*,Nm...>::value>::type>
     ParamInfo(Ty& _p, Nm... _n) :ParamInfo(_p, { _n... }) {}
+
+    template<typename Ty, typename... Nm,class = typename std::enable_if<sizeof...(Nm)>=1 && is_same_multiple<const char*,Nm...>::value>::type>
+        ParamInfo(Ty& _p, bool _optional,Nm... _n) :ParamInfo(_p, { _n... }) {
+    	optional=_optional;
+
+    }
 
     template<typename K, typename V>
     void set_from(const std::map<K, V>& mp) {
         bool chk = true;
+        try{
         switch (pTy) {
         case UINT:
 
@@ -126,6 +144,11 @@ public:
             break;
         default:
             break;
+        }
+        }catch(std::exception& e){
+        	if(!optional){
+        		throw e;
+        	}
         }
     }
 
@@ -159,6 +182,8 @@ public:
 
 #define gpa(name,...) ParamInfo(name,#name,__VA_ARGS__)
 #define gp1(name) ParamInfo(name,#name)
+#define gpo(name) ParamInfo(name,true,#name)
+#define gpoa(name,...) ParamInfo(name,true,#name,__VA_ARGS__)
 
 class Params {
 protected:

@@ -1,7 +1,7 @@
-datadir="/home/yasu7890v/wau/bx15e006/output"
-output="/home/yasu7890v/wau/bx15e006/tmp"
+datadir="/home/yasu7890v/wau/bx15x4/output"
+output="/home/yasu7890v/wau/bx15x4/tmp"
 MALIGNANT=0
-start=0
+start=700
 end=2000
 X0=0
 Y0=0
