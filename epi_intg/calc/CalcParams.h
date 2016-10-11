@@ -22,6 +22,7 @@ public:
     unsigned int MALIG_NUM;
     real LX, LY, LZ;
     unsigned int NX, NY, NZ;
+    real dx,dy,dz,inv_dx,inv_dy,inv_dz;
     real R_max, R_der, R_memb;
     real COMPRESS_FACTOR;
     unsigned int MEMB_ADHE_RANGE;
@@ -171,7 +172,7 @@ public:
     unsigned int SYSTEM;
     unsigned int CUT;
     bool NEW_BEND_POT;
-
+    bool STOCHASTIC;
     std::string outputdir;
     
     CalcParams();

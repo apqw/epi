@@ -8,7 +8,9 @@
 #ifndef INIT_GEN_H_
 #define INIT_GEN_H_
 #include <string>
-void init_gen(const std::string&,int,int);
+#include "cpu2/CellManager.h"
+CellManager init_gen(int,int);
+void init_gen_output(const std::string&,int,int);
 
 
 

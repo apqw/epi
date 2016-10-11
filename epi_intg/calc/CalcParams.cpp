@@ -15,6 +15,8 @@ inline static uint32_t evenify(uint32_t n){
 }
 void CalcParams::calculate_param() {
 
+	dx=LX/NX;dy=LY/NY;dz=LZ/NZ;
+	inv_dx=NX/LX;inv_dy=NY/LY;inv_dz=NZ/LZ;
 	 P_MEMB = 1.0 / COMPRESS_FACTOR;
 const double pratio=2.0*P_MEMB;
 	MEMB_NUM_X = static_cast<unsigned int>(LX/(R_memb*pratio));
@@ -155,6 +157,7 @@ void CalcParams::init() {
         gp1(SYSTEM),
         gp1(CUT),
         gp1(NEW_BEND_POT),
+        gp1(STOCHASTIC),
         gp1(outputdir)
     };
 
@@ -267,6 +270,7 @@ void CalcParams::init() {
     SYSTEM = 0;
     CUT = 1000;
     NEW_BEND_POT = true;
+    STOCHASTIC=true;
     outputdir = "output";
     y_tri_comp_ratio=2.0/sqrt(3);
     calculate_param();

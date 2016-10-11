@@ -45,7 +45,7 @@ public:
     real radius;
     unsigned int rest_div_times;
     bool is_malignant;
-    int lat[3];
+    Vec<3,int> lat;
     real diff_u;
     real div_age_thresh;
     bool is_touch;

@@ -57,9 +57,30 @@ class CellManager:public Lockfree_push_stack_dyn<Cell*>
     //static std::vector<Cell*> tmp_pair;
     size_t nmemb, nder;
     void memb_init();
+    std::atomic<unsigned int> sw;
 public:
+    typedef Lockfree_push_stack_dyn<Cell*> Base;
+    friend void cornificate(CellManager& cman, Cell*const RESTRICT c); //in cell_state_renew
+    friend CellManager init_gen(int nfix,int der);
     CellManager();
     CellManager(size_t);
+    CellManager(const CellManager& cm):Base(cm),nmemb(cm.nmemb),nder(cm.nder),sw(cm.sw.load()),remove_queue(cm.remove_queue){}
+    CellManager(CellManager&& cm):Base(std::move(cm)),nmemb(std::move(cm.nmemb)),nder(std::move(cm.nder)),sw(cm.sw.load()),remove_queue(std::move(cm.remove_queue)){}
+    CellManager& operator=(const CellManager& cm){
+    	Base::operator=(cm);
+    	nmemb=cm.nmemb;
+    	nder=cm.nder;
+    	sw=cm.sw.load();
+    	remove_queue=cm.remove_queue;
+    }
+
+    CellManager& operator=(CellManager&& cm){
+        	Base::operator=(cm);
+        	nmemb=std::move(cm.nmemb);
+        	nder=std::move(cm.nder);
+        	sw=cm.sw.load();
+        	remove_queue=std::move(cm.remove_queue);
+        }
     Cell* create(CELL_STATE _state, int stem_orig_id, real _x = 0, real _y = 0, real _z = 0,
         real _radius = pm->R_max, real _ca2p = pm->ca2p_init, real _ca2p_avg = pm->ca2p_init,
         real _IP3 = pm->IP3_init, real _ex_inert = pm->ex_inert_init,

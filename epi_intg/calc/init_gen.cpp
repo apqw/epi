@@ -47,7 +47,7 @@ double distmin=10000.0;
 		}
 	}
 }
-void init_gen(const std::string& filename,int nfix,int der){
+CellManager init_gen(int nfix,int der){
 
 	CellManager cman;
 	using namespace std::placeholders;
@@ -55,6 +55,7 @@ void init_gen(const std::string& filename,int nfix,int der){
 	double pratio=2*pm->P_MEMB;
 	const double Z_LEVEL = der*2.0*pm->R_der;
 
+	unsigned int nmemb=0,nder=0;
 	if(!pm->USE_TRI_MEMB){
 		for(unsigned int k=0;k<pm->MEMB_NUM_Y;k++){
 			for(unsigned int j=0;j<pm->MEMB_NUM_X;j++){
@@ -74,7 +75,7 @@ void init_gen(const std::string& filename,int nfix,int der){
 			}
 		}
 	}
-
+	cman.nmemb=pm->MEMB_NUM_Y*pm->MEMB_NUM_X;
 
 	const unsigned int NX_DER=static_cast<unsigned int>(pm->LX/(2.0*pm->R_der));
     const unsigned int NY_DER = static_cast<unsigned int>(pm->LY / (2.0*pm->R_der));
@@ -88,7 +89,7 @@ void init_gen(const std::string& filename,int nfix,int der){
 			}
 		}
 	}
-
+	cman.nder=der*NY_DER*NX_DER;
 	for(int l=0;l<nfix;l++){
 		const double xx=pm->LX/2.0+(pm->LX/4.0)*cos(2.0*M_PI*l/nfix);
 		const double yy=pm->LX/2.0+(pm->LX/4.0)*sin(2.0*M_PI*l/nfix);
@@ -98,6 +99,11 @@ void init_gen(const std::string& filename,int nfix,int der){
 
 	relaxation(cman,nfix,Z_LEVEL);
 
-	cman.output(filename);
+	return cman;
+	//cman.output(filename);
 
+}
+
+void init_gen_output(const std::string& filename,int nfix,int der){
+	init_gen(nfix,der).output(filename);
 }
