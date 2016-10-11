@@ -72,6 +72,7 @@ public:
     	nder=cm.nder;
     	sw=cm.sw.load();
     	remove_queue=cm.remove_queue;
+        return *this;
     }
 
     CellManager& operator=(CellManager&& cm){
@@ -80,6 +81,7 @@ public:
         	nder=std::move(cm.nder);
         	sw=cm.sw.load();
         	remove_queue=std::move(cm.remove_queue);
+            return *this;
         }
     Cell* create(CELL_STATE _state, int stem_orig_id, real _x = 0, real _y = 0, real _z = 0,
         real _radius = pm->R_max, real _ca2p = pm->ca2p_init, real _ca2p_avg = pm->ca2p_init,

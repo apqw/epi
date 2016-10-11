@@ -81,11 +81,13 @@ public:
     Lockfree_push_stack_dyn<T>& operator=(Lockfree_push_stack_dyn<T>&& ot){
     	_data=std::move(ot._data);
     	_next=ot._next.load();
+        return *this;
     }
 
     Lockfree_push_stack_dyn<T>& operator=(const Lockfree_push_stack_dyn<T>& ot){
         	_data=ot._data;
         	_next=ot._next.load();
+            return *this;
         }
     void test_realloc() {
         if (_data.size()==0||_next / (double)_data.size() > 0.8) {

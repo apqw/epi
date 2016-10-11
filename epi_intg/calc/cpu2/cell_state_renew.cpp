@@ -1,11 +1,13 @@
 
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include "cell_state_renew.h"
 #include "CellManager.h"
 #include "../../global.h"
 #include "../../utils.h"
 #include "../../util/rand/Random_gen.h"
 #include "../../util/vec/Vec.h"
-#include <cmath>
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 //    agebの計算の定義
