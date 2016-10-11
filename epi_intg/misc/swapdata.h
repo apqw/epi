@@ -3,6 +3,7 @@
 #define SWAPDATA_H
 #include <unordered_map>
 #include <type_traits>
+#include <utility>
 #include "../utils.h"
 
 
@@ -51,9 +52,7 @@ public:
         return *data2;
     }
     void swap() {
-        T* tmp = data2;
-        data2 = data1;
-        data1 = tmp;
+        std::swap(data1, data2);
     }
 };
 #endif
