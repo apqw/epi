@@ -64,7 +64,7 @@ inline real agek_DEAD_AIR_const() {
  *  @return 放出する脂質の時間差分
  */
 inline real k_lipid_release(const Cell*const RESTRICT c) {
-    return 0.25*pm->lipid_rel*(1 + tanh((c->ca2p_avg - pm->ubar) / pm->delta_sig_r1))*(1 + tanh((c->agek - pm->THRESH_SP) / pm->delta_lipid));
+    return real(0.25)*pm->lipid_rel*(real(1.0) + tanh((c->ca2p_avg - pm->ubar) / pm->delta_sig_r1))*(real(1.0) + tanh((c->agek - pm->THRESH_SP) / pm->delta_lipid));
 }
 
 /**
@@ -73,7 +73,7 @@ inline real k_lipid_release(const Cell*const RESTRICT c) {
  *  @attention この値が直接生成量になるわけではない。
  */
 inline real k_lipid(const Cell*const RESTRICT c) {
-    return 0.25*pm->lipid*(1 + tanh((pm->ubar - c->ca2p_avg) / pm->delta_sig_r1))*(1 + tanh((c->agek - pm->THRESH_SP) / pm->delta_lipid));
+    return real(0.25)*pm->lipid*(real(1.0) + tanh((pm->ubar - c->ca2p_avg) / pm->delta_sig_r1))*(real(1.0) + tanh((c->agek - pm->THRESH_SP) / pm->delta_lipid));
 }
 
 
@@ -124,15 +124,15 @@ Vec<3,real> div_direction(const Cell*const RESTRICT me, const Cell*const RESTRIC
     Vec<3,real> ov;
     real sum;
     do {
-        real rand_theta = M_PI*genrand_real();
+        real rand_theta = real(M_PI)*genrand_real();
         real cr1 = cos(rand_theta);
         real sr1 = sin(rand_theta);
-        real rand_phi = 2 * M_PI*genrand_real();
+        real rand_phi = real(2.0) * real(M_PI)*genrand_real();
         real cr2 = cos(rand_phi);
         real sr2 = sin(rand_phi);
         Vec<3,real> rv ={sr1*cr2,sr1*sr2,cr1};
 ov=Vec<3,real>::cross(nv,rv);
-    } while ((sum = ov.norm_sq()) < 1.0e-14);
+    } while ((sum = ov.norm_sq()) < real(1.0e-14));
     return ov/sqrt(sum);
 }
 
@@ -165,7 +165,7 @@ void cell_divide(CellManager& cman, Cell*const RESTRICT div) {
         div->pair->rest_div_times--;
     }
 
-    Vec<3,real>dv=div_direction(div, div->dermis())*(0.5*pm->delta_L);
+    Vec<3,real>dv=div_direction(div, div->dermis())*(real(0.5)*pm->delta_L);
     //!set value
     div->x._set(div->x() + dv[0]);
     div->y._set(div->y() + dv[1]);
@@ -262,7 +262,7 @@ inline void _ALIVE_state_renew(CellManager& cman, Cell*const RESTRICT al) {
     }
     else {
         const real tmp = k_lipid_release(al)*al->in_fat;
-        al->in_fat += pm->DT_Cell*(k_lipid(al)*(1.0 - al->in_fat) - tmp);
+        al->in_fat += pm->DT_Cell*(k_lipid(al)*(real(1.0) - al->in_fat) - tmp);
         al->ex_fat += pm->DT_Cell*tmp;
         al->agek += pm->DT_Cell*agek_ALIVE_const(al); //update last
     }

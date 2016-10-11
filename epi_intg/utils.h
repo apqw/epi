@@ -66,4 +66,25 @@ inline int*precalc_per_next_z(){
 inline int*precalc_per_prev_z(){
 	return per_z_prev_idx;
 }
+
+template<typename T, typename... Rest>
+struct is_same_multiple : std::false_type {};
+
+template<typename T, typename First>
+struct is_same_multiple<T, First> : std::is_same<T, First> {};
+
+template<typename T, typename First, typename... Rest>
+struct is_same_multiple<T, First, Rest...>
+    : std::integral_constant<bool, std::is_same<T, First>::value && is_same_multiple<T, Rest...>::value>
+{};
+
+template<typename T, typename... U>
+struct single_arg_and_eq_ref {
+    static constexpr bool value = sizeof...(U) == 1
+        &&
+        is_same_multiple<
+        T,
+        typename std::remove_reference<U>::type...
+        >::value;
+};
 #endif

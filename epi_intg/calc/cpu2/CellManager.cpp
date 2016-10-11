@@ -12,7 +12,7 @@ CellManager::CellManager() : Lockfree_push_stack_dyn<Cell*>(0), remove_queue(0)
 {
 }
 
-Cell* CellManager::create(CELL_STATE _state, int stem_orig_id, double _x, double _y, double _z, double _radius, double _ca2p, double _ca2p_avg, double _IP3, double _ex_inert, double _agek, double _ageb, double _ex_fat, double _in_fat, double _spr_nat_len, int _rest_div_times, bool _is_malignant)
+Cell* CellManager::create(CELL_STATE _state, int stem_orig_id, real _x, real _y, real _z, real _radius, real _ca2p, real _ca2p_avg, real _IP3, real _ex_inert, real _agek, real _ageb, real _ex_fat, real _in_fat, real _spr_nat_len, int _rest_div_times, bool _is_malignant)
 {
     Cell* cptr=new Cell(Cell::ctor_cookie(),
         _state,
@@ -28,7 +28,7 @@ Cell* CellManager::create(CELL_STATE _state, int stem_orig_id, double _x, double
     return cptr;
 }
 //spelling: resizeable?
-Cell* CellManager::create_resizable(CELL_STATE _state, int stem_orig_id, double _x, double _y, double _z, double _radius, double _ca2p, double _ca2p_avg, double _IP3, double _ex_inert, double _agek, double _ageb, double _ex_fat, double _in_fat, double _spr_nat_len, int _rest_div_times, bool _is_malignant)
+Cell* CellManager::create_resizable(CELL_STATE _state, int stem_orig_id, real _x, real _y, real _z, real _radius, real _ca2p, real _ca2p_avg, real _IP3, real _ex_inert, real _agek, real _ageb, real _ex_fat, real _in_fat, real _spr_nat_len, int _rest_div_times, bool _is_malignant)
 {
 	test_realloc();
     Cell* cptr=new Cell(Cell::ctor_cookie(),
@@ -369,4 +369,12 @@ void CellManager::pos_periodic_fix() {
 		}
 	});
 
+}
+
+bool CellManager::should_calc_ca() {
+    return (sw >= pm->SW_THRESH);
+}
+
+void CellManager::ca_calc_condition_reset() {
+    sw = 0;
 }

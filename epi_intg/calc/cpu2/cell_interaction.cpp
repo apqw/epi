@@ -55,7 +55,7 @@ inline real ljmain_der_near(const Cell*const RESTRICT der1, const Cell*const RES
 	const real rad_sum = der1->radius + der2->radius;
 	const real LJ6 = POW6(rad_sum) / POW6(dist2);
 	//LJ6 = LJ6*LJ6*LJ6;
-	return 4.0*pm->eps_m*LJ6*(LJ6 - 1) / (dist*dist2) + pm->para_ljp2;
+	return real(4.0)*pm->eps_m*LJ6*(LJ6 - real(1.0)) / (dist*dist2) + pm->para_ljp2;
 }
 
 inline bool is_near(const Cell*const RESTRICT c1, const Cell*const RESTRICT c2) {
@@ -68,7 +68,7 @@ inline real ljmain_der_far(const Cell*const RESTRICT der1, const Cell*const REST
 	const real dist2 = dist + pm->delta_R;
 	const real rad_sum = der1->radius + der2->radius;
 	const real LJ6 = POW6(rad_sum) / POW6(dist2);
-	return 4.0*pm->eps_m*LJ6*(LJ6 - 1) / (dist*dist) + pm->para_ljp2;
+	return real(4.0)*pm->eps_m*LJ6*(LJ6 - real(1.0)) / (dist*dist) + pm->para_ljp2;
 }
 
 inline real ljmain(const Cell*const RESTRICT c1, const  Cell*const RESTRICT c2) {
@@ -77,7 +77,7 @@ inline real ljmain(const Cell*const RESTRICT c1, const  Cell*const RESTRICT c2) 
 	const real rad_sum = c1->radius + c2->radius;
 	const real LJ6 = POW6(rad_sum) / POW3(distSq);
 	//LJ6 = LJ6*LJ6*LJ6;
-	return 4.0*pm->eps_m*LJ6*(LJ6 - 1) / distSq;
+	return real(4.0)*pm->eps_m*LJ6*(LJ6 - real(1.0)) / distSq;
 
 }
 
@@ -86,11 +86,11 @@ inline real adhesion(const Cell*const RESTRICT c1, const  Cell*const RESTRICT c2
 	const real rad_sum = c1->radius + c2->radius;
 	//real LJ2_m1;
 
-	const real LJ2_m1 = (distlj / rad_sum) - 1;
-	return (LJ2_m1 + 1 > pm->LJ_THRESH ?
-		0.0 :
+	const real LJ2_m1 = (distlj / rad_sum) - real(1.0);
+	return (LJ2_m1 + real(1.0) > pm->LJ_THRESH ?
+        real(0.0) :
 		-(spring_const / distlj)
-		* LJ2_m1*(1 - LJ2_m1*LJ2_m1 / ((pm->LJ_THRESH - 1.0)*(pm->LJ_THRESH - 1.0))));
+		* LJ2_m1*(real(1.0) - LJ2_m1*LJ2_m1 / ((pm->LJ_THRESH - real(1.0))*(pm->LJ_THRESH - real(1.0)))));
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -148,7 +148,7 @@ real CI_fix_to_memb::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*const
 	else {
 		const real distlj = sqrt(p_cell_dist_sq(c1, c2));
 		const real LJ2 = distlj / (c1->radius + c2->radius);
-		return -(pm->Kspring / distlj)*(LJ2 - 1.0);
+		return -(pm->Kspring / distlj)*(LJ2 - real(1.0));
 	}
 }
 
@@ -160,20 +160,20 @@ real CI_memb_to_memb::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*cons
 	const real distSq = p_cell_dist_sq(c1, c2);
 	if (distSq< (cr_dist_sq=rad_sum_sq*pm->P_MEMB*pm->P_MEMB)) {
 		const real LJ6 = POW3(cr_dist_sq) / POW3(distSq);
-        return 4.0*pm->eps_m*LJ6*(LJ6 - 1) / distSq;
+        return real(4.0)*pm->eps_m*LJ6*(LJ6 - real(1.0)) / distSq;
 	}
 	else if (distSq < rad_sum_sq) {
 		const real distlj = sqrt(distSq);
 		const real cr_dist = rad_sum*pm->P_MEMB;
-        return -(pm->DER_DER_CONST / distlj) * (distlj / cr_dist - 1.0);
+        return -(pm->DER_DER_CONST / distlj) * (distlj / cr_dist - real(1.0));
 	}
 	else {
 		const real distlj = sqrt(distSq);
-		const real lambda_dist = (1.0 + pm->P_MEMB)*rad_sum;
+		const real lambda_dist = (real(1.0) + pm->P_MEMB)*rad_sum;
 		const real cr_dist = rad_sum*pm->P_MEMB;
 		const real LJ6 = POW6(cr_dist) / POW6(lambda_dist - distlj);
-        return -(pm->DER_DER_CONST / rad_sum)*((1.0 - pm->P_MEMB) / pm->P_MEMB)
-			- 4 * pm->eps_m*(LJ6*(LJ6 - 1.0)) / ((lambda_dist - distlj)*distlj);
+        return -(pm->DER_DER_CONST / rad_sum)*((real(1.0) - pm->P_MEMB) / pm->P_MEMB)
+			- real(4.0) * pm->eps_m*(LJ6*(LJ6 - real(1.0))) / ((lambda_dist - distlj)*distlj);
 	}
 }
 
@@ -189,12 +189,12 @@ inline real CI_pair::CIFuncCName(const Cell*const RESTRICT c1, const  Cell*const
 }
 
 inline void wall_interaction(Cell*const RESTRICT c) {
-	const real distlj = 2.0*c->z();
+	const real distlj = real(2.0)*c->z();
 	const real LJ6 = POW6(c->radius) / POW6(c->z());
 	//LJ6 = LJ6*LJ6;
 	//LJ6 = LJ6*LJ6*LJ6;
-	const real ljm = 4.0*pm->eps_m*LJ6*(LJ6 - 1.0) / (distlj*distlj);
-	c->z += pm->DT_Cell* ljm*2.0*c->z();
+	const real ljm = real(4.0)*pm->eps_m*LJ6*(LJ6 - real(1.0)) / (distlj*distlj);
+	c->z += pm->DT_Cell* ljm*real(2.0)*c->z();
 }
 ////////////////////////////////////////////////////////////////////
 
@@ -230,17 +230,17 @@ inline void _memb_bend_calc2(Cell *const RESTRICT memb)
 
 struct MEMB_bend_diff_factor_orig {
     real operator()(real cdot) {
-        return (1.0 - cdot);
+        return (real(1.0) - cdot);
     }
 };
 
 struct MEMB_bend_diff_factor_new {
     real operator()(real cdot) {
-        if (cdot >= 0) {
-            return (1.0 - cdot);
+        if (cdot >= real(0.0)) {
+            return (real(1.0) - cdot);
         }
         else {
-            return 1.0 / ((1.0 + cdot)*(1.0 + cdot));
+            return real(1.0) / ((real(1.0) + cdot)*(real(1.0) + cdot));
         }
     }
 };

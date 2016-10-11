@@ -25,7 +25,7 @@ void setup_map_lat(CellManager & cman, Dyn3DArr<const Cell*>& cmap1, Dyn3DArr<ui
 	const int irz = (int)(Rad*pm->inv_dz);
 
 
-	tbb::parallel_for(tbb::blocked_range<int>(0, cmap1.NX), [&cmap1,&cmap2](const tbb::blocked_range< int >& range) {
+	tbb::parallel_for(tbb::blocked_range<int>(0, (int)cmap1.NX), [&cmap1,&cmap2](const tbb::blocked_range< int >& range) {
 		cmap1.x_range_memset(range.begin(),range.size(),0);
 		cmap2.x_range_memset(range.begin(),range.size(),0);
 	});

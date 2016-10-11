@@ -42,7 +42,7 @@ double distmin=10000.0;
 					throw std::logic_error("zz too low: zz="_s
 							+std::to_string(fixp->z())+" zz-zlevel="+std::to_string(fixp->z()-Z_LEVEL));
 				}
-				fixp->z._set(fixp->z()-0.001);
+				fixp->z._set(fixp->z()-real(0.001));
 			}
 		}
 	}
@@ -51,7 +51,8 @@ CellManager init_gen(int nfix,int der){
 
 	CellManager cman;
 	using namespace std::placeholders;
-	auto cgen=std::bind(&CellManager::create_resizable,&cman,_1,_2,_3,_4,_5,_6,0,0,0,0,0,0,0,0,0,0,false);
+	auto cgen=std::bind(&CellManager::create_resizable,&cman,_1,_2,_3,_4,_5,_6,
+        real(0.0), real(0.0), real(0.0), real(0.0), real(0.0), real(0.0), real(0.0), real(0.0), real(0.0),0,false);
 	double pratio=2*pm->P_MEMB;
 	const double Z_LEVEL = der*2.0*pm->R_der;
 
@@ -59,18 +60,18 @@ CellManager init_gen(int nfix,int der){
 	if(!pm->USE_TRI_MEMB){
 		for(unsigned int k=0;k<pm->MEMB_NUM_Y;k++){
 			for(unsigned int j=0;j<pm->MEMB_NUM_X;j++){
-				const double xx=0.5*pm->R_memb+j*pm->R_memb*pratio;
-				const double yy=0.5*pm->R_memb+k*pm->R_memb*pratio;
-				const double zz=Z_LEVEL+pm->R_memb;
+				const real xx=real(0.5*pm->R_memb+j*pm->R_memb*pratio);
+				const real yy= real(0.5*pm->R_memb+k*pm->R_memb*pratio);
+				const real zz= real(Z_LEVEL+pm->R_memb);
 				cgen(MEMB,0,xx,yy,zz,pm->R_memb);
 			}
 		}
 	}else{
 		for(unsigned int k=0;k<pm->MEMB_NUM_Y;k++){
 			for(unsigned int j=0;j<pm->MEMB_NUM_X;j++){
-				const double xx=0.5*pm->R_memb+j*pm->R_memb*pratio+(k%2==0?0.0:pm->R_memb*pratio*0.5);
-				const double yy=0.5*pm->R_memb+k*pm->R_memb*pratio/pm->y_tri_comp_ratio;
-				const double zz=Z_LEVEL+pm->R_memb;
+				const real xx= real(0.5*pm->R_memb+j*pm->R_memb*pratio+(k%2==0?0.0:pm->R_memb*pratio*0.5));
+				const real yy= real(0.5*pm->R_memb+k*pm->R_memb*pratio/pm->y_tri_comp_ratio);
+				const real zz= real(Z_LEVEL+pm->R_memb);
 				cgen(MEMB,0,xx,yy,zz,pm->R_memb);
 			}
 		}
@@ -82,18 +83,18 @@ CellManager init_gen(int nfix,int der){
 	for(int l=0;l<der;l++){
 		for(unsigned int k=0;k<NY_DER;k++){
 			for(unsigned int j=0;j<NX_DER;j++){
-				const double xx=pm->R_der+2.0*j*pm->R_der;
-				const double yy=pm->R_der+2.0*k*pm->R_der;
-				const double zz=pm->R_der+2.0*l*pm->R_der;
+				const real xx= real(pm->R_der+2.0*j*pm->R_der);
+				const real yy= real(pm->R_der+2.0*k*pm->R_der);
+				const real zz= real(pm->R_der+2.0*l*pm->R_der);
 				cgen(DER,0,xx,yy,zz,pm->R_der);
 			}
 		}
 	}
 	cman.nder=der*NY_DER*NX_DER;
 	for(int l=0;l<nfix;l++){
-		const double xx=pm->LX/2.0+(pm->LX/4.0)*cos(2.0*M_PI*l/nfix);
-		const double yy=pm->LY/2.0+(pm->LY/4.0)*sin(2.0*M_PI*l/nfix);
-		const double zz=pm->R_max+pm->R_memb+Z_LEVEL+pm->R_memb;
+		const real xx= real(pm->LX/2.0+(pm->LX/4.0)*cos(2.0*M_PI*l/nfix));
+		const real yy= real(pm->LY/2.0+(pm->LY/4.0)*sin(2.0*M_PI*l/nfix));
+		const real zz= real(pm->R_max+pm->R_memb+Z_LEVEL+pm->R_memb);
 		cgen(FIX,l,xx,yy,zz,pm->R_max);
 	}
 

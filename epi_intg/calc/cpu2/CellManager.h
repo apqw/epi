@@ -57,7 +57,7 @@ class CellManager:public Lockfree_push_stack_dyn<Cell*>
     //static std::vector<Cell*> tmp_pair;
     size_t nmemb, nder;
     void memb_init();
-    std::atomic<unsigned int> sw;
+    std::atomic<unsigned int> sw=0;
 public:
     typedef Lockfree_push_stack_dyn<Cell*> Base;
     friend void cornificate(CellManager& cman, Cell*const RESTRICT c); //in cell_state_renew
@@ -192,11 +192,11 @@ public:
             if (state == MEMB)nmemb++;
             if (state == DER)nder++;
             CellTempStruct cts;
-            cts.ageb = ageb; cts.agek = agek; cts.ca2p = ca2p; cts.ca2p_avg = ca2p_avg;
-            cts.div_times = div_times; cts.ex_fat = ex_fat; cts.fat = fat;
-            cts.pair_cell_id = pair_cell_id; cts.rad = rad; cts.spr_len = spr_len;
+            cts.ageb = (real)ageb; cts.agek = (real)agek; cts.ca2p = (real)ca2p; cts.ca2p_avg = (real)ca2p_avg;
+            cts.div_times = div_times; cts.ex_fat = (real)ex_fat; cts.fat = (real)fat;
+            cts.pair_cell_id = pair_cell_id; cts.rad = (real)rad; cts.spr_len = (real)spr_len;
             cts.state = state; cts.stem_orig_id = stem_orig_id; cts.touch = touch;
-            cts.x = x; cts.y = y; cts.z = z; cts.id_count = id_count;
+            cts.x = (real)x; cts.y = (real)y; cts.z = (real)z; cts.id_count = id_count;
             on(cman, cts);
 
             //std::cout << "Phase " << phase << "  Cell loaded:" << id_count++ << std::endl;
@@ -218,6 +218,8 @@ public:
     void _memb_init();
     void pos_update();
     void pos_periodic_fix();
+    bool should_calc_ca();
+    void ca_calc_condition_reset();
     //~CellManager();
 };
 

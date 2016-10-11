@@ -8,8 +8,14 @@
 #ifndef DEFINE_H_
 #define DEFINE_H_
 #include <cstdint>
-typedef double real;
 
+#define USE_DOUBLE
+
+#ifdef USE_DOUBLE
+typedef double real;
+#else
+typedef float real;
+#endif
 enum CELL_STATE:uint32_t {
     ALIVE = 0,
     DEAD = 1,

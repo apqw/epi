@@ -53,7 +53,7 @@ real genrand_real()
         /**
         *  乱数を生成する
         */
-        double gen_rand_real() {
+        real gen_rand_real() {
             return dist(mt);
         }
     };

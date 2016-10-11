@@ -173,6 +173,7 @@ public:
     unsigned int CUT;
     bool NEW_BEND_POT;
     bool STOCHASTIC;
+    bool force_cornification;
     std::string outputdir;
     
     CalcParams();

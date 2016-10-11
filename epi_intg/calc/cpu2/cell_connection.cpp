@@ -10,8 +10,8 @@ static void grid_init(CellManager& cman, Dyn3DArr<std::atomic<int>>& aindx, Dyn4
     cman.all_foreach_parallel_native([&](Cell*const c) {//cannot restrict
                                                         //auto&c = cman[i];
         int aix, aiy, aiz;
-        aix = (int)((0.5*pm->LX - p_diff_x(0.5*pm->LX, c->x())) / pm->AREA_GRID);
-        aiy = (int)((0.5*pm->LY - p_diff_y(0.5*pm->LY, c->y())) / pm->AREA_GRID);
+        aix = (int)((real(0.5)*pm->LX - p_diff_x(real(0.5)*pm->LX, c->x())) / pm->AREA_GRID);
+        aiy = (int)((real(0.5)*pm->LY - p_diff_y(real(0.5)*pm->LY, c->y())) / pm->AREA_GRID);
         aiz = (int)((min0(c->z())) / pm->AREA_GRID);
 
         if ((aix >= (int)pm->ANX || aiy >= (int)pm->ANY || aiz >= (int)pm->ANZ || aix < 0 || aiy < 0 || aiz < 0)) {

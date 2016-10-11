@@ -17,8 +17,8 @@ void CalcParams::calculate_param() {
 
 	dx=LX/NX;dy=LY/NY;dz=LZ/NZ;
 	inv_dx=NX/LX;inv_dy=NY/LY;inv_dz=NZ/LZ;
-	 P_MEMB = 1.0 / COMPRESS_FACTOR;
-const double pratio=2.0*P_MEMB;
+	 P_MEMB = real(1.0) / COMPRESS_FACTOR;
+const double pratio= real(2.0)*P_MEMB;
 	MEMB_NUM_X = static_cast<unsigned int>(LX/(R_memb*pratio));
     MEMB_NUM_Y = static_cast<unsigned int>(LY / (R_memb*pratio));
 	if(USE_TRI_MEMB){
@@ -28,9 +28,9 @@ const double pratio=2.0*P_MEMB;
     Ca_ITR = static_cast<int>(Ca_avg_time / DT_Ca);
     leak_from_storage = CA_OUT*beta_zero;
     Kgra = kpa;
-    AREA_GRID = AREA_GRID_ORIGINAL + 1e-7;
-    ANX = static_cast<unsigned int>(LX / AREA_GRID_ORIGINAL + 0.5);
-    ANY = static_cast<unsigned int>(LY / AREA_GRID_ORIGINAL + 0.5);
+    AREA_GRID = AREA_GRID_ORIGINAL + real(1e-7);
+    ANX = static_cast<unsigned int>(LX / AREA_GRID_ORIGINAL + real(0.5));
+    ANY = static_cast<unsigned int>(LY / AREA_GRID_ORIGINAL + real(0.5));
     ANZ = static_cast<unsigned int>(LZ / AREA_GRID_ORIGINAL);
 
     K_DESMOSOME = K_TOTAL*K_DESMOSOME_RATIO;
@@ -158,6 +158,7 @@ void CalcParams::init() {
         gp1(CUT),
         gp1(NEW_BEND_POT),
         gp1(STOCHASTIC),
+            gp1(force_cornification),
         gp1(outputdir)
     };
 
@@ -271,8 +272,9 @@ void CalcParams::init() {
     CUT = 1000;
     NEW_BEND_POT = true;
     STOCHASTIC=true;
+    force_cornification = true;
     outputdir = "output";
-    y_tri_comp_ratio=2.0/sqrt(3);
+    y_tri_comp_ratio=real(real(2.0)/real(sqrt(3)));
     calculate_param();
 }
 
