@@ -16,8 +16,10 @@ static void grid_init(CellManager& cman, Dyn3DArr<std::atomic<int>>& aindx, Dyn4
 
         if ((aix >= (int)pm->ANX || aiy >= (int)pm->ANY || aiz >= (int)pm->ANZ || aix < 0 || aiy < 0 || aiz < 0)) {
             throw std::logic_error(
-                "Bad cell position(on grid)\n Raw cell position: x=" + std::to_string(c->x()) + " y=" + std::to_string(c->y()) + " z=" + std::to_string(c->z()) + "\n"
-                + "Grid cell position: x=" + std::to_string(aix) + " y=" + std::to_string(aiy) + " z=" + std::to_string(aiz));
+                "Bad cell position(on grid)\nRaw cell position: x=" + std::to_string(c->x()) + " y=" + std::to_string(c->y()) + " z=" + std::to_string(c->z()) + "\n"
+                + "Grid cell position: x=" + std::to_string(aix) + " y=" + std::to_string(aiy) + " z=" + std::to_string(aiz) + "\n"
+                + "Grid size: X=" + std::to_string(pm->ANX) + " Y=" + std::to_string(pm->ANY) + " Z=" + std::to_string(pm->ANZ) + "\n"
+                + "Grid unit size:" + std::to_string(pm->AREA_GRID));
         }
 
         area.at(aix,aiy,aiz,aindx.at(aix,aiy,aiz)++) = c;
@@ -45,42 +47,48 @@ struct lat_arr_##axis {\
     static lat_arr_Z zidx;
 
     constexpr int ii = 2;
-    cman.non_memb_foreach_parallel_native([&](Cell*const c) { //cannot restrict
+        cman.non_memb_foreach_parallel_native([&](Cell*const c) { //cannot restrict
 
-        const int anx = (int)(c->x() / pm->AREA_GRID);
-        const int any = (int)(c->y() / pm->AREA_GRID);
-        const int anz = (int)(c->z() / pm->AREA_GRID);
+            const int anx = (int)(c->x() / pm->AREA_GRID);
+            const int any = (int)(c->y() / pm->AREA_GRID);
+            const int anz = (int)(c->z() / pm->AREA_GRID);
 
-        assert(!(anx >= (int)pm->ANX || any >= (int)pm->ANY || anz >= (int)pm->ANZ || anx < 0 || any < 0 || anz < 0));
-        const size_t my_index = c->get_index();
-        const int xend = anx + ii + (int)pm->ANX;
-        const int yend = any + ii + (int)pm->ANY;
-        const int zend = anz + ii + (int)pm->ANZ;
-        for (int j = anx - ii + (int)pm->ANX; j <= xend; j++) {
-            const int aix = xidx[j];
-            for (int k = any - ii + (int)pm->ANY; k <= yend; k++) {
-                const int aiy = yidx[k];
-                for (int l = anz - ii + (int)pm->ANZ; l <= zend; l++) {
-                    const int aiz = zidx[l];
-                    const int sz = aindx.at(aix,aiy,aiz);
+            if ((anx >= (int)pm->ANX || any >= (int)pm->ANY || anz >= (int)pm->ANZ || anx < 0 || any < 0 || anz < 0)) {
+                throw std::logic_error(
+                    "Bad cell position(on grid)\nRaw cell position: x=" + std::to_string(c->x()) + " y=" + std::to_string(c->y()) + " z=" + std::to_string(c->z()) + "\n"
+                    + "Grid cell position: x=" + std::to_string(anx) + " y=" + std::to_string(any) + " z=" + std::to_string(anz)+"\n"
+                    + "Grid size: X=" + std::to_string(pm->ANX) + " Y=" + std::to_string(pm->ANY) + " Z=" + std::to_string(pm->ANZ)+"\n"
+                +"Grid unit size:"+std::to_string(pm->AREA_GRID));
+            }
+            const size_t my_index = c->get_index();
+            const int xend = anx + ii + (int)pm->ANX;
+            const int yend = any + ii + (int)pm->ANY;
+            const int zend = anz + ii + (int)pm->ANZ;
+            for (int j = anx - ii + (int)pm->ANX; j <= xend; j++) {
+                const int aix = xidx[j];
+                for (int k = any - ii + (int)pm->ANY; k <= yend; k++) {
+                    const int aiy = yidx[k];
+                    for (int l = anz - ii + (int)pm->ANZ; l <= zend; l++) {
+                        const int aiz = zidx[l];
+                        const int sz = aindx.at(aix, aiy, aiz);
 
-                    for (int m = 0; m < sz; ++m) {
-                        Cell*const o = area.at(aix,aiy,aiz,m);
-                        if (my_index <= o->get_index())continue;
-                        const real diffx = p_diff_x(c->x(), o->x());
-                        const real diffy = p_diff_y(c->y(), o->y());
-                        const real diffz = c->z() - o->z();
-                        const real rad_sum = c->radius + o->radius;
-                        if (DIST_SQ(diffx, diffy, diffz) <= pm->LJ_THRESH*pm->LJ_THRESH*rad_sum*rad_sum) {
-                            c->connected_cell.push_back(o);
-                            o->connected_cell.push_back(c);
-                            //assert(c->connected_cell.size() < N2);
+                        for (int m = 0; m < sz; ++m) {
+                            Cell*const o = area.at(aix, aiy, aiz, m);
+                            if (my_index <= o->get_index())continue;
+                            const real diffx = p_diff_x(c->x(), o->x());
+                            const real diffy = p_diff_y(c->y(), o->y());
+                            const real diffz = c->z() - o->z();
+                            const real rad_sum = c->radius + o->radius;
+                            if (DIST_SQ(diffx, diffy, diffz) <= pm->LJ_THRESH*pm->LJ_THRESH*rad_sum*rad_sum) {
+                                c->connected_cell.push_back(o);
+                                o->connected_cell.push_back(c);
+                                //assert(c->connected_cell.size() < N2);
+                            }
                         }
                     }
                 }
             }
-        }
-    });
+        });
 }
 
 static const Cell* find_dermis(const Cell*const RESTRICT c) {

@@ -92,7 +92,7 @@ CellManager init_gen(int nfix,int der){
 	cman.nder=der*NY_DER*NX_DER;
 	for(int l=0;l<nfix;l++){
 		const double xx=pm->LX/2.0+(pm->LX/4.0)*cos(2.0*M_PI*l/nfix);
-		const double yy=pm->LX/2.0+(pm->LX/4.0)*sin(2.0*M_PI*l/nfix);
+		const double yy=pm->LY/2.0+(pm->LY/4.0)*sin(2.0*M_PI*l/nfix);
 		const double zz=pm->R_max+pm->R_memb+Z_LEVEL+pm->R_memb;
 		cgen(FIX,l,xx,yy,zz,pm->R_max);
 	}
