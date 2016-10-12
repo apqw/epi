@@ -17,7 +17,9 @@ void calc_ext_stim(SwapData<Dyn3DArr<real>>& ext_stim, const Dyn3DArr<const Cell
     const int iz_bound = (int)((zzmax + pm->FAC_MAP*pm->R_max) *pm->inv_dz);
     auto& carr = ext_stim.first();
     auto& narr = ext_stim.second();
-
+    const real dtc = pm->DT_Ca;
+    const real db = pm->DB;
+    const real idzSq = pm->inv_dz*pm->inv_dz;
     tbb::parallel_for(tbb::blocked_range3d<size_t>(0, pm->NX, 0, pm->NY, 0, iz_bound), [&](const tbb::blocked_range3d<size_t>& range) {
 
         for (size_t j = range.pages().begin(); j < range.pages().end(); ++j) {
@@ -41,7 +43,7 @@ void calc_ext_stim(SwapData<Dyn3DArr<real>>& ext_stim, const Dyn3DArr<const Cell
                     auto& cext = carr.at(j, k, l);
 
                     narr.at(j, k, l) = cext
-                        + pm->DT_Ca*(pm->DB *
+                        + dtc*(db *
                         (cmap2.at(prev_x,k,l) * (carr.at(prev_x,k,l) - cext)
                             + cmap2.at(j,prev_y,l) * (carr.at(j,prev_y,l) - cext)
                             + cmap2.at(j,k,prev_z) * (carr.at(j,k,prev_z) - cext)
@@ -49,7 +51,7 @@ void calc_ext_stim(SwapData<Dyn3DArr<real>>& ext_stim, const Dyn3DArr<const Cell
                             + cmap2.at(j,next_y,l) * (carr.at(j,next_y,l) - cext)
                             + cmap2.at(next_x,k,l) * (carr.at(next_x,k,l) - cext)
 
-                            ) *pm->inv_dz*pm->inv_dz
+                            ) *idzSq
                             + fB(dum_age, cext, flg_cornified));
                 }
             }

@@ -15,12 +15,21 @@ public:
     const size_t NX, NY, NZ;
     Dyn3DArr(size_t _NX, size_t _NY, size_t _NZ) :NX(_NX), NY(_NY), NZ(_NZ),_data(_NX*_NY*_NZ) {}
     typename std::vector<T>::reference at(size_t x, size_t y, size_t z) {
-        return _data[z + y*NZ + x*NZ*NY];
+        return _data[z + NZ*(y + x*NY)];
     }
 
     typename std::vector<T>::const_reference at(size_t x, size_t y, size_t z)const {
-        return _data[z + y*NZ + x*NZ*NY];
+        return _data[z + NZ*(y + x*NY)];
     }
+
+    typename std::vector<T>::reference direct_at(size_t idx) {
+        return _data[idx];
+    }
+
+    typename std::vector<T>::const_reference direct_at(size_t idx)const {
+        return _data[idx];
+    }
+
     void all_memset(int _Val) {
         std::memset(&_data[0], _Val, sizeof(T)*NX*NY*NZ);
     }
@@ -44,11 +53,11 @@ public:
 const size_t NX, NY, NZ,NW;
     Dyn4DArr(size_t _NX, size_t _NY, size_t _NZ,size_t _NW) :NX(_NX), NY(_NY), NZ(_NZ),NW(_NW), _data(_NX*_NY*_NZ*_NW) {}
     typename std::vector<T>::reference at(size_t x, size_t y, size_t z,size_t w) {
-        return _data[w + z*NW + y*NZ*NW+x*NY*NZ*NW];
+        return _data[w + NW*(z + NZ*(y+x*NY))];
     }
 
     typename std::vector<T>::const_reference at(size_t x, size_t y, size_t z, size_t w)const {
-        return _data[w + z*NW + y*NZ*NW+x*NY*NZ*NW];
+        return _data[w + NW*(z + NZ*(y + x*NY))];
     }
 
     void all_memset(int _Val) {
