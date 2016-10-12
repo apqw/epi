@@ -16,4 +16,5 @@ width=800
 height=600
 color_height_min=15
 color_height_max=25
+TEMP_DIRTY1=1
 #-m v --cparam ./ppsss --vparam ./vp

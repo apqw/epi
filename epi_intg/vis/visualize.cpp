@@ -184,14 +184,17 @@ struct OnCellLoadVis {
     static const float specular[4];// = { 0.3, 0.3, 0.3, 1.0 };
     static const float ambient[4];// = { 0.3, 0.3, 0.3, 1.0 };
     static int count;
+    int fcount;
     OnCellLoadVis() {
     }
     void operator()(CellManager&cman, const CellTempStruct&cts) {
     	count++;
+    	if(cts.state==FIX)fcount++;
         if (!should_draw(cts))return;
         
 
         std::vector<float> color = get_color_rgb(cts);
+        if(fcount>16&&vp.TEMP_DIRTY1)color={153.0/255.0, 76.0/255.0, 0.0};
         color.push_back(1.0f); //if you need Alpha
         glMaterialfv(GL_FRONT, GL_DIFFUSE, &color[0]);
         glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
@@ -251,6 +254,7 @@ void visualize() {
     std::cout<<"Visualize:\nGenerating images..."<<std::endl;
     for (int i = vp.start; i <= vp.end; i++) {
     	on.count=0;
+    	on.fcount=0;
         clear_gl_buffer();
 
         begin_draw_setting();

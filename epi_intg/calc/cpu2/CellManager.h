@@ -150,9 +150,12 @@ public:
         CellTempStruct cts;
         while (std::getline(dstrm, line)) {
 
-            sscanf(line.c_str(), "%*d %" SCNuFAST8 " %lf %lf %lf %lf %lf %lf %lf %lf %d %lf %lf %d %lf %d %d",
-                (uint_fast8_t*)&cts.state, &cts.rad, &cts.ageb, &cts.agek, &cts.ca2p, &cts.x, &cts.y, &cts.z, &cts.ca2p_avg, &cts.div_times, &cts.ex_fat, &cts.fat, &cts.touch, &cts.spr_len, &cts.pair_cell_id, &cts.stem_orig_id);
-
+        	int tmpstate;
+            sscanf(line.c_str(), "%*d %"
+            		PRIu32 " %lf %lf %lf %lf %lf %lf %lf %lf %d %lf %lf %d %lf %d %d",
+                (uint32_t*)&cts.state, &cts.rad, &cts.ageb, &cts.agek, &cts.ca2p, &cts.x, &cts.y, &cts.z, &cts.ca2p_avg, &cts.div_times, &cts.ex_fat, &cts.fat, &cts.touch, &cts.spr_len, &cts.pair_cell_id, &cts.stem_orig_id);
+            //cts.state=(CELL_STATE)tmpstate;
+            //printf(line.c_str());
             /*
             BLANK�ɂ��ǂ蒅������I��
             */
@@ -173,8 +176,8 @@ public:
                 throw std::runtime_error("radii of DER not consistent with param.h\n");
             }
             if (phase == 0 && cts.state != MEMB) {
-                if (state != DER) {
-                    throw std::runtime_error("Wrong cell order:The next block of MEMB must be DER.");
+                if (cts.state != DER) {
+                    throw std::runtime_error("Wrong cell order:The next block of MEMB must be DER. STATE:"_s+std::to_string(cts.state));
                 }
                 phase++;
             }

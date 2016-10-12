@@ -21,6 +21,7 @@ public:
 real color_height_max;
 real color_height_min;
     unsigned int width, height;
+    bool TEMP_DIRTY1;
 
     enum DISP_MODE:int {
         MEDICAL=0,CA2P=1,EX_FAT=2,IN_FAT=3,RESERVE1=4,HEIGHT=5
