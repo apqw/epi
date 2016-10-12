@@ -31,7 +31,7 @@ public:
 
     template<
         typename... U,
-        typename std::enable_if<!single_arg_and_eq_ref<T,U...>::value>::type* =0
+        typename std::enable_if<!single_arg_and_eq_ref<T,U...>::value>::type* =nullptr
     >
     SwapData(U... Args) : data1_internal(Args...), data2_internal(Args...) {
         data1 = &data1_internal;

@@ -17,11 +17,11 @@
 #include <stdexcept>
 #include <string>
 #include <array>
-static const constexpr std::array<const char*, 2> str_sign = { "\"","\'" };
+static const constexpr std::array<const char*, 2> str_sign = { "\"", "\'" };
 
 template<typename T>
 T str_cast(const std::string& str) {
-    return T();
+	return T();
 }
 
 template<>
@@ -44,152 +44,121 @@ std::string str_cast<std::string>(const std::string& str);
 
 template<typename VarTy>
 VarTy try_get_with_cast(const std::string& item, const char* first = "NONE") {
-    try {
-        return str_cast<VarTy>(item);
-    }
-    catch (std::invalid_argument& ie) {
-        throw std::invalid_argument("Failed to read the value of "_s + first + "(='" + item + "') with the following exception:\n" + typeid(ie).name() + ": " + ie.what() + "\n");
-    }
-    catch (std::out_of_range& oe) {
-        throw std::out_of_range("Failed to read the value of "_s + first + "(='" + item + "') with the following exception:\n" + typeid(oe).name() + ": " + oe.what() + "\n");
-    }
-    catch (std::exception& e) {
-        throw std::logic_error("Failed to read the value of "_s + first + "(='" + item + "') with the following exception:\n" + typeid(e).name() + ": " + e.what() + "\n");
-    }
+	try {
+		return str_cast<VarTy>(item);
+	} catch (std::invalid_argument& ie) {
+		throw
+		std::invalid_argument("Failed to read the value of "_s + first + "(='" + item + "') with the following exception:\n" + typeid(ie).name() + ": " + ie.what() + "\n");
+	} catch (std::out_of_range& oe) {
+		throw
+		std::out_of_range("Failed to read the value of "_s + first + "(='" + item + "') with the following exception:\n" + typeid(oe).name() + ": " + oe.what() + "\n");
+	} catch (std::exception& e) {
+		throw
+		std::logic_error("Failed to read the value of "_s + first + "(='" + item + "') with the following exception:\n" + typeid(e).name() + ": " + e.what() + "\n");
+	}
 }
 
 template<typename VarTy, typename K, typename V, typename K2>
 VarTy force_vget(const std::map<K, V>& mp, const std::vector<K2>& kv) {
-    for (auto& key : kv) {
-        auto it = mp.find(key);
-        if (it != mp.end()) {
-            return try_get_with_cast<VarTy>(it->second, key);
-        }
-    }
-    throw std::logic_error(std::string(kv[0]) + " must be specified.");
+	for (auto& key : kv) {
+		auto it = mp.find(key);
+		if (it != mp.end()) {
+			return try_get_with_cast<VarTy>(it->second, key);
+		}
+	}
+	throw std::logic_error(std::string(kv[0]) + " must be specified.");
 }
 
-
-
 struct ParamInfo {
-private:
-    enum TypeEnum {
-        UINT, INT, REAL,BOOL,STRING
-    };
-
-
-    void* __param;
-    TypeEnum pTy;
-    template<typename Ty, typename Nm>
-    ParamInfo(Ty& _p, std::initializer_list<Nm>_n, typename std::enable_if<std::is_same<Ty, unsigned int>::value>::type* = nullptr) :__param(&_p), name(_n), pTy(TypeEnum::UINT) {
-    }
-
-    template<typename Ty, typename Nm>
-    ParamInfo(Ty& _p, std::initializer_list<Nm>_n, typename std::enable_if<std::is_same<Ty, int>::value>::type* = nullptr) : __param(&_p), name(_n), pTy(TypeEnum::INT) {
-    }
-    template<typename Ty, typename Nm>
-    ParamInfo(Ty& _p, std::initializer_list<Nm>_n, typename std::enable_if<std::is_same<Ty, real>::value>::type* = nullptr) : __param(&_p), name(_n), pTy(TypeEnum::REAL) {
-    }
-    template<typename Ty, typename Nm>
-    ParamInfo(Ty& _p, std::initializer_list<Nm>_n, typename std::enable_if<std::is_same<Ty, bool>::value>::type* = nullptr) : __param(&_p), name(_n), pTy(TypeEnum::BOOL) {
-    }
-
-    template<typename Ty, typename Nm>
-    ParamInfo(Ty& _p, std::initializer_list<Nm>_n, typename std::enable_if<std::is_same<Ty, std::string>::value>::type* = nullptr) : __param(&_p), name(_n), pTy(TypeEnum::STRING) {
-    }
+protected:
 
 public:
-    std::vector<const char*> name;
+	std::vector<const char*> name;
 
-    bool optional;
-    
-    template<typename Ty, typename... Nm,class = typename std::enable_if<sizeof...(Nm)>=1 && is_same_multiple<const char*,Nm...>::value>::type>
-    ParamInfo(Ty& _p, Nm... _n) :ParamInfo(_p, { _n... }) {}
+	template<typename ... Nm, class = typename std::enable_if<sizeof...(Nm)>=1 && is_same_multiple<const char*,Nm...>::value>::type>
+	ParamInfo(Nm... _n):name { {_n...}} {}
 
-    template<typename Ty, typename... Nm,class = typename std::enable_if<sizeof...(Nm)>=1 && is_same_multiple<const char*,Nm...>::value>::type>
-        ParamInfo(Ty& _p, bool _optional,Nm... _n) :ParamInfo(_p, { _n... }) {
-    	optional=_optional;
+	virtual void set_from(const std::map<std::string,std::string>& mp) {}
 
-    }
+	virtual std::string get_as_string()const {}
+	virtual bool compare_as_data(const ParamInfo* p2) {}
+};
 
-    template<typename K, typename V>
-    void set_from(const std::map<K, V>& mp) {
-        bool chk = true;
-        try{
-        switch (pTy) {
-        case UINT:
+template<typename T>
+std::string convert_to_string(T t) {
+	return std::to_string(t);
+}
 
-            *reinterpret_cast<unsigned int*>(__param) = force_vget<unsigned int>(mp, name);
-            break;
-        case INT:
-            *reinterpret_cast<int*>(__param) = force_vget<int>(mp, name);
-            break;
-        case REAL:
-            *reinterpret_cast<real*>(__param) = force_vget<real>(mp, name);
-            break;
-        case BOOL:
-            *reinterpret_cast<bool*>(__param) = force_vget<bool>(mp, name);
-            break;
-        case STRING:
-            *reinterpret_cast<std::string*>(__param) = force_vget<std::string>(mp, name);
-            break;
-        default:
-            break;
-        }
-        }catch(std::exception& e){
-        	if(!optional){
-        		throw e;
-        	}
-        }
-    }
+template<>
+std::string convert_to_string<bool>(bool t);
 
-    std::string get_as_string()const {
-        bool chk = true;
-        switch (pTy) {
-        case UINT:
-            return std::to_string(*reinterpret_cast<unsigned int*>(__param));
-            break;
-        case INT:
-            return std::to_string(*reinterpret_cast<int*>(__param));
-            break;
-        case REAL:
-            return std::to_string(*reinterpret_cast<real*>(__param));
-            break;
-        case BOOL:
-            return *reinterpret_cast<bool*>(__param) ? "1" : "0";
-            break;
-        case STRING:
-            return std::string(str_sign[0])+*reinterpret_cast<std::string*>(__param)+str_sign[0];
-            break;
-        default:
-            return "!ERROR";
-            break;
-        }
-    }
+template<>
+std::string convert_to_string<std::string>(std::string t);
 
-    static bool compare_as_data(const ParamInfo& p1, const ParamInfo& p2);
+template<typename T>
+struct ParamInfoGeneral: ParamInfo {
+private:
+
+	T* __param;
+	bool optional;
+	typedef ParamInfo Base;
+public:
+	template<typename ... Nm, class = typename std::enable_if<sizeof...(Nm)>=1 && is_same_multiple<const char*,Nm...>::value>::type>
+	ParamInfoGeneral(T& _p, Nm... _n) :__param(&_p),ParamInfo(_n...),optional(false) {}
+
+	template< typename... Nm,class = typename std::enable_if<sizeof...(Nm)>=1 && is_same_multiple<const char*,Nm...>::value>::type>
+	ParamInfoGeneral(T& _p, bool _optional,Nm... _n) :ParamInfoGeneral(_p, _n... ) {
+		optional=_optional;
+
+	}
+	void set_from(const std::map<std::string,std::string>& mp) {
+		bool chk = true;
+		try {
+			*__param=force_vget<T>(mp, name);
+		} catch(std::exception& e) {
+			if(!optional) {
+				throw std::runtime_error("Failed to set parameter with the following reason:\n"_s+e.what());
+			}
+		}
+	}
+
+	std::string get_as_string()const {
+		return convert_to_string(*__param);
+	}
+
+	bool compare_as_data(const ParamInfo* p2) {
+		const ParamInfoGeneral<T>* derivedPtr=dynamic_cast<const ParamInfoGeneral<T>*>(p2);
+		if(derivedPtr==nullptr) {
+			throw std::logic_error("Comparing different data type");
+		}
+
+		return *__param==*derivedPtr->__param;
+	}
 
 };
 
-#define gpa(name,...) ParamInfo(name,#name,__VA_ARGS__)
-#define gp1(name) ParamInfo(name,#name)
-#define gpo(name) ParamInfo(name,true,#name)
-#define gpoa(name,...) ParamInfo(name,true,#name,__VA_ARGS__)
+template<typename T, typename ...U>
+ParamInfoGeneral<T>* make_paraminfo(T& t, U ...v) {
+	return new ParamInfoGeneral<T>(t, v...);
+}
+#define gpa(name,...) make_paraminfo(name,#name,__VA_ARGS__)
+#define gp1(name) make_paraminfo(name,#name)
+#define gpo(name) make_paraminfo(name,true,#name)
+#define gpoa(name,...) make_paraminfo(name,true,#name,__VA_ARGS__)
 
 class Params {
 protected:
-    std::vector<ParamInfo> piset;
-    void s_Ctor();
-    void s_Ctor(const std::string& paramfile);
+	std::vector<ParamInfo*> piset;
+	void s_Ctor();
+	void s_Ctor(const std::string& paramfile);
 public:
-	 Params();
-     Params(const std::string& paramfile);
-     virtual void init();
-     virtual void generate_paramfile(const std::string& out_path)const;
-	 virtual void load(const std::string& paramfile);
-     static void diff(const Params& p1, const Params& p2);
+	Params();
+	Params(const std::string& paramfile);
+	virtual void init();
+	virtual void generate_paramfile(const std::string& out_path) const;
+	virtual void load(const std::string& paramfile);
+	static void diff(const Params& p1, const Params& p2);
+	virtual ~Params();
 };
-
-
 
 #endif /* PARAMS_H_ */

@@ -54,32 +54,14 @@ std::string str_cast<std::string>(const std::string& str) {
     throw std::logic_error("The following string data:" + str + " is ill-formatted.");
 }
 
-bool ParamInfo::compare_as_data(const ParamInfo& p1, const ParamInfo& p2) {
-    
-    if (p1.pTy != p2.pTy) {
-        throw std::logic_error("Comparing different data type");
-        }
-        switch (p1.pTy) {
-        case UINT:
-            return *reinterpret_cast<unsigned int*>(p1.__param)== *reinterpret_cast<unsigned int*>(p2.__param);
-            break;
-        case INT:
-            return *reinterpret_cast<int*>(p1.__param) == *reinterpret_cast<int*>(p2.__param);
-            break;
-        case REAL:
-            return *reinterpret_cast<real*>(p1.__param) == *reinterpret_cast<real*>(p2.__param);
-            break;
-        case BOOL:
-            return *reinterpret_cast<bool*>(p1.__param) == *reinterpret_cast<bool*>(p2.__param);
-            break;
-        case STRING:
-            return *reinterpret_cast<std::string*> (p1.__param) == *reinterpret_cast<std::string*>(p2.__param);
-            break;
-        default:
-            throw std::logic_error("Unknown data type:"_s+std::to_string(p1.pTy));
-            break;
-        }
-    
+template<>
+std::string convert_to_string<bool>(bool t){
+	return t?"1" : "0";
+}
+
+template<>
+std::string convert_to_string<std::string>(std::string t){
+	return std::string(str_sign[0])+t+str_sign[0];
 }
 
 
@@ -108,7 +90,7 @@ void Params::init() {
 void Params::load(const std::string& path){
 	auto kvmap = parse_paramtext(path);
     for (auto& pi : piset) {
-        pi.set_from(kvmap);
+        pi->set_from(kvmap);
     }
 }
 
@@ -119,7 +101,7 @@ void Params::generate_paramfile(const std::string& out_path)const {
     }
 
     for (auto& pi : piset) {
-        of << pi.name[0] << delim << pi.get_as_string()<<std::endl;
+        of << pi->name[0] << delim << pi->get_as_string()<<std::endl;
     }
 
 
@@ -139,8 +121,8 @@ void Params::diff(const Params& p1, const Params& p2) {
     bool found = false;
     int count = 0;
     for (size_t i = 0; i < pisize; i++) {
-        if (!ParamInfo::compare_as_data(p1.piset[i], p2.piset[i])) {
-            std::cout << p1.piset[i].name[0] << ":" << p1.piset[i].get_as_string() << " " << p2.piset[i].get_as_string() << std::endl;
+        if (!p1.piset[i]->compare_as_data(p2.piset[i])) {
+            std::cout << p1.piset[i]->name[0] << ":" << p1.piset[i]->get_as_string() << " " << p2.piset[i]->get_as_string() << std::endl;
             found = true;
             count++;
         }
@@ -151,5 +133,11 @@ void Params::diff(const Params& p1, const Params& p2) {
     
 
     //std::cout << "Finish." << std::endl;
+}
+
+Params::~Params(){
+	for(auto& pi:piset){
+		delete pi;
+	}
 }
 

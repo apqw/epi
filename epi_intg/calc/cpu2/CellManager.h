@@ -57,7 +57,7 @@ class CellManager:public Lockfree_push_stack_dyn<Cell*>
     //static std::vector<Cell*> tmp_pair;
     size_t nmemb, nder;
     void memb_init();
-    std::atomic<unsigned int> sw=0;
+    std::atomic<unsigned int> sw;
 public:
     typedef Lockfree_push_stack_dyn<Cell*> Base;
     friend void cornificate(CellManager& cman, Cell*const RESTRICT c); //in cell_state_renew

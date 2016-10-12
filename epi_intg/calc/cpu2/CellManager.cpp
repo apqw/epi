@@ -5,10 +5,10 @@
 #include <iostream>
 #include <iomanip>
 std::vector<Cell*> CellLoadProc::tmp_pair;
-CellManager::CellManager(size_t N):Lockfree_push_stack_dyn<Cell*>(N),remove_queue(N)
+CellManager::CellManager(size_t N):Lockfree_push_stack_dyn<Cell*>(N),remove_queue(N),sw(0)
 {
 }
-CellManager::CellManager() : Lockfree_push_stack_dyn<Cell*>(0), remove_queue(0)
+CellManager::CellManager() : Lockfree_push_stack_dyn<Cell*>(0), remove_queue(0),sw(0)
 {
 }
 
