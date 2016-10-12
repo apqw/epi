@@ -78,10 +78,16 @@ public:
 	template<typename ... Nm, class = typename std::enable_if<sizeof...(Nm)>=1 && is_same_multiple<const char*,Nm...>::value>::type>
 	ParamInfo(Nm... _n):name { {_n...}} {}
 
-	virtual void set_from(const std::map<std::string,std::string>& mp) {}
+	virtual void set_from(const std::map<std::string,std::string>& mp) {
+        throw std::logic_error("Internal error:'set_from' is not implemented.");
+    }
 
-	virtual std::string get_as_string()const {}
-	virtual bool compare_as_data(const ParamInfo* p2) {}
+	virtual std::string get_as_string()const {
+        throw std::logic_error("Internal error:'get_as_string' is not implemented.");
+    }
+	virtual bool compare_as_data(const ParamInfo* p2) {
+        throw std::logic_error("Internal error:'compare_as_data' is not implemented.");
+    }
 };
 
 template<typename T>
@@ -111,7 +117,7 @@ public:
 		optional=_optional;
 
 	}
-	void set_from(const std::map<std::string,std::string>& mp) {
+	void set_from(const std::map<std::string,std::string>& mp) override {
 		bool chk = true;
 		try {
 			*__param=force_vget<T>(mp, name);
@@ -122,11 +128,11 @@ public:
 		}
 	}
 
-	std::string get_as_string()const {
+	std::string get_as_string()const override {
 		return convert_to_string(*__param);
 	}
 
-	bool compare_as_data(const ParamInfo* p2) {
+	bool compare_as_data(const ParamInfo* p2) override {
 		const ParamInfoGeneral<T>* derivedPtr=dynamic_cast<const ParamInfoGeneral<T>*>(p2);
 		if(derivedPtr==nullptr) {
 			throw std::logic_error("Comparing different data type");
