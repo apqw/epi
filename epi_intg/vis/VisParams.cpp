@@ -30,7 +30,9 @@ void VisParams::init() {
         gp1(disp_alive),
         gp1(disp_dead),
         gp1(width),
-        gp1(height)
+        gp1(height),
+gp1(color_height_min),
+gp1(color_height_max)
     };
     datadir = "";
     output = "3Dimage_tmp";
@@ -48,4 +50,6 @@ void VisParams::init() {
     disp_dead = 1;
     width = 320;
     height = 320;
+color_height_min=0.0;
+color_height_max=50;
 }

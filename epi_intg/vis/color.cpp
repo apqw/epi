@@ -133,12 +133,49 @@ static std::vector<float> c_color_FIX(unsigned int fix_orig) {
         return c_fix_normal;
     }
 }
+
+static std::vector<float> ca2p_color(const CellTempStruct&cts) {
+    return c_color_default((float)lerp_alpha(cts.ca2p_avg, UMIN, UMAX));
+}
+
+static std::vector<float> ex_fat_color(const CellTempStruct&cts) {
+    return c_color_default((float)lerp_alpha(cts.ex_fat, FMIN, FMAX));
+}
+
+static std::vector<float> in_fat_color(const CellTempStruct&cts) {
+    return c_color_default((float)lerp_alpha(cts.fat, FMIN, FMAX));
+}
+
+static std::vector<float> height_color(const CellTempStruct&cts){
+return c_color_default((float)lerp_alpha(cts.z,vp.color_height_min,vp.color_height_max));
+}
+
+static std::vector<float> color_modewise(const CellTempStruct&cts) {
+    switch (vp.mode)
+    {
+    case VisParams::MEDICAL:
+        return c_color_M(0.122f, cts.stem_orig_id);
+    case VisParams::CA2P:
+        return ca2p_color(cts);
+    case VisParams::EX_FAT:
+        return ex_fat_color(cts);
+    case VisParams::IN_FAT:
+        return in_fat_color(cts);
+       case VisParams::HEIGHT:
+             return height_color(cts);
+    default:
+        throw std::runtime_error("Unknown display mode:"_s + std::to_string(vp.mode));
+    }
+}
 static std::vector<float> get_MEMB_color(const CellTempStruct&cts) {
     switch (vp.mode)
     {
     case VisParams::MEDICAL:
         return c_pkwhite;
         break;
+       case VisParams::HEIGHT:
+             return color_modewise(cts);
+             break;
     default:
         return c_memb;
         break;
@@ -157,33 +194,7 @@ static std::vector<float> get_FIX_color(const CellTempStruct&cts) {
     }
 }
 
-static std::vector<float> ca2p_color(const CellTempStruct&cts) {
-    return c_color_default((float)lerp_alpha(cts.ca2p_avg, UMIN, UMAX));
-}
 
-static std::vector<float> ex_fat_color(const CellTempStruct&cts) {
-    return c_color_default((float)lerp_alpha(cts.ex_fat, FMIN, FMAX));
-}
-
-static std::vector<float> in_fat_color(const CellTempStruct&cts) {
-    return c_color_default((float)lerp_alpha(cts.fat, FMIN, FMAX));
-}
-
-static std::vector<float> color_modewise(const CellTempStruct&cts) {
-    switch (vp.mode)
-    {
-    case VisParams::MEDICAL:
-        return c_color_M(0.122f, cts.stem_orig_id);
-    case VisParams::CA2P:
-        return ca2p_color(cts);
-    case VisParams::EX_FAT:
-        return ex_fat_color(cts);
-    case VisParams::IN_FAT:
-        return in_fat_color(cts);
-    default:
-        throw std::runtime_error("Unknown display mode:"_s + std::to_string(vp.mode));
-    }
-}
 static std::vector<float> get_MUSUME_color(const CellTempStruct&cts) {
 
     switch (vp.disp_musume) {
@@ -206,12 +217,9 @@ static std::vector<float> get_DEAD_color(const CellTempStruct&cts) {
         return c_pk;
     case VisParams::CA2P:
         return c_white;
-    case VisParams::EX_FAT:
-        return ex_fat_color(cts);
-    case VisParams::IN_FAT:
-        return in_fat_color(cts);
     default:
-        throw std::runtime_error("Unknown display mode:"_s + std::to_string(vp.mode));
+	return color_modewise(cts);
+       // throw std::runtime_error("Unknown display mode:"_s + std::to_string(vp.mode));
     }
 }
 
