@@ -50,17 +50,22 @@ class Vec {
     }
 public:
     Vec() :v{} {};
-    Vec(std::initializer_list<Intg> il) {
+
+    template<typename...U>
+    Vec(U...elem) :v{ elem... } {
         /*
         size_t isz;
         if ((isz =std::distance(il.begin(), il.end()))  > N) {
         throw std::logic_error("The initializer list("_s+std::to_string(isz)+") is larger than this vector(" + std::to_string(N) + ").");
         }
-        std::copy(il.begin(), il.end(), v.begin());
         */
+        //std::copy(il.begin(), il.end(), v.begin());
+
+        /*
         for (int i = 0; i < N; i++) {
-            v[i] = *(il.begin() + i);
+        v[i] = *(il.begin() + i);
         }
+        */
     };
     Intg& operator[](size_t i) {
         return v[i];
@@ -337,11 +342,11 @@ inline std::ostream& operator<<(std::ostream& o, const Vec<N, T>& arr)
 
 template<size_t N, typename Intg>
 inline Vec<N, Intg> vpsub(const Vec<N, Intg>& v1, const Vec<N, Intg>& v2) {
-    return Vec<N, Intg>({
+    return Vec<N, Intg>(
         p_diff_x(v1[0], v2[0]) ,
         p_diff_y(v1[1], v2[1]) ,
         v1[2] - v2[2]
-    });
+    );
 }
 
 

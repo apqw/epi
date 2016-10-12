@@ -55,9 +55,10 @@ struct ErrorHandling{
 	ErrorHandling(cmdline::parser&_cp):cp(_cp){}
 };
 
-void set_param(const cmdline::parser& cp){
+void set_param(const cmdline::parser& cp,void* space){
+    //static void* aptr = malloc(sizeof(const CalcParams));
     try {
-         pm = std::unique_ptr<const CalcParams>(new const CalcParams(cp.get<std::string>("cparam")));
+         pm= std::unique_ptr<const CalcParams>(new(space) const CalcParams(cp.get<std::string>("cparam")));
      }
      catch (std::exception& e) {
          std::cerr << e.what() << std::endl;
@@ -101,12 +102,12 @@ int main(int argc,char** argv){
     bool is_gen = mode == "gp";
     bool is_init = mode == "i";
 
-
+    static void* aptr = malloc(sizeof(const CalcParams));
     auto EH = ErrorHandling(cp);
 
     if(is_init){
     	EH.check("cparam","output");
-    	set_param(cp);
+    	set_param(cp,aptr);
     	try{
     	init_gen_output(cp.get<std::string>("output"),16,8);
     	}catch(std::exception& e){
@@ -143,7 +144,7 @@ int main(int argc,char** argv){
     if (is_cpu || is_gpu) {
 
     	EH.check("cparam","input");
-    	set_param(cp);
+    	set_param(cp,aptr);
         CellManager cman;
 
         try {
@@ -164,7 +165,7 @@ int main(int argc,char** argv){
 
     if (is_vis) {
        EH.check("cparam","vparam");
-       set_param(cp);
+       set_param(cp,aptr);
         try {
             VisParams vp(cp.get<std::string>("vparam"));
             init_visualizer(&argc, argv,vp);

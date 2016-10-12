@@ -80,6 +80,6 @@ std::string Cell::cell_info_str(){
 	return ss.str();
 }
 Vec<3, real> Cell::pos_as_vector()const {
-    return Vec<3, real>({ x(),y(),z() });
+    return Vec<3, real>( x(),y(),z() );
 }
 

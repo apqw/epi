@@ -21,10 +21,12 @@
 template<class Fn>
 void cell_interaction_apply(Cell*const RESTRICT c1, Cell*const RESTRICT c2) {
 	const real coef = Fn::CIFuncCName(c1, c2);
+    
     if (fabs(coef) > 1000) {
     	throw std::logic_error("Too strong interaction(coef="_s+std::to_string(coef)+") between following two cells:\n"_s
     			+"1.\n"+c1->cell_info_str()+"\n2.\n"+c2->cell_info_str());
     }
+    
 	const real dumx = pm->DT_Cell*coef*p_diff_x(c1->x(), c2->x());
 	const real dumy = pm->DT_Cell*coef*p_diff_y(c1->y(), c2->y());
 	const real dumz = pm->DT_Cell*coef*(c1->z() - c2->z());
@@ -335,6 +337,7 @@ Vec<3, real>  tri_bend_2(const Cell* const RESTRICT r1, const Cell* const RESTRI
 
 template<class Fn>
 void tri_memb_bend(Cell* const RESTRICT memb, Fn _memb_bend_diff_factor) {
+    const real coef = pm->DT_Cell*pm->KBEND;
     Vec<3, real> dr = { 0.0,0.0,0.0 };
     const size_t msz = memb->md.memb.size();
     for (int i = 0; i<msz; i++) {
@@ -345,9 +348,9 @@ void tri_memb_bend(Cell* const RESTRICT memb, Fn _memb_bend_diff_factor) {
         dr += tri_bend_2(memb, memb->md.memb[i], memb->md.memb[(i + 1) % msz], memb->md.memb[(i + 2) % msz], _memb_bend_diff_factor);
     }
 
-    memb->x += pm->DT_Cell*pm->KBEND*dr[0];
-    memb->y += pm->DT_Cell*pm->KBEND*dr[1];
-    memb->z += pm->DT_Cell*pm->KBEND*dr[2];
+    memb->x += coef*dr[0];
+    memb->y += coef*dr[1];
+    memb->z += coef*dr[2];
 
 }
 

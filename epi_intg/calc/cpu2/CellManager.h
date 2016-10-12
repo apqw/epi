@@ -33,12 +33,12 @@ inline void prefix##_foreach_parallel_native(const Fn& lmbd) {\
 
 struct CellTempStruct {
     CELL_STATE state;
-    real rad;
-    real ageb, agek, ca2p, x, y, z, ca2p_avg;
+    double rad;
+    double ageb, agek, ca2p, x, y, z, ca2p_avg;
     int div_times;
-    real ex_fat, fat;
+    double ex_fat, fat;
     int touch;
-    real spr_len;
+    double spr_len;
     int pair_cell_id, stem_orig_id;
     int id_count;
 };
@@ -124,8 +124,10 @@ public:
         */
         CELL_STATE state = UNUSED;
         std::string line;
+        /*
         int div_times = 0, touch = 0, pair_cell_id = 0, stem_orig_id = 0;
         double rad, ageb, agek, x, y, z, fat, spr_len, ex_fat, ca2p_avg, ca2p;
+        */
 
         /*
         �זE�̃C���f�b�N�X�̃J�E���g
@@ -145,58 +147,59 @@ public:
         unsigned int phase = 0;
         int nmemb = 0;
         int nder = 0;
-
+        CellTempStruct cts;
         while (std::getline(dstrm, line)) {
 
             sscanf(line.c_str(), "%*d %" SCNuFAST8 " %lf %lf %lf %lf %lf %lf %lf %lf %d %lf %lf %d %lf %d %d",
-                (uint_fast8_t*)&state, &rad, &ageb, &agek, &ca2p, &x, &y, &z, &ca2p_avg, &div_times, &ex_fat, &fat, &touch, &spr_len, &pair_cell_id, &stem_orig_id);
+                (uint_fast8_t*)&cts.state, &cts.rad, &cts.ageb, &cts.agek, &cts.ca2p, &cts.x, &cts.y, &cts.z, &cts.ca2p_avg, &cts.div_times, &cts.ex_fat, &cts.fat, &cts.touch, &cts.spr_len, &cts.pair_cell_id, &cts.stem_orig_id);
 
             /*
             BLANK�ɂ��ǂ蒅������I��
             */
-            if (state == BLANK)break;
+            if (cts.state == BLANK)break;
 
             /*
             validation
             */
-            if (pm->SYSTEM == BASAL && (state == ALIVE || state == DEAD || state == AIR)) {
+            if (pm->SYSTEM == BASAL && (cts.state == ALIVE || cts.state == DEAD || cts.state == AIR)) {
 
                 throw std::runtime_error(" input date must not contain ALIVE or DEAD in case of BASAL\n");
             }
-            if (state == DER && rad != pm->R_der) {
+            if (cts.state == DER && cts.rad != pm->R_der) {
                 throw std::runtime_error("radii of DER not consistent with param.h\n");
 
             }
-            if (state == MEMB && rad != pm->R_memb) {
+            if (cts.state == MEMB && cts.rad != pm->R_memb) {
                 throw std::runtime_error("radii of DER not consistent with param.h\n");
             }
-            if (phase == 0 && state != MEMB) {
+            if (phase == 0 && cts.state != MEMB) {
                 if (state != DER) {
                     throw std::runtime_error("Wrong cell order:The next block of MEMB must be DER.");
                 }
                 phase++;
             }
 
-            if (phase == 1 && state != DER) {
+            if (phase == 1 && cts.state != DER) {
                 phase++;
             }
-            if (phase > 0 && state == MEMB) {
+            if (phase > 0 && cts.state == MEMB) {
                 throw std::runtime_error("Wrong cell order:A MEMB data is found out of MEMB block.");
             }
-            if (phase > 1 && state == DER) {
+            if (phase > 1 && cts.state == DER) {
                 throw std::runtime_error("Wrong cell order:A DER data is found out of DER block.");
             }
 
             //if (state == FIX)printf("FIX\n");
 
-            if (state == MEMB)nmemb++;
-            if (state == DER)nder++;
-            CellTempStruct cts;
+            if (cts.state == MEMB)nmemb++;
+            if (cts.state == DER)nder++;
+            /*
             cts.ageb = (real)ageb; cts.agek = (real)agek; cts.ca2p = (real)ca2p; cts.ca2p_avg = (real)ca2p_avg;
             cts.div_times = div_times; cts.ex_fat = (real)ex_fat; cts.fat = (real)fat;
             cts.pair_cell_id = pair_cell_id; cts.rad = (real)rad; cts.spr_len = (real)spr_len;
             cts.state = state; cts.stem_orig_id = stem_orig_id; cts.touch = touch;
             cts.x = (real)x; cts.y = (real)y; cts.z = (real)z; cts.id_count = id_count;
+            */
             on(cman, cts);
 
             //std::cout << "Phase " << phase << "  Cell loaded:" << id_count++ << std::endl;
