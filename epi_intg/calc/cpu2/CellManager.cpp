@@ -8,6 +8,7 @@ std::vector<Cell*> CellLoadProc::tmp_pair;
 CellManager::CellManager(size_t N):Lockfree_push_stack_dyn<Cell*>(N),remove_queue(N),sw(0)
 {
 }
+//TODO:estimate remove queue size
 CellManager::CellManager() : Lockfree_push_stack_dyn<Cell*>(0), remove_queue(0),sw(0)
 {
 }
@@ -59,6 +60,12 @@ void CellManager::remove_exec()
         _data[remove_idx]->migrate(remove_idx);
     }
     remove_queue.clear();
+}
+
+void CellManager::size_check(){
+	this->test_realloc();
+	const size_t cs=this->max_size();
+	if(remove_queue.max_size()<cs)this->remove_queue.resize(this->max_size());
 }
 
 CellLoadProc::CellLoadProc() {

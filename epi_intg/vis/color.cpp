@@ -11,7 +11,7 @@ static const std::vector<float> c_pkwhite = { 1.0f,0.8f,1.0f };
 static const std::vector<float> c_memb = { 0.5f,0.5f,0.5f };
 static const std::vector<float> c_fix_malig = { 0.8f,0.0f,0.1f };
 static const std::vector<float> c_fix_normal = { 0.0f,0.8f,0.1f };
-
+static const std::vector<float> c_fix_alt={ 0.6f,0.1f,0.6f };
 
 static const constexpr double UMIN = 0.1f, UMAX = 0.65f;
 static const constexpr double FMIN = 0.0f, FMAX = 1.0f;
@@ -186,7 +186,8 @@ static std::vector<float> get_FIX_color(const CellTempStruct&cts) {
     switch (vp.mode)
     {
     case VisParams::MEDICAL:
-        return c_color_M(-1.0f, cts.stem_orig_id);
+        return c_fix_alt;
+
         break;
     default:
         return c_color_FIX(cts.stem_orig_id);
@@ -223,6 +224,16 @@ static std::vector<float> get_DEAD_color(const CellTempStruct&cts) {
     }
 }
 
+static std::vector<float> get_DER_color(const CellTempStruct&cts){
+	switch (vp.mode) {
+	case VisParams::HEIGHT:
+		return height_color(cts);
+	default:
+		return {1.0f,1.0f,1.0f};
+
+	}
+}
+
 std::vector<float> get_color_rgb(const CellTempStruct&cts) {
     switch (cts.state) {
     case MEMB:
@@ -235,6 +246,8 @@ std::vector<float> get_color_rgb(const CellTempStruct&cts) {
         return get_ALIVE_color(cts);
     case DEAD:
         return get_DEAD_color(cts);
+    case DER:
+    	return get_DER_color(cts);
     default:
         return{ 1.0f,1.0f,1.0f };
         break;

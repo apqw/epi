@@ -49,10 +49,10 @@ class Vec {
         //return std::inner_product(this->begin(),this->end(),ot.begin(),static_cast<Intg>(0.0));
     }
 public:
-    Vec() :v{} {};
+    Vec() noexcept:v{} {};
 
     template<typename...U>
-    Vec(U...elem) :v{ elem... } {
+    Vec(U...elem) noexcept:v{ elem... } {
         /*
         size_t isz;
         if ((isz =std::distance(il.begin(), il.end()))  > N) {

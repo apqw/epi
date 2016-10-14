@@ -1,8 +1,8 @@
-datadir="/home/yasu7890v/wau/mer/output"
-output="/home/yasu7890v/wau/mer/tmp"
+datadir="/home/yasu7890v/wau/mer2/output"
+output="/home/yasu7890v/wau/mer2/tmp_20"
 MALIGNANT=0
 start=0
-end=900
+end=2000
 X0=0
 Y0=0
 elevation=90
@@ -14,7 +14,8 @@ disp_alive=0
 disp_dead=0
 width=800
 height=600
-color_height_min=15
+color_height_min=10
 color_height_max=25
 TEMP_DIRTY1=1
+show_der=0
 #-m v --cparam ./ppsss --vparam ./vp

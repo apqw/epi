@@ -64,8 +64,12 @@ void calc_with_cpu(CellManager&cman){
     auto ATP = SwapData<Dyn3DArr<real>>(pm->NX + 1, pm->NY + 1, pm->NZ + 1);
     auto ext_stim = SwapData<Dyn3DArr<real>>(pm->NX + 1, pm->NY + 1, pm->NZ + 1);
 	for(size_t i=0;i<pm->NUM_ITR;i++){
+		cman.size_check();
 		if(i%pm->CUT==0){
 			output_cell_data(cman, static_cast<int>(i/pm->CUT));
+		}
+		if(i%(pm->CUT/10)==0){
+			std::cout<<"Current:"<<i<<std::endl;
 		}
         cell_dynamics(cman);
         zzmax=calc_zzmax(cman);

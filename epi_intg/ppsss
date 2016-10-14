@@ -105,6 +105,6 @@ DB=0.000900
 SYSTEM=0
 CUT=1000
 NEW_BEND_POT=1
-outputdir='output'
+outputdir='output_test'
 STOCHASTIC=1
 force_cornification=1

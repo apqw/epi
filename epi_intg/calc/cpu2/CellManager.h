@@ -107,7 +107,7 @@ public:
     void init_value();
 
     template<typename Fn=CellLoadProc>
-    void load(const std::string& path, Fn on=CellLoadProc()) {
+    void load(const std::string& path, Fn&& on=CellLoadProc()) {
         auto&cman = *this;
         /*
         �t�@�C���ǂݍ��ݎ��s
@@ -216,6 +216,30 @@ public:
         cman.nder = nder;
     }
 
+    template<typename Fn=CellLoadProc>
+    void read(const std::string& path, Fn&& on) {
+        auto&cman = *this;
+        /*
+        �t�@�C���ǂݍ��ݎ��s
+        */
+        std::ifstream dstrm(path);
+
+        if (!dstrm) {
+            throw std::runtime_error("Failed to load the cell data file:"_s + path);
+        }
+
+        std::string line;
+
+        CellTempStruct cts;
+        while (std::getline(dstrm, line)) {
+            sscanf(line.c_str(), "%*d %"
+            		PRIu32 " %lf %lf %lf %lf %lf %lf %lf %lf %d %lf %lf %d %lf %d %d",
+                (uint32_t*)&cts.state, &cts.rad, &cts.ageb, &cts.agek, &cts.ca2p, &cts.x, &cts.y, &cts.z, &cts.ca2p_avg, &cts.div_times, &cts.ex_fat, &cts.fat, &cts.touch, &cts.spr_len, &cts.pair_cell_id, &cts.stem_orig_id);
+            if (cts.state == BLANK)break;
+            on(cman, cts);
+        }
+    }
+
     D_CELL_LOOP_ACCESSOR(all, 0, size());
     D_CELL_LOOP_ACCESSOR(memb, 0, nmemb);
     D_CELL_LOOP_ACCESSOR(der, nmemb, nder + nmemb);
@@ -226,6 +250,7 @@ public:
     void pos_periodic_fix();
     bool should_calc_ca();
     void ca_calc_condition_reset();
+    void size_check();
     //~CellManager();
 };
 

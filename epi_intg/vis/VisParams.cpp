@@ -29,11 +29,14 @@ void VisParams::init() {
         gp1(disp_musume),
         gp1(disp_alive),
         gp1(disp_dead),
+
         gp1(width),
         gp1(height),
+
 gp1(color_height_min),
 gp1(color_height_max),
-gp1(TEMP_DIRTY1)
+gp1(TEMP_DIRTY1),
+gp1(show_der)
     };
     datadir = "";
     output = "3Dimage_tmp";
@@ -49,9 +52,12 @@ gp1(TEMP_DIRTY1)
     disp_musume = 1;
     disp_alive = 1;
     disp_dead = 1;
+
     width = 320;
     height = 320;
+
 color_height_min=0.0;
 color_height_max=50;
 TEMP_DIRTY1=false;
+show_der=false;
 }

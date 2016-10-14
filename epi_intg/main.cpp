@@ -142,13 +142,17 @@ int main(int argc,char** argv){
         }
     }
     if (is_cpu || is_gpu) {
-
-    	EH.check("cparam","input");
+    	const bool init_exist=cp.exist("initial");
+    	if(init_exist){
+    		EH.check("cparam");
+    	}else{
+    		EH.check("cparam","input");
+    	}
     	set_param(cp,aptr);
         CellManager cman;
 
         try {
-            if(cp.exist("initial")){
+            if(init_exist){
             	auto inum=parse_init_setting(cp.get<std::string>("initial"));
             	cman=init_gen(std::get<0>(inum),std::get<1>(inum));
             }else{

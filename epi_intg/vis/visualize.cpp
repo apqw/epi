@@ -148,9 +148,12 @@ static void flipYPixel(std::vector<uint8_t>& pix,int w,int h,int ch) {
 static bool should_draw(const CellTempStruct&cts) {
 
     switch (cts.state) {
-    case BLANK:case DER:
+    case BLANK:
         return false;
         break;
+    case DER:
+    	return vp.show_der;
+    	break;
     case MEMB:
         return true;
         break;
@@ -183,15 +186,17 @@ struct OnCellLoadVis {
     static const float diffuse[4];// = { 1.0, 1.0, 1.0, 1.0 };
     static const float specular[4];// = { 0.3, 0.3, 0.3, 1.0 };
     static const float ambient[4];// = { 0.3, 0.3, 0.3, 1.0 };
-    static int count;
+    int count;
     int fcount;
-    OnCellLoadVis() {
+    OnCellLoadVis():count(0),fcount(0) {
     }
     void operator()(CellManager&cman, const CellTempStruct&cts) {
     	count++;
     	if(cts.state==FIX)fcount++;
+
         if (!should_draw(cts))return;
-        
+
+
 
         std::vector<float> color = get_color_rgb(cts);
         if(fcount>16&&vp.TEMP_DIRTY1)color={153.0/255.0, 76.0/255.0, 0.0};
@@ -213,7 +218,6 @@ struct OnCellLoadVis {
     }
 };
 
-int OnCellLoadVis::count=0;
 
 const float OnCellLoadVis::diffuse[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 const float OnCellLoadVis::specular[4] = { 0.3f, 0.3f, 0.3f, 1.0f };
@@ -250,21 +254,24 @@ void visualize() {
 
     CellManager cman;
     
-    auto on = OnCellLoadVis();
+
     std::cout<<"Visualize:\nGenerating images..."<<std::endl;
     for (int i = vp.start; i <= vp.end; i++) {
-    	on.count=0;
-    	on.fcount=0;
+    	auto on = OnCellLoadVis();
+
         clear_gl_buffer();
 
         begin_draw_setting();
         
         glPushMatrix();
-        cman.load(vp.datadir+"/"+std::to_string(i), on);
+        cman.read(vp.datadir+"/"+std::to_string(i), on);
         glPopMatrix();
         end_draw_setting();
-
-        glutSwapBuffers();
+        glFlush();
+        //glutPostRedisplay();
+        //glFlush();
+       glutSwapBuffers();
+        //glFlush();
 
         output_img_from_buffer(i);
         std::cout<<"Done "<<i<<" cell num:"<<on.count<<std::endl;
