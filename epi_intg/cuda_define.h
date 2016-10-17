@@ -15,6 +15,7 @@ typedef double4 real4;
 typedef float4 real4;
 #endif
 
+#define G_MAX_CONNECT_CELL_NUM (407) //lowest 8n+7 s.t >= 400
 
 
 
